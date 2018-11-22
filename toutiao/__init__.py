@@ -4,14 +4,18 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE_DIR, 'common'))
 
-from flask import Flask
-from logging.handlers import RotatingFileHandler
+from flask import Flask, got_request_exception
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from redis import Redis
 
 from utils.logging import set_logging
 from utils.converters import register_converters
+from utils.errors import log_exception
 
+
+# redis连接
+redis_conns = {}
 
 # 限流器
 limiter = Limiter(key_func=get_remote_address)
@@ -37,6 +41,12 @@ def create_app(config, enable_config_file=False):
 
     # 注册url转换器
     register_converters(app)
+
+    # 添加异常处理
+    got_request_exception.connect(log_exception, app)
+
+    # redis
+    redis_conns['sms_code'] = Redis.from_url(app.config['REDIS'].SMS_CODE)
 
     # 数据库连接初始化
     from models import db

@@ -65,13 +65,6 @@ def set_logging(app):
                 'class': 'logging.StreamHandler',
                 'formatter': 'sms_format'
             },
-            'sms_file': {
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(app.config['LOGGING_FILE_DIR'], 'sms.log'),
-                'maxBytes': app.config['LOGGING_FILE_MAX_BYTES'],
-                'backupCount': app.config['LOGGING_FILE_BACKUP'],
-                'formatter': 'sms_format'
-            },
             'limit_file': {
                 'class': 'logging.handlers.RotatingFileHandler',
                 'filename': os.path.join(app.config['LOGGING_FILE_DIR'], 'limit.log'),
@@ -89,8 +82,8 @@ def set_logging(app):
                 'handlers': ['flask_console', 'flask_file'],
                 'level': app.config['LOGGING_LEVEL']
             },
-            'sms': {
-                'handlers': ['sms_console', 'sms_file'],
+            'flask.sms': {
+                'handlers': ['sms_console'],
                 'level': app.config['LOGGING_LEVEL']
             },
             'flask-limiter': {
