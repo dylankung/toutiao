@@ -3,15 +3,15 @@ from aliyunsdkcore.client import AcsClient
 from aliyunsdkcore.profile import region_provider
 from aliyunsdkcore.http import method_type as MT
 from aliyunsdkcore.http import format_type as FT
-from flask import current_app
-import logging
+
+from celery_tasks.main import app as flask_app
 
 # 注意：不要更改
 REGION = "cn-hangzhou"
 PRODUCT_NAME = "Dysmsapi"
 DOMAIN = "dysmsapi.aliyuncs.com"
 
-acs_client = AcsClient(current_app.config['DYSMS_ACCESS_KEY_ID'], current_app.config['DYSMS_ACCESS_KEY_SECRET'], REGION)
+acs_client = AcsClient(flask_app.conf['DYSMS_ACCESS_KEY_ID'], flask_app.conf['DYSMS_ACCESS_KEY_SECRET'], REGION)
 region_provider.add_endpoint(PRODUCT_NAME, REGION, DOMAIN)
 
 
@@ -51,9 +51,6 @@ def send_sms(business_id, phone_numbers, sign_name, template_code, template_para
 
     # 调用短信发送接口，返回json
     sms_response = acs_client.do_action_with_exception(sms_request)
-
-    logger = logging.getLogger('sms')
-    logger.info('{mobile} {code} {param}'.format(mobile=phone_numbers, code=template_code, param=template_param))
 
     return sms_response
 
