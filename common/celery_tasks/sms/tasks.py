@@ -26,8 +26,8 @@ def send_verification_code(self, mobile, code):
         logger.error('[send_verification_code] {}'.format(e))
         raise self.retry(exc=e, max_retries=3)
     resp_dict = json.loads(resp.decode('utf-8'))
-    code = resp_dict.get('Code', 'OK')
-    if code != 'OK':
+    resp_code = resp_dict.get('Code', 'OK')
+    if resp_code != 'OK':
         message = resp_dict.get('Message', '')
         logger.error('[send_verification_code] {}'.format(message))
         raise self.retry(exc=Exception(message), max_retries=3)

@@ -2,15 +2,11 @@ from flask_restful import Resource
 from flask_limiter.util import get_remote_address
 from flask import request
 import random
-import logging
 from flask import current_app
 
 from toutiao import limiter, redis_conns
 from celery_tasks.sms.tasks import send_verification_code
 from .. import constants
-
-
-sms_logger = logging.getLogger('flask.sms')
 
 
 class SMSVerificationCode(Resource):
@@ -32,7 +28,6 @@ class SMSVerificationCode(Resource):
         code = '{:0>6d}'.format(random.randint(0, 999999))
         redis_conns['sms_code'].setex('SMSCode_{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
         send_verification_code.delay(mobile, code)
-        sms_logger.info('SMSVerificationCode {} {}'.format(mobile, code))
         return {'mobile': mobile, 'message': 'OK'}
 
 
