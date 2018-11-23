@@ -34,3 +34,20 @@ class SMSVerificationCode(Resource):
         send_verification_code.delay(mobile, code)
         sms_logger.info('SMSVerificationCode {} {}'.format(mobile, code))
         return {'mobile': mobile, 'message': 'OK'}
+
+
+# class Authorization(Resource):
+#     """
+#     认证
+#     """
+#     def post(self):
+
+
+
+
+
+
+
+
+
+

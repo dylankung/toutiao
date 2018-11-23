@@ -9,7 +9,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from redis import Redis
 
-from utils.logging import set_logging
+from utils.logging import create_logger
 from utils.converters import register_converters
 from utils.errors import log_exception
 
@@ -37,7 +37,7 @@ def create_app(config, enable_config_file=False):
     limiter.init_app(app)
 
     # 配置日志
-    set_logging(app)
+    create_logger(app)
 
     # 注册url转换器
     register_converters(app)
