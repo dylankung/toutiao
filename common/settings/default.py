@@ -16,11 +16,14 @@ class DefaultConfig(object):
     class REDIS:
         SMS_CODE = 'redis://127.0.0.1:6379/1'
 
-
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'
     RATELIMIT_STRATEGY = 'moving-window'
     # RATELIMIT_DEFAULT = ['200/hour;1000/day']
+
+    # JWT
+    JWT_SECRET = 'TPmi4aLWRbyVq8zu9v82dWYW17/z+UvRnYTt4P6fAXA'
+    JWT_EXPIRES_DAY = 1
 
 
 class CeleryConfig(object):

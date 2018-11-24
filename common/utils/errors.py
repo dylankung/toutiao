@@ -1,17 +1,17 @@
-from redis.exceptions import RedisError
+from flask import current_app, jsonify
 
 
-def log_exception(sender, exception, **extra):
+def handle_redis_error(e):
     """
-    记录异常日志
+    处理redis异常
     """
-    if isinstance(exception, RedisError):
-        sender.logger.error('[Redis] {}'.format(exception))
+    current_app.logger.error('[Redis] {}'.format(e))
+    return jsonify(message='Unavailable service.'), 507
 
 
-errors = {
-    'RedisError': {
-        'message': 'Service unavailable.',
-        'status': 507
-    }
-}
+def handler_mysql_error(e):
+    """
+    处理mysql异常
+    """
+    current_app.logger.error('[MySQL] {}'.format(e))
+    return jsonify(message='Unavailable service.'), 507
