@@ -1,12 +1,17 @@
 from flask_restful import Resource
 from flask_limiter.util import get_remote_address
 from flask import request
+from flask_restful.reqparse import RequestParser
 import random
-from flask import current_app
+from datetime import datetime
 
 from toutiao import limiter, redis_conns
 from celery_tasks.sms.tasks import send_verification_code
 from .. import constants
+from utils import parser
+from models import db
+from models.user import UserBasic, UserProfile
+from utils.jwt_util import generate_jwt
 
 
 class SMSVerificationCode(Resource):
@@ -31,11 +36,38 @@ class SMSVerificationCode(Resource):
         return {'mobile': mobile, 'message': 'OK'}
 
 
-# class Authorization(Resource):
-#     """
-#     认证
-#     """
-#     def post(self):
+class Authorization(Resource):
+    """
+    认证
+    """
+    def post(self):
+        json_parser = RequestParser()
+        json_parser.add_argument('mobile', type=parser.mobile, required=True, location='json')
+        json_parser.add_argument('code', type=parser.regex(r'^\d{6}$'), required=True, location='json')
+        args = json_parser.parse_args()
+        mobile = args.mobile
+        code = args.code
+
+        # 从redis中获取验证码
+        real_code = redis_conns['sms_code'].get('SMSCode_{}'.format(mobile))
+        if not real_code or real_code.decode() != code:
+            return {'message': 'Invalid code.'}, 400
+
+        # 查询或保存用户
+        user = UserBasic.query.filter_by(mobile=mobile).first()
+        if user is None:
+            # 用户不存在，注册用户
+            user = UserBasic(mobile=mobile, user_name=mobile, last_login=datetime.now())
+            db.session.add(user)
+            db.session.commit()
+            profile = UserProfile(user_id=user.user_id)
+            db.session.add(profile)
+            db.session.commit()
+
+        # 颁发JWT
+        token = generate_jwt({'user_id': user.user_id})
+        return {'token': token}
+
 
 
 

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from . import db
 
 
@@ -9,8 +11,8 @@ class Channel(db.Model):
 
     channel_id = db.Column(db.Integer, primary_key=True, doc='频道ID')
     channel_name = db.Column(db.String, doc='频道名称')
-    create_time = db.Column(db.DateTime, doc='创建时间')
-    update_time = db.Column(db.DateTime, doc='更新时间')
+    create_time = db.Column(db.DateTime, default=datetime.now, doc='创建时间')
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 
 
 class UserChannel(db.Model):
@@ -22,9 +24,9 @@ class UserChannel(db.Model):
     user_channel_id = db.Column(db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
     channel_id = db.Column(db.Integer, doc='频道ID')
-    create_time = db.Column(db.DateTime, doc='创建时间')
-    is_deleted = db.Column(db.Boolean, doc='是否删除')
-    update_time = db.Column(db.DateTime, doc='更新时间')
+    create_time = db.Column(db.DateTime, default=datetime.now, doc='创建时间')
+    is_deleted = db.Column(db.Boolean, default=False, doc='是否删除')
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 
 
 class PostBasic(db.Model):
@@ -45,13 +47,13 @@ class PostBasic(db.Model):
     channel_id = db.Column(db.Integer, doc='频道ID')
     title = db.Column(db.String, doc='标题')
     cover = db.Column(db.JSON, doc='封面')
-    is_advertising = db.Column(db.Boolean, doc='是否投放广告')
-    create_time = db.Column(db.DateTime, doc='创建时间')
-    status = db.Column(db.Integer, doc='帖文状态')
+    is_advertising = db.Column(db.Boolean, default=False, doc='是否投放广告')
+    create_time = db.Column(db.DateTime, default=datetime.now, doc='创建时间')
+    status = db.Column(db.Integer, default=0, doc='帖文状态')
     reviewer_id = db.Column(db.Integer, doc='审核人员ID')
     review_time = db.Column(db.DateTime, doc='审核时间')
     delete_time = db.Column(db.DateTime, doc='删除时间')
-    comment_count = db.Column(db.Integer, doc='评论数')
+    comment_count = db.Column(db.Integer, default=0, doc='评论数')
 
 
 class PostContent(db.Model):
@@ -71,11 +73,11 @@ class PostStatistic(db.Model):
     __tablename__ = 'news_post_statistic'
 
     post_id = db.Column(db.Integer, primary_key=True, doc='帖文ID')
-    read_count = db.Column(db.Integer, doc='阅读量')
-    like_count = db.Column(db.Integer, doc='点赞量')
-    dislisk_count = db.Column(db.Integer, doc='不喜欢数')
-    repost_count = db.Column(db.Integer, doc='转发数')
-    collect_count = db.Column(db.Integer, doc='收藏数')
+    read_count = db.Column(db.Integer, default=0, doc='阅读量')
+    like_count = db.Column(db.Integer, default=0, doc='点赞量')
+    dislisk_count = db.Column(db.Integer, default=0, doc='不喜欢数')
+    repost_count = db.Column(db.Integer, default=0, doc='转发数')
+    collect_count = db.Column(db.Integer, default=0, doc='收藏数')
 
 
 class Collection(db.Model):
@@ -87,9 +89,9 @@ class Collection(db.Model):
     collection_id = db.Column(db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
     post_id = db.Column(db.Integer, doc='帖文ID')
-    create_time = db.Column(db.DateTime, doc='创建时间')
-    is_deleted = db.Column(db.Boolean, doc='是否删除')
-    update_time = db.Column(db.DateTime, doc='更新时间')
+    create_time = db.Column(db.DateTime, default=datetime.now, doc='创建时间')
+    is_deleted = db.Column(db.Boolean, default=False, doc='是否删除')
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 
 
 class Read(db.Model):
@@ -101,4 +103,4 @@ class Read(db.Model):
     read_id = db.Column(db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
     post_id = db.Column(db.Integer, doc='帖文ID')
-    create_time = db.Column(db.DateTime, doc='创建时间')
+    create_time = db.Column(db.DateTime, default=datetime.now, doc='创建时间')
