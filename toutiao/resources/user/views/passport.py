@@ -60,12 +60,12 @@ class AuthorizationResource(Resource):
             user = User(mobile=mobile, name=mobile, last_login=datetime.now())
             db.session.add(user)
             db.session.commit()
-            profile = UserProfile(user_id=user.user_id)
+            profile = UserProfile(id=user.id)
             db.session.add(profile)
             db.session.commit()
 
         # 颁发JWT
-        token = generate_jwt({'user_id': user.user_id})
+        token = generate_jwt({'user_id': user.id})
         return {'token': token}
 
 
