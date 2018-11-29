@@ -1,0 +1,5 @@
+# 文章数据缓存时间
+CACHE_ARTICLE_EXPIRE = 60 * 60
+
+# 文章详情相关文章推荐数量
+RECOMMENDED_SIMILAR_ARTICLE_MAX = 10

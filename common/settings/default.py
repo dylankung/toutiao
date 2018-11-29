@@ -2,6 +2,8 @@ class DefaultConfig(object):
     """
     Flask默认配置
     """
+    ERROR_404_HELP = False
+    
     # 日志
     LOGGING_LEVEL = 'DEBUG'
     LOGGING_FILE_DIR = '/Users/delron/Desktop/logs'
@@ -11,10 +13,13 @@ class DefaultConfig(object):
     # flask-sqlalchemy使用的参数
     SQLALCHEMY_DATABASE_URI = 'mysql://root:mysql@127.0.0.1/toutiao'  # 数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # 追踪数据的修改信号
+    SQLALCHEMY_ECHO = True
 
     # redis
     class REDIS:
         SMS_CODE = 'redis://127.0.0.1:6379/1'
+        READING_HISTORY = 'redis://127.0.0.1:6379/2'
+        CACHE = 'redis://127.0.0.1:6379/3'
 
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'
@@ -24,6 +29,9 @@ class DefaultConfig(object):
     # JWT
     JWT_SECRET = 'TPmi4aLWRbyVq8zu9v82dWYW17/z+UvRnYTt4P6fAXA'
     JWT_EXPIRES_DAY = 1
+
+    # rpc
+    RPC_SERVER = '172.17.0.134:8888'
 
 
 class CeleryConfig(object):

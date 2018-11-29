@@ -5,16 +5,16 @@ from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime
 
-from toutiao import limiter, redis_conns
+from toutiao import limiter, redis_cli
 from celery_tasks.sms.tasks import send_verification_code
 from .. import constants
 from utils import parser
 from models import db
-from models.user import UserBasic, UserProfile
+from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
 
 
-class SMSVerificationCode(Resource):
+class SMSVerificationCodeResource(Resource):
     """
     短信验证码
     """
@@ -31,12 +31,12 @@ class SMSVerificationCode(Resource):
 
     def get(self, mobile):
         code = '{:0>6d}'.format(random.randint(0, 999999))
-        redis_conns['sms_code'].setex('SMSCode_{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+        redis_cli['sms_code'].setex('SMSCode_{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
         send_verification_code.delay(mobile, code)
-        return {'mobile': mobile, 'message': 'OK'}
+        return {'mobile': mobile}
 
 
-class Authorization(Resource):
+class AuthorizationResource(Resource):
     """
     认证
     """
@@ -49,15 +49,15 @@ class Authorization(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = redis_conns['sms_code'].get('SMSCode_{}'.format(mobile))
+        real_code = redis_cli['sms_code'].get('SMSCode_{}'.format(mobile))
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = UserBasic.query.filter_by(mobile=mobile).first()
+        user = User.query.filter_by(mobile=mobile).first()
         if user is None:
             # 用户不存在，注册用户
-            user = UserBasic(mobile=mobile, user_name=mobile, last_login=datetime.now())
+            user = User(mobile=mobile, user_name=mobile, last_login=datetime.now())
             db.session.add(user)
             db.session.commit()
             profile = UserProfile(user_id=user.user_id)
