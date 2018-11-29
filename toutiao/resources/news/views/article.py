@@ -108,6 +108,8 @@ class ArticleResource(Resource):
             for art in reco_art_list:
                 art['title'] = reco_arts_dict[art['art_id']]
             article_dict['recomments'] = reco_art_list
+
+        current_app.logger.info('end handle the request')
         return article_dict
 
 
