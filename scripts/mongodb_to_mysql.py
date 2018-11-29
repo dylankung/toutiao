@@ -12,9 +12,9 @@ client = MySQLdb.Connect(host='172.17.0.136',
 cursor = client.cursor()
 
 channels = {}
-user_ids = [1, 2]
+user_ids = [1, 2, 3]
 
-with open('/Users/delron/Downloads/news.json', 'r') as f:
+with open('/Users/delron/Downloads/news14w.json', 'r') as f:
     while True:
         l = f.readline()
         if not l:
@@ -39,6 +39,7 @@ with open('/Users/delron/Downloads/news.json', 'r') as f:
                 cursor.execute(sql, args=(channel_name,))
                 channel_id = cursor.lastrowid
                 channels[channel_name] = channel_id
+                client.commit()
                 print('channel_name={} channel_id={}'.format(channel_name, channel_id))
 
         # 处理内容
@@ -57,11 +58,21 @@ with open('/Users/delron/Downloads/news.json', 'r') as f:
             'cover': cover,
             'status': status
         }
-        cursor.execute(sql, args=params)
+        try:
+            cursor.execute(sql, args=params)
+        except Exception as e:
+            client.rollback()
+            continue
         article_id = cursor.lastrowid
         sql = 'insert into news_article_content(article_id, content) values(%(article_id)s, %(content)s);'
-        cursor.execute(sql, args={'article_id': article_id, 'content': data.get('content', '')})
-        print('user_id={} channel_name={} article_id={} title={}'.format(user_id, channel_id, article_id, title))
+        try:
+            cursor.execute(sql, args={'article_id': article_id, 'content': data.get('content', '')})
+        except Exception as e:
+            print('user_id={} channel_name={} title={} error:{}'.format(user_id, channel_name, title, e))
+            client.rollback()
+        else:
+            client.commit()
+            print('user_id={} channel_name={} article_id={} title={}'.format(user_id, channel_name, article_id, title))
 
 client.commit()
 client.close()
