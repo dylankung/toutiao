@@ -80,6 +80,7 @@ class ArticleResource(Resource):
                 article_dict['is_followed'] = True
 
         # 获取相关文章推荐
+        current_app.logger.info('begin handle rpc')
         req_article = article_reco_pb2.Article()
         req_article.article_id = article_id
         req_article.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
