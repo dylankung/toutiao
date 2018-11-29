@@ -1,6 +1,6 @@
 from flask_restful import Resource, abort
 from flask_restful import marshal, fields
-from flask import g
+from flask import g, current_app
 from sqlalchemy.orm import load_only
 import pickle
 from redis.exceptions import RedisError
@@ -17,16 +17,17 @@ class ArticleResource(Resource):
     """
     文章
     """
-
     def get(self, article_id):
         """
         获取文章详情
         :param article_id: int 文章id
         """
+        current_app.logger.info('begin a new request')
         # 非匿名用户添加用户的阅读历史
         user_id = g.user_id
         if user_id:
             # TODO 异步任务保存阅读历史
+
             pass
 
         # 查询文章数据
