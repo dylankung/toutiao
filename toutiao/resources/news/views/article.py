@@ -4,6 +4,7 @@ from flask import g, current_app
 from sqlalchemy.orm import load_only
 import pickle
 from redis.exceptions import RedisError
+import time
 
 from models.news import Article
 from models.user import User, Follow
@@ -22,12 +23,7 @@ class ArticleResource(Resource):
         获取文章详情
         :param article_id: int 文章id
         """
-        # 非匿名用户添加用户的阅读历史
         user_id = g.user_id
-        if user_id:
-            # TODO 异步任务保存阅读历史
-
-            pass
 
         # 查询文章数据
         r_cache = redis_cli['cache']
@@ -70,6 +66,11 @@ class ArticleResource(Resource):
                 r_cache.setex('A_{}'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
             except RedisError:
                 pass
+
+        # 非匿名用户添加用户的阅读历史
+        if user_id:
+            r_his = redis_cli['READING_HISTORY']
+            r_his.hset('H_{}'.format(user_id), article_id, int(time.time()))
 
         # 查询关注
         article_dict['is_followed'] = False
