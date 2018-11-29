@@ -57,7 +57,7 @@ class AuthorizationResource(Resource):
         user = User.query.filter_by(mobile=mobile).first()
         if user is None:
             # 用户不存在，注册用户
-            user = User(mobile=mobile, user_name=mobile, last_login=datetime.now())
+            user = User(mobile=mobile, name=mobile, last_login=datetime.now())
             db.session.add(user)
             db.session.commit()
             profile = UserProfile(user_id=user.user_id)
