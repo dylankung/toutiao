@@ -69,7 +69,7 @@ class ArticleResource(Resource):
 
         # 非匿名用户添加用户的阅读历史
         if user_id:
-            r_his = redis_cli['READING_HISTORY']
+            r_his = redis_cli['read_his']
             r_his.hset('H_{}'.format(user_id), article_id, int(time.time()))
 
         # 查询关注
