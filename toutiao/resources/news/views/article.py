@@ -22,7 +22,6 @@ class ArticleResource(Resource):
         获取文章详情
         :param article_id: int 文章id
         """
-        current_app.logger.info('begin a new request')
         # 非匿名用户添加用户的阅读历史
         user_id = g.user_id
         if user_id:
@@ -79,38 +78,37 @@ class ArticleResource(Resource):
             if ret > 0:
                 article_dict['is_followed'] = True
 
-        # 获取相关文章推荐
-        current_app.logger.info('begin handle rpc')
-        req_article = article_reco_pb2.Article()
-        req_article.article_id = article_id
-        req_article.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
-        try:
-            stub = article_reco_pb2_grpc.ARecommendStub(rpc_cli)
-            resp = stub.artilcle_recommend(req_article)
-        except Exception:
-            article_dict['recomments'] = []
-        else:
-            reco_arts = resp.article_single_param.single_bp
+        article_dict['recomments'] = []
+        # # 获取相关文章推荐
+        # req_article = article_reco_pb2.Article()
+        # req_article.article_id = article_id
+        # req_article.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
+        # try:
+        #     stub = article_reco_pb2_grpc.ARecommendStub(rpc_cli)
+        #     resp = stub.artilcle_recommend(req_article)
+        # except Exception:
+        #     article_dict['recomments'] = []
+        # else:
+        #     reco_arts = resp.article_single_param.single_bp
+        #
+        #     reco_art_list = []
+        #     reco_art_ids = []
+        #     for art in reco_arts:
+        #         reco_art_list.append({
+        #             'art_id': art.article_id,
+        #             'tracking': art.param
+        #         })
+        #         reco_art_ids.append(art.article_id)
+        #
+        #     reco_art_objs = Article.query.options(load_only(Article.id, Article.title)).filter(Article.id.in_(reco_art_ids)).all()
+        #     reco_arts_dict = {}
+        #     for art in reco_art_objs:
+        #         reco_arts_dict[art.id] = art.title
+        #
+        #     for art in reco_art_list:
+        #         art['title'] = reco_arts_dict[art['art_id']]
+        #     article_dict['recomments'] = reco_art_list
 
-            reco_art_list = []
-            reco_art_ids = []
-            for art in reco_arts:
-                reco_art_list.append({
-                    'art_id': art.article_id,
-                    'tracking': art.param
-                })
-                reco_art_ids.append(art.article_id)
-
-            reco_art_objs = Article.query.options(load_only(Article.id, Article.title)).filter(Article.id.in_(reco_art_ids)).all()
-            reco_arts_dict = {}
-            for art in reco_art_objs:
-                reco_arts_dict[art.id] = art.title
-
-            for art in reco_art_list:
-                art['title'] = reco_arts_dict[art['art_id']]
-            article_dict['recomments'] = reco_art_list
-
-        current_app.logger.info('end handle the request')
         return article_dict
 
 
