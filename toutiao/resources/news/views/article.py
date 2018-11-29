@@ -82,27 +82,31 @@ class ArticleResource(Resource):
         req_article = article_reco_pb2.Article()
         req_article.article_id = article_id
         req_article.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
-        stub = article_reco_pb2_grpc.ARecommendStub(rpc_cli)
-        resp = stub.artilcle_recommend(req_article)
-        reco_arts = resp.article_single_param.single_bp
+        try:
+            stub = article_reco_pb2_grpc.ARecommendStub(rpc_cli)
+            resp = stub.artilcle_recommend(req_article)
+        except Exception:
+            article_dict['recomments'] = []
+        else:
+            reco_arts = resp.article_single_param.single_bp
 
-        reco_art_list = []
-        reco_art_ids = []
-        for art in reco_arts:
-            reco_art_list.append({
-                'art_id': art.article_id,
-                'tracking': art.param
-            })
-            reco_art_ids.append(art.article_id)
+            reco_art_list = []
+            reco_art_ids = []
+            for art in reco_arts:
+                reco_art_list.append({
+                    'art_id': art.article_id,
+                    'tracking': art.param
+                })
+                reco_art_ids.append(art.article_id)
 
-        reco_art_objs = Article.query.options(load_only(Article.id, Article.title)).filter(Article.id.in_(reco_art_ids)).all()
-        reco_arts_dict = {}
-        for art in reco_art_objs:
-            reco_arts_dict[art.id] = art.title
+            reco_art_objs = Article.query.options(load_only(Article.id, Article.title)).filter(Article.id.in_(reco_art_ids)).all()
+            reco_arts_dict = {}
+            for art in reco_art_objs:
+                reco_arts_dict[art.id] = art.title
 
-        for art in reco_art_list:
-            art['title'] = reco_arts_dict[art['art_id']]
-        article_dict['recomments'] = reco_art_list
+            for art in reco_art_list:
+                art['title'] = reco_arts_dict[art['art_id']]
+            article_dict['recomments'] = reco_art_list
         return article_dict
 
 
