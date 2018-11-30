@@ -27,7 +27,7 @@ class ArticleResource(Resource):
 
         # 查询文章数据
         r_cache = redis_cli['cache']
-        article_bytes = r_cache.get('A_{}'.format(article_id))
+        article_bytes = r_cache.get('art:{}'.format(article_id))
         if article_bytes:
             # 使用缓存
             article_dict = pickle.loads(article_bytes)
@@ -63,14 +63,17 @@ class ArticleResource(Resource):
             # 缓存
             article_cache = pickle.dumps(article_dict)
             try:
-                r_cache.setex('A_{}'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
+                r_cache.setex('art:{}'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
             except RedisError:
                 pass
 
         # 非匿名用户添加用户的阅读历史
         if user_id:
             r_his = redis_cli['read_his']
-            r_his.hset('H_{}'.format(user_id), article_id, int(time.time()))
+            pl = r_his.pipeline()
+            pl.sadd('users', user_id)
+            pl.hset('his:{}'.format(user_id), article_id, int(time.time()))
+            pl.execute()
 
         # 查询关注
         article_dict['is_followed'] = False

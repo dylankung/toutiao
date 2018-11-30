@@ -31,7 +31,7 @@ class SMSVerificationCodeResource(Resource):
 
     def get(self, mobile):
         code = '{:0>6d}'.format(random.randint(0, 999999))
-        redis_cli['sms_code'].setex('SMSCode_{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+        redis_cli['sms_code'].setex('code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
         send_verification_code.delay(mobile, code)
         return {'mobile': mobile}
 
@@ -49,7 +49,7 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = redis_cli['sms_code'].get('SMSCode_{}'.format(mobile))
+        real_code = redis_cli['sms_code'].get('code:{}'.format(mobile))
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 

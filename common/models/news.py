@@ -106,4 +106,4 @@ class Read(db.Model):
     user_id = db.Column(db.Integer, doc='用户ID')
     article_id = db.Column(db.Integer, doc='文章ID')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
-    utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, doc='更新时间')
