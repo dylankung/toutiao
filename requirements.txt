@@ -1,6 +1,7 @@
 aliyun-python-sdk-core-v3==2.11.0
 amqp==2.3.2
 aniso8601==4.0.1
+APScheduler==3.5.3
 billiard==3.5.0.4
 blinker==1.4
 celery==4.2.1
@@ -26,5 +27,6 @@ pytz==2018.7
 redis==3.0.1
 six==1.11.0
 SQLAlchemy==1.2.14
+tzlocal==1.5.1
 vine==1.1.4
 Werkzeug==0.14.1

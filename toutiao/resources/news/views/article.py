@@ -8,7 +8,7 @@ import time
 
 from models.news import Article
 from models.user import User, Follow
-from toutiao import redis_cli, rpc_cli
+from toutiao.main import redis_cli, rpc_cli
 from rpc import article_reco_pb2_grpc
 from rpc import article_reco_pb2
 from .. import constants
