@@ -5,7 +5,7 @@ from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime
 
-from toutiao import limiter, redis_cli
+from toutiao.main import limiter, redis_cli
 from celery_tasks.sms.tasks import send_verification_code
 from .. import constants
 from utils import parser
