@@ -1,4 +1,8 @@
 import re
+from sqlalchemy import func
+
+from models.user import User
+from models import db
 
 
 def mobile(mobile_str):
@@ -31,3 +35,25 @@ def regex(pattern):
             raise ValueError('Invalid params.')
 
     return validate
+
+
+def user_id(value):
+    """
+    检查是否是user_id
+    :param value: 被检验的值
+    :return: user_id
+    """
+    try:
+        _user_id = int(value)
+    except Exception:
+        raise ValueError('Invalid target user id.')
+    else:
+        if _user_id <= 0:
+            raise ValueError('Invalid target user id.')
+        else:
+            ret = db.session.query(func.count(User.id)).filter_by(id=_user_id).first()
+            if ret[0] > 0:
+                return _user_id
+            else:
+                raise ValueError('Invalid target user id.')
+

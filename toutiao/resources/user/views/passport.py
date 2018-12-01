@@ -4,6 +4,7 @@ from flask import request
 from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime
+from sqlalchemy.orm import load_only
 
 from toutiao.main import limiter, redis_cli
 from celery_tasks.sms.tasks import send_verification_code
@@ -54,7 +55,7 @@ class AuthorizationResource(Resource):
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = User.query.filter_by(mobile=mobile).first()
+        user = User.query.options(load_only(User.id)).filter_by(mobile=mobile).first()
         if user is None:
             # 用户不存在，注册用户
             user = User(mobile=mobile, name=mobile, last_login=datetime.now())
