@@ -23,6 +23,8 @@ class FollowingListResource(Resource):
         json_parser.add_argument('target', type=parser.user_id, required=True, location='json')
         args = json_parser.parse_args()
         target = args.target
+        if target == g.user_id:
+            return {'message': 'User cannot follow self.'}, 400
         query = insert(Follow).values(user_id=g.user_id, following_user_id=target, is_deleted=False)
         query = query.on_duplicate_key_update(is_deleted=False)
         db.session.execute(query)
@@ -40,4 +42,7 @@ class FollowingResource(Resource):
         """
         取消关注用户
         """
-        pass
+        Follow.query.filter_by(user_id=g.user_id, following_user_id=target).update({'is_deleted': True})
+        db.session.commit()
+        return {'message': 'OK'}, 204
+
