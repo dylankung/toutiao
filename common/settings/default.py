@@ -17,9 +17,9 @@ class DefaultConfig(object):
 
     # redis
     class REDIS:
-        SMS_CODE = 'redis://127.0.0.1:6379/1'
-        READING_HISTORY = 'redis://127.0.0.1:6379/2'
-        CACHE = 'redis://127.0.0.1:6379/3'
+        SMS_CODE = 'redis://127.0.0.1:6379/0'
+        READING_HISTORY = 'redis://127.0.0.1:6379/1'
+        CACHE = 'redis://127.0.0.1:6379/2'
 
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'

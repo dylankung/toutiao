@@ -10,5 +10,5 @@ news_api = Api(news_bp, catch_all_404s=True)
 news_api.representation('application/json')(output_json)
 
 
-news_api.add_resource(article.ArticleResource, '/v1_0/articles/<int:article_id>')
+news_api.add_resource(article.ArticleResource, '/v1_0/articles/<int:article_id>', endpoint='Article')
 
