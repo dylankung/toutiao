@@ -166,7 +166,16 @@ CREATE TABLE `news_read` (
   UNIQUE KEY `user_article` (`user_id`, `article_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户阅读历史';
 
-
+CREATE TABLE `news_attitude` (
+  `attitude_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `article_id` bigint(20) unsigned NOT NULL COMMENT '文章ID',
+  `attitude` tinyint(1) NULL COMMENT '态度，0-不喜欢，1-喜欢',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`attitude_id`),
+  UNIQUE KEY `user_article` (`user_id`, `article_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户文章态度表';
 
 
 
