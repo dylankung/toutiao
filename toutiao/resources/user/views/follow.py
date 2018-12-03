@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
-from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.exc import IntegrityError
 from flask import g
 

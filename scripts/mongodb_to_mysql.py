@@ -64,7 +64,8 @@ with open('/Users/delron/Downloads/news14w.json', 'r') as f:
             client.rollback()
             continue
         article_id = cursor.lastrowid
-        sql = 'insert into news_article_content(article_id, content) values(%(article_id)s, %(content)s);'
+        sql = 'insert into news_article_content(article_id, content) values(%(article_id)s, %(content)s);' \
+              'insert into news_article_statistic(article_id) values(%(article_id)s);'
         try:
             cursor.execute(sql, args={'article_id': article_id, 'content': data.get('content', '')})
         except Exception as e:
