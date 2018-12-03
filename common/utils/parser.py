@@ -2,6 +2,7 @@ import re
 from sqlalchemy import func
 
 from models.user import User
+from models.news import Article
 from models import db
 
 
@@ -57,3 +58,23 @@ def user_id(value):
             else:
                 raise ValueError('Invalid target user id.')
 
+
+def article_id(value):
+    """
+    检查是否是article_id
+    :param value: 被检验的值
+    :return: article_id
+    """
+    try:
+        _article_id = int(value)
+    except Exception:
+        raise ValueError('Invalid target article id.')
+    else:
+        if _article_id <= 0:
+            raise ValueError('Invalid target article id.')
+        else:
+            ret = db.session.query(func.count(Article.id)).filter_by(id=_article_id).first()
+            if ret[0] > 0:
+                return _article_id
+            else:
+                raise ValueError('Invalid target article id.')
