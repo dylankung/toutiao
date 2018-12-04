@@ -181,7 +181,7 @@ CREATE TABLE `news_report` (
   `report_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
   `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
   `article_id` bigint(20) unsigned NOT NULL COMMENT '文章ID',
-  `type` tinyint(2) NULL COMMENT '类型，1-标题夸张，2-低俗色情，3-错别字多，4-旧闻重复，5-广告软文，6-内容不实，7-涉嫌违法犯罪，8-侵权，9-其他问题',
+  `type` tinyint(2) NULL COMMENT '类型，0-其他问题，1-标题夸张，2-低俗色情，3-错别字多，4-旧闻重复，5-广告软文，6-内容不实，7-涉嫌违法犯罪，8-侵权',
   `remark` varchar(200) NULL COMMENT '备注问题',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`report_id`),

@@ -133,6 +133,11 @@ class Report(db.Model):
     """
     __tablename__ = 'news_report'
 
+    TYPE_LIST = (0, 1, 2, 3, 4, 5, 6, 7, 8)
+
+    class TYPE:
+        OTHER = 0
+
     id = db.Column('report_id', db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
     article_id = db.Column(db.Integer, doc='文章ID')
