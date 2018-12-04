@@ -54,3 +54,5 @@ class CollectionResource(Resource):
             ArticleStatistic.query.filter_by(id=target).update({'collect_count': ArticleStatistic.collect_count - 1})
         db.session.commit()
         return {'message': 'OK'}, 204
+
+

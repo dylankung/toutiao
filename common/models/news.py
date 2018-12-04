@@ -117,7 +117,7 @@ class Attitude(db.Model):
 
     class ATTITUDE:
         DISLIKE = 0  # 不喜欢
-        LIKE = 1  # 点赞
+        LIKING = 1  # 点赞
 
     id = db.Column('attitude_id', db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
