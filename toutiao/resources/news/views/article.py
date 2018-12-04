@@ -82,6 +82,8 @@ class ArticleResource(Resource):
             if ret > 0:
                 article_dict['is_followed'] = True
 
+        # TODO 查询登录用户对文章的态度（点赞or不喜欢）
+
         article_dict['recomments'] = []
         # # 获取相关文章推荐
         # req_article = article_reco_pb2.Article()
