@@ -125,3 +125,17 @@ class Attitude(db.Model):
     attitude = db.Column(db.Boolean, doc='态度')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
+
+
+class Report(db.Model):
+    """
+    文章举报
+    """
+    __tablename__ = 'news_report'
+
+    id = db.Column('report_id', db.Integer, primary_key=True, doc='主键ID')
+    user_id = db.Column(db.Integer, doc='用户ID')
+    article_id = db.Column(db.Integer, doc='文章ID')
+    type = db.Column(db.Boolean, doc='问题类型')
+    remark = db.Column(db.String, doc='备注问题')
+    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
