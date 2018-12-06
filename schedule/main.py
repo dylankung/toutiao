@@ -24,6 +24,9 @@ create_logger()
 from reading_history import save_reading_history_to_mysql
 scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=30)
 
+from cache import clear_user_data_cache
+scheduler.add_job(clear_user_data_cache, trigger='interval', minutes=10)
+
 scheduler.start()
 
 

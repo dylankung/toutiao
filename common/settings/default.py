@@ -19,7 +19,8 @@ class DefaultConfig(object):
     class REDIS:
         SMS_CODE = 'redis://127.0.0.1:6379/0'
         READING_HISTORY = 'redis://127.0.0.1:6379/1'
-        CACHE = 'redis://127.0.0.1:6379/2'
+        ARTICLE_CACHE = 'redis://127.0.0.1:6379/2'
+        USER_CACHE = 'redis://127.0.0.1:6379/3'
 
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'
@@ -28,7 +29,7 @@ class DefaultConfig(object):
 
     # JWT
     JWT_SECRET = 'TPmi4aLWRbyVq8zu9v82dWYW17/z+UvRnYTt4P6fAXA'
-    JWT_EXPIRES_DAY = 1
+    JWT_EXPIRES_DAY = 7
 
     # rpc
     RPC_SERVER = '172.17.0.134:8888'

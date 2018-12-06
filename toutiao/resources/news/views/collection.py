@@ -35,7 +35,7 @@ class CollectionListResource(Resource):
         if ret > 0:
             ArticleStatistic.query.filter_by(id=target).update({'collect_count': ArticleStatistic.collect_count + 1})
         db.session.commit()
-        return {'target': target}
+        return {'target': target}, 201
 
 
 class CollectionResource(Resource):

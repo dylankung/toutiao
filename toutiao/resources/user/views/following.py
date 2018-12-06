@@ -38,7 +38,7 @@ class FollowingListResource(Resource):
             User.query.filter_by(id=target).update({'fans_count': User.fans_count+1})
             User.query.filter_by(id=g.user_id).update({'following_count': User.following_count+1})
         db.session.commit()
-        return {'target': target}
+        return {'target': target}, 201
 
 
 class FollowingResource(Resource):

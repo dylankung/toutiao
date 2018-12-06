@@ -1,6 +1,8 @@
 from flask import g
 from functools import wraps
 
+from utils.cache import save_user_data_cache
+
 
 def login_required(func):
     """
@@ -12,6 +14,8 @@ def login_required(func):
         if not g.user_id:
             return {'message': 'User must be authorized.'}, 401
         else:
+            # 设置或更新用户缓存
+            save_user_data_cache(g.user_id)
             return func(*args, **kwargs)
 
     return wrapper

@@ -183,14 +183,33 @@ CREATE TABLE `news_report` (
   `article_id` bigint(20) unsigned NOT NULL COMMENT '文章ID',
   `type` tinyint(2) NULL COMMENT '类型，0-其他问题，1-标题夸张，2-低俗色情，3-错别字多，4-旧闻重复，5-广告软文，6-内容不实，7-涉嫌违法犯罪，8-侵权',
   `remark` varchar(200) NULL COMMENT '备注问题',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`report_id`),
   UNIQUE KEY `user_article` (`user_id`, `article_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='文章举报';
 
+CREATE TABLE `news_comment` (
+  `comment_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '评论id',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `article_id` bigint(20) unsigned NOT NULL COMMENT '文章ID',
+  `parent_id` bigint(20) unsigned NULL COMMENT '评论ID',
+  `like_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '点赞数',
+  `content` varchar(200) NOT NULL COMMENT '评论内容',
+  `is_top` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否置顶',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态，0-待审核，1-审核通过，2-审核失败，3-已删除',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`comment_id`),
+  KEY `article_status` (`article_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='文章评论';
 
-
-
+CREATE TABLE `news_comment_liking` (
+  `liking_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `comment_id` bigint(20) unsigned NOT NULL COMMENT '评论ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`liking_id`),
+  UNIQUE KEY `user_comment` (`user_id`, `comment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='评论点赞';
 
 
 

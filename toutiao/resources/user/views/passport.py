@@ -13,6 +13,7 @@ from utils import parser
 from models import db
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
+from utils.cache import save_user_data_cache
 
 
 class SMSVerificationCodeResource(Resource):
@@ -67,7 +68,11 @@ class AuthorizationResource(Resource):
 
         # 颁发JWT
         token = generate_jwt({'user_id': user.id})
-        return {'token': token}
+
+        # 缓存用户信息
+        save_user_data_cache(user.id, user)
+
+        return {'token': token}, 201
 
 
 
