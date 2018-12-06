@@ -41,7 +41,7 @@ class ReportListResource(Resource):
         except IntegrityError:
             return {'message': 'User has reported this article.'}, 409
 
-        return {'target': args.target, 'type': args.type}
+        return {'target': args.target, 'type': args.type}, 201
 
 
 

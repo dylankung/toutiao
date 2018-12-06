@@ -72,7 +72,7 @@ class AuthorizationResource(Resource):
         # 缓存用户信息
         save_user_data_cache(user.id, user)
 
-        return {'token': token}
+        return {'token': token}, 201
 
 
 

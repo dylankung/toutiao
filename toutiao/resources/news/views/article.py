@@ -25,6 +25,8 @@ class ArticleResource(Resource):
         """
         user_id = g.user_id
 
+        # TODO 文章做全局缓存层
+
         # 查询文章数据
         r_cache = redis_cli['art_cache']
         article_bytes = r_cache.get('art:{}'.format(article_id))

@@ -51,7 +51,7 @@ class DislikeListResource(Resource):
                 })
                 db.session.commit()
 
-        return {'target': target}
+        return {'target': target}, 201
 
 
 class DislikeResource(Resource):

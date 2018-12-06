@@ -38,7 +38,7 @@ app.redis_cli = redis_cli
 # rpc
 rpc_cli = grpc.insecure_channel(app.config['RPC_SERVER'])
 
-# 数据库连接初始化
+# MySQL数据库连接初始化
 from models import db
 
 db.init_app(app)

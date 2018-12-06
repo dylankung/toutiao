@@ -144,3 +144,38 @@ class Report(db.Model):
     type = db.Column(db.Boolean, doc='问题类型')
     remark = db.Column(db.String, doc='备注问题')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
+
+
+class Comment(db.Model):
+    """
+    文章评论
+    """
+    __tablename__ = 'news_comment'
+
+    class STATUS:
+        UNREVIEWED = 0  # 待审核
+        APPROVED = 1  # 审核通过
+        FAILED = 2  # 审核失败
+        DELETED = 3  # 已删除
+
+    id = db.Column('comment_id', db.Integer, primary_key=True, doc='评论ID')
+    user_id = db.Column(db.Integer, doc='用户ID')
+    article_id = db.Column(db.Integer, doc='文章ID')
+    parent_id = db.Column(db.Integer, doc='被评论的评论id')
+    like_count = db.Column(db.Integer, default=0, doc='点赞数')
+    content = db.Column(db.String, doc='评论内容')
+    is_top = db.Column(db.Boolean, default=False, doc='是否置顶')
+    status = db.Column(db.Integer, default=1, doc='评论状态')
+    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
+
+
+class CommentLiking(db.Model):
+    """
+    评论点赞
+    """
+    __tablename__ = 'news_comment_liking'
+
+    id = db.Column('liking_id', db.Integer, primary_key=True, doc='主键ID')
+    user_id = db.Column(db.Integer, doc='用户ID')
+    comment_id = db.Column(db.Integer, doc='评论ID')
+    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')

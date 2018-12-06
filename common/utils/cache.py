@@ -12,8 +12,8 @@ def save_user_data_cache(user_id, user=None):
     """
     r = current_app.redis_cli['user_cache']
     timestamp = time.time()
-    ret = r.zadd('recent:', {user_id, timestamp})
-    if ret == 0:
+    ret = r.zadd('recent:', {user_id: timestamp})
+    if ret > 0:
         if user is None:
             user = User.query.options(load_only(User.name, User.mobile, User.profile_photo)) \
                 .filter_by(id=user_id).first()
@@ -22,4 +22,4 @@ def save_user_data_cache(user_id, user=None):
             'name': user.name,
             'photo': user.profile_photo
         }
-        r.set('recent:'.format(user_id), pickle.dumps(user_data))
+        r.set('recent:{}'.format(user_id), pickle.dumps(user_data))
