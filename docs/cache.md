@@ -9,12 +9,12 @@
 
 # 2 Comment Cache
 
-| key                        | 类型 | 说明                                                         | 举例                       |
-| -------------------------- | ---- | ------------------------------------------------------------ | -------------------------- |
-| a:comm:                    | zset | 热门评论的文章列表<br />获取评论时添加，评论审核时更新缓存<br />aps定时任务定时清理，仅保留有限的评论记录 | [{article_id, timestamp}]  |
-| a:comm:{article_id}        | zset | article_id文章的评论数据缓存，pickle序列化的数据             | [{'comment',  comment_id}] |
-| a:comm:{article_id}:figure | hash | article_id文章的评论数据<br />count字段为评论总数<br />end_id字段为最后时间倒序的最后一个评论id | {"count":0, "end_id": xxx} |
-| c:comm:                    | zset | 热门评论的评论列表<br />获取评论时添加，评论审核时更新缓存<br />aps定时任务定时清理，仅保留有限的评论记录 | [{comment_id, timestamp}]  |
-| c:comm:{comment_id}        | zset | comment_id评论的评论数据缓存，pickle序列化的数据             | [{'comment',  comment_id}] |
-| c:comm:{comment_id}:figure | hash | comment_id文章的评论数据<br />count字段为评论总数<br />end_id字段为最后时间倒序的最后一个评论id | {"count":0, "end_id": xxx} |
+| key                       | 类型 | 说明                                                         | 举例                       |
+| ------------------------- | ---- | ------------------------------------------------------------ | -------------------------- |
+| comm                      | zset | 热门评论的文章列表<br />获取评论时添加，评论审核时更新缓存<br />aps定时任务定时清理，仅保留有限的评论记录 | [{article_id, timestamp}]  |
+| comm:{article_id}         | zset | article_id文章的评论数据缓存，pickle序列化的数据             | [{'comment',  comment_id}] |
+| comm:{article_id}:figure  | hash | article_id文章的评论数据<br />count字段为评论总数<br />end_id字段为最后时间倒序的最后一个评论id | {"count":0, "end_id": xxx} |
+| reply                     | zset | 热门评论的评论列表<br />获取评论时添加，评论审核时更新缓存<br />aps定时任务定时清理，仅保留有限的评论记录 | [{comment_id, timestamp}]  |
+| reply:{comment_id}        | zset | comment_id评论的评论数据缓存，pickle序列化的数据             | [{'comment',  comment_id}] |
+| reply:{comment_id}:figure | hash | comment_id文章的评论数据<br />count字段为评论总数<br />end_id字段为最后时间倒序的最后一个评论id | {"count":0, "end_id": xxx} |
 
