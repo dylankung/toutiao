@@ -1,7 +1,7 @@
 from flask import g
 from functools import wraps
 
-from utils.cache import save_user_data_cache
+from cache.user import save_user_data_cache
 
 
 def login_required(func):
