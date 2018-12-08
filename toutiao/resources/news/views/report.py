@@ -15,8 +15,7 @@ class ReportListResource(Resource):
     """
     method_decorators = [login_required]
 
-    @staticmethod
-    def _report_type(value):
+    def _report_type(self, value):
         if value not in Report.TYPE_LIST:
             raise ValueError('Invalid report type.')
         else:
@@ -28,7 +27,7 @@ class ReportListResource(Resource):
         """
         json_parser = RequestParser()
         json_parser.add_argument('target', type=parser.article_id, required=True, location='json')
-        json_parser.add_argument('type', type=ReportListResource._report_type, required=True, location='json')
+        json_parser.add_argument('type', type=self._report_type, required=True, location='json')
         json_parser.add_argument('remark', type=str, required=False, location='json')
         args = json_parser.parse_args()
 

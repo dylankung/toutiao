@@ -194,12 +194,14 @@ CREATE TABLE `news_comment` (
   `article_id` bigint(20) unsigned NOT NULL COMMENT '文章ID',
   `parent_id` bigint(20) unsigned NULL COMMENT '评论ID',
   `like_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '点赞数',
+  `reply_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '回复数',
   `content` varchar(200) NOT NULL COMMENT '评论内容',
   `is_top` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否置顶',
   `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态，0-待审核，1-审核通过，2-审核失败，3-已删除',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`comment_id`),
-  KEY `article_status` (`article_id`, `status`)
+  KEY `article_id` (`article_id`),
+  KEY `parent_id` (`parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='文章评论';
 
 CREATE TABLE `news_comment_liking` (
