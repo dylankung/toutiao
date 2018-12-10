@@ -12,7 +12,7 @@ def save_user_data_cache(user_id, user=None):
     """
     r = current_app.redis_cli['user_cache']
     timestamp = time.time()
-    ret = r.zadd('user:', {user_id: timestamp})
+    ret = r.zadd('user', {user_id: timestamp})
     if ret > 0:
         if user is None:
             user = User.query.options(load_only(User.name, User.mobile, User.profile_photo)) \
