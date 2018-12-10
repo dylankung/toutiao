@@ -103,12 +103,12 @@ class CommentListResource(Resource):
             # 文章评论
             article_id = args.source
 
-            # TODO 判断文章是否存在
             result = cache_comment.get_comments_by_article(article_id, args.offset, limit)
-            return result
         else:
             # 评论的评论
             comment_id = args.source
-            pass
 
+            result = cache_comment.get_reply_by_comment(comment_id, args.offset, limit)
+
+        return result
 
