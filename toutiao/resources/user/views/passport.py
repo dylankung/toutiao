@@ -13,7 +13,7 @@ from utils import parser
 from models import db
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
-from utils.cache import save_user_data_cache
+from cache.user import save_user_data_cache
 
 
 class SMSVerificationCodeResource(Resource):
