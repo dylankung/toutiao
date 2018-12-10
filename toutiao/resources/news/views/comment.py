@@ -25,12 +25,12 @@ class CommentListResource(Resource):
         json_parser = RequestParser()
         json_parser.add_argument('target', type=positive, required=True, location='json')
         json_parser.add_argument('content', required=True, location='json')
-        json_parser.add_argument('aid', type=parser.article_id, required=False, location='json')
+        json_parser.add_argument('art_id', type=parser.article_id, required=False, location='json')
 
         args = json_parser.parse_args()
         target = args.target
         content = args.content
-        article_id = args.aid
+        article_id = args.art_id
 
         if not article_id:
             # 对文章评论
