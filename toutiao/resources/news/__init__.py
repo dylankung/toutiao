@@ -19,10 +19,10 @@ news_api.add_resource(collection.CollectionListResource, '/v1_0/article/collecti
 news_api.add_resource(collection.CollectionResource, '/v1_0/article/collections/<int(min=1):target>',
                       endpoint='ArticleCollection')
 
-news_api.add_resource(liking.LikingListResource, '/v1_0/article/likings',
+news_api.add_resource(liking.ArticleLikingListResource, '/v1_0/article/likings',
                       endpoint='ArticleLikings')
 
-news_api.add_resource(liking.LikingResource, '/v1_0/article/likings/<int(min=1):target>',
+news_api.add_resource(liking.ArticleLikingResource, '/v1_0/article/likings/<int(min=1):target>',
                       endpoint='ArticleLiking')
 
 news_api.add_resource(dislike.DislikeListResource, '/v1_0/article/dislikes',
@@ -36,4 +36,10 @@ news_api.add_resource(report.ReportListResource, '/v1_0/article/reports',
 
 news_api.add_resource(comment.CommentListResource, '/v1_0/comments',
                       endpoint='Comments')
+
+news_api.add_resource(liking.CommentLikingListResource, '/v1_0/comment/likings',
+                      endpoint='CommentLikings')
+
+news_api.add_resource(liking.CommentLikingResource, '/v1_0/comment/likings/<int(min=1):target>',
+                      endpoint='CommentLiking')
 

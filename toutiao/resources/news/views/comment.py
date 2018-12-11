@@ -52,6 +52,7 @@ class CommentListResource(Resource):
             # TODO 增加评论审核后 在评论审核中累计评论数量
             Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + 1})
             Comment.query.filter_by(id=target).update({'reply_count': Comment.reply_count + 1})
+            cache_comment.update_comment_reply_count(target)
             db.session.commit()
 
         return {'com_id': comment.id, 'target': target, 'art_id': article_id}, 201

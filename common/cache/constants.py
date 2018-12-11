@@ -1,7 +1,2 @@
-from toutiao.resources.news.constants import DEFAULT_COMMENT_PER_PAGE_MIN
-
-# 评论数据缓存上限
-COMMENTS_CACHE_LIMIT = DEFAULT_COMMENT_PER_PAGE_MIN * 20
-
 # 缓存评论最大SCORE
 COMMENTS_CACHE_MAX_SCORE = 2e19
