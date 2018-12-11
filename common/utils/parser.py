@@ -4,6 +4,7 @@ from sqlalchemy import func
 from models.user import User
 from models.news import Article
 from models import db
+from cache import comment as cache_comment
 
 
 def mobile(mobile_str):
@@ -65,6 +66,7 @@ def article_id(value):
     :param value: 被检验的值
     :return: article_id
     """
+    # TODO 从缓存中判断
     try:
         _article_id = int(value)
     except Exception:
@@ -78,3 +80,24 @@ def article_id(value):
                 return _article_id
             else:
                 raise ValueError('Invalid target article id.')
+
+
+def comment_id(value):
+    """
+    检查是否是评论id
+    :param value: 被检验的值
+    :return: comment_id
+    """
+    try:
+        _comment_id = int(value)
+    except Exception:
+        raise ValueError('Invalid target comment id.')
+    else:
+        if _comment_id <= 0:
+            raise ValueError('Invalid target comment id.')
+        else:
+            ret = cache_comment.determine_comment_exists(_comment_id)
+            if ret:
+                return _comment_id
+            else:
+                raise ValueError('Invalid target comment id.')

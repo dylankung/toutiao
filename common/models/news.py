@@ -182,3 +182,5 @@ class CommentLiking(db.Model):
     user_id = db.Column(db.Integer, doc='用户ID')
     comment_id = db.Column(db.Integer, doc='评论ID')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
+    is_deleted = db.Column(db.Boolean, default=False, doc='是否删除')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')

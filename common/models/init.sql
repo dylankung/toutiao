@@ -209,6 +209,8 @@ CREATE TABLE `news_comment_liking` (
   `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
   `comment_id` bigint(20) unsigned NOT NULL COMMENT '评论ID',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否取消点赞, 0-未取消, 1-已取消',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`liking_id`),
   UNIQUE KEY `user_comment` (`user_id`, `comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='评论点赞';

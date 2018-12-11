@@ -1,8 +1,9 @@
 from common import redis_cli
 
 USER_CACHE_LIMIT = 10000
-COMMENT_CACHE_LIMIT = 10000
-COMMENT_REPLY_CACHE_LIMIT = 10000
+ARTICLE_COMMENT_CACHE_LIMIT = 10000  # 热门评论的文章缓存数量
+COMMENT_REPLY_CACHE_LIMIT = 10000  # 热门回复的评论缓存数量
+COMMENT_CONTENT_CACHE_LIMIT = 100  # 评论的缓存限制
 
 
 def clear_user_cache():
@@ -30,36 +31,86 @@ def clear_comment_cache():
     清理评论（包括评论回复）的缓存，仅保留有限的最热评论数据
     """
     r = redis_cli['comm_cache']
+    pl = r.pipeline()
 
     # 清理文章评论
-    size = r.zcard('comm')
-    if size > COMMENT_CACHE_LIMIT:
-        end_index = size - COMMENT_CACHE_LIMIT
-        comment_id_li = r.zrange('comm', 0, end_index-1)
-        comment_cache_keys = []
-        for comment_id in comment_id_li:
-            _id = comment_id.decode()
-            comment_cache_keys.append('comm:{}'.format(_id))
-            comment_cache_keys.append('comm:{}:figure'.format(_id))
-        pl = r.pipeline()
-        pl.delete(*comment_cache_keys)
-        pl.zrem('comm', *comment_id_li)
-        pl.execute()
+    size = r.zcard('art:comm')
+
+    # 清理非热门评论
+    if size > ARTICLE_COMMENT_CACHE_LIMIT:
+        end_index = size - ARTICLE_COMMENT_CACHE_LIMIT
+        article_id_li = r.zrange('art:comm', 0, end_index-1)
+        delete_keys = []
+        if article_id_li:
+            for article_id in article_id_li:
+
+                comment_id_li = r.zrange('art:{}:comm'.format(article_id), 0, -1)
+                if comment_id_li:
+                    for comment_id in comment_id_li:
+                        delete_keys.append('comm:{}'.format(comment_id))
+
+                delete_keys.append('art:{}:comm'.format(article_id))
+                delete_keys.append('art:{}:comm:figure'.format(article_id))
+
+            if delete_keys:
+                pl.delete(*delete_keys)
+            pl.zrem('art:comm', *article_id_li)
+            pl.execute()
+
+    # 清理热门评论数量
+    delete_keys = []
+    article_id_li = r.zrange('art:comm', 0, -1)
+    if article_id_li:
+        for article_id in article_id_li:
+            size = r.zcard('art:{}:comm'.format(article_id))
+            if size > COMMENT_CONTENT_CACHE_LIMIT:
+                end_index = size - ARTICLE_COMMENT_CACHE_LIMIT
+                comment_id_li = r.zrange('art:{}:comm'.format(article_id), 0, end_index - 1)
+                if comment_id_li:
+                    for comment_id in comment_id_li:
+                        delete_keys.append('comm:{}'.format(comment_id))
+    if delete_keys:
+        r.delete(*delete_keys)
 
     # 清理评论回复
-    size = r.zcard('reply')
+    size = r.zcard('comm:reply')
+
+    # 清理非热门评论回复
     if size > COMMENT_REPLY_CACHE_LIMIT:
         end_index = size - COMMENT_REPLY_CACHE_LIMIT
-        comment_id_li = r.zrange('reply', 0, end_index - 1)
-        comment_cache_keys = []
+        comment_id_li = r.zrange('comm:reply', 0, end_index-1)
+        delete_keys = []
+        if comment_id_li:
+            for comment_id in comment_id_li:
+
+                reply_id_li = r.zrange('comm:{}:reply'.format(comment_id), 0, -1)
+                if reply_id_li:
+                    for reply_id in reply_id_li:
+                        delete_keys.append('comm:{}'.format(reply_id))
+
+                delete_keys.append('comm:{}:reply'.format(comment_id))
+                delete_keys.append('comm:{}:reply:figure'.format(comment_id))
+
+            if delete_keys:
+                pl.delete(*delete_keys)
+
+            pl.zrem('comm:reply', *comment_id_li)
+            pl.execute()
+
+    # 清理热门评论回复数量
+    delete_keys = []
+    comment_id_li = r.zrange('comm:reply', 0, -1)
+    if comment_id_li:
         for comment_id in comment_id_li:
-            _id = comment_id.decode()
-            comment_cache_keys.append('reply:{}'.format(_id))
-            comment_cache_keys.append('reply:{}:figure'.format(_id))
-        pl = r.pipeline()
-        pl.delete(*comment_cache_keys)
-        pl.zrem('reply', *comment_id_li)
-        pl.execute()
+            size = r.zcard('comm:{}:reply'.format(comment_id))
+            if size > COMMENT_CONTENT_CACHE_LIMIT:
+                end_index = size - ARTICLE_COMMENT_CACHE_LIMIT
+                reply_id_li = r.zrange('comm:{}:reply'.format(comment_id), 0, end_index - 1)
+                if reply_id_li:
+                    for reply_id in reply_id_li:
+                        delete_keys.append('comm:{}'.format(reply_id))
+    if delete_keys:
+        r.delete(*delete_keys)
 
 
 
