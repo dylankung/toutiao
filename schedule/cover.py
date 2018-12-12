@@ -2,8 +2,12 @@ from sqlalchemy.orm import load_only
 import re
 import random
 from common import toutiao_app, db
+import logging
 
 from models.news import Article, ArticleContent
+
+
+logger = logging.getLogger('apscheduler')
 
 
 def generate_article_cover():
@@ -14,6 +18,10 @@ def generate_article_cover():
     with toutiao_app.app_context():
         for article_id in range(1, max+1):
             article = Article.query.options(load_only(Article.cover)).filter_by(id=article_id).first()
+            if not article:
+                continue
+            logging.info('handle {}'.format(article_id))
+
             if article.cover['type'] > 0:
                 return
             content = ArticleContent.query.filter_by(id=article_id).first()
