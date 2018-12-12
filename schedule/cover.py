@@ -24,14 +24,14 @@ def generate_article_cover():
             logging.info('handle {}'.format(article_id))
 
             if article.cover['type'] > 0:
-                return
+                continue
             content = ArticleContent.query.filter_by(id=article_id).first()
             if content is None:
-                return
+                continue
             results = re.findall(r'src=\"http([^"]+)\"', content.content)
             length = len(results)
             if length <= 0:
-                return
+                continue
             elif length < 3:
                 img_url = random.choice(results)
                 img_url = 'http' + img_url
