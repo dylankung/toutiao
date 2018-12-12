@@ -7,8 +7,10 @@ from redis.exceptions import RedisError
 import time
 from flask_restful.reqparse import RequestParser
 from flask_restful.inputs import positive, int_range
+import re
+import random
 
-from models.news import Article
+from models.news import Article, ArticleContent
 from models.user import User, Follow
 from toutiao.main import redis_cli, rpc_cli
 from rpc import article_reco_pb2_grpc
@@ -16,6 +18,7 @@ from rpc import article_reco_pb2
 from .. import constants
 from utils import parser
 from cache import article as cache_article
+from models import db
 
 
 class ArticleResource(Resource):
@@ -145,6 +148,33 @@ class ArticleListResource(Resource):
         else:
             return []
 
+    def _generate_article_cover(self, article_id):
+        """
+        生成文章封面(处理测试数据专用）
+        :param article_id: 文章id
+        """
+        article = Article.query.options(load_only(Article.cover)).filter_by(id=article_id).first()
+        if article.cover['type'] > 0:
+            return
+        content = ArticleContent.query.filter_by(id=article_id).first()
+        if content is None:
+            return
+        results = re.findall(r'src=\"http([^"]+)\"', content.content)
+        length = len(results)
+        if length <= 0:
+            return
+        elif length < 3:
+            img_url = random.choice(results)
+            img_url = 'http' + img_url
+            Article.query.filter_by(id=article_id).update({'cover': {'type': 1, 'images': [img_url]}})
+            db.session.commit()
+        else:
+            random.shuffle(results)
+            img_urls = results[:3]
+            img_urls = ['http'+img_url for img_url in img_urls]
+            Article.query.filter_by(id=article_id).update({'cover': {'type': 3, 'images': img_urls}})
+            db.session.commit()
+
     def get(self):
         """
         获取文章列表
@@ -185,6 +215,8 @@ class ArticleListResource(Resource):
 
         # 查询文章
         for article_id in article_id_li:
+            # TODO 临时，对测试数据生成封面
+            self._generate_article_cover(article_id)
             article = cache_article.get_article_info(article_id)
             if article:
                 results.append(article)
