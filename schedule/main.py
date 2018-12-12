@@ -28,8 +28,8 @@ from clear_cache import clear_user_cache, clear_comment_cache
 scheduler.add_job(clear_user_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_comment_cache, trigger='interval', minutes=10)
 
-# from cover import generate_article_cover
-# scheduler.add_job(generate_article_cover, trigger='interval', years=1)
+from cover import generate_article_cover
+scheduler.add_job(generate_article_cover, trigger='interval', weeks=1)
 
 scheduler.start()
 
