@@ -4,6 +4,7 @@ import random
 from common import toutiao_app, db
 import logging
 
+from models.user import User
 from models.news import Article, ArticleContent
 
 
