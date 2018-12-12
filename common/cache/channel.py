@@ -29,7 +29,7 @@ def get_all_channels():
     results = []
 
     channels = Channel.query.options(load_only(Channel.id, Channel.name))\
-        .filter(Channel.is_visible == True).order_by(Channel.sequence).all()
+        .filter(Channel.is_visible == True).order_by(Channel.sequence, Channel.id).all()
 
     if not channels:
         return results
