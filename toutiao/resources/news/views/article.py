@@ -5,6 +5,8 @@ from sqlalchemy.orm import load_only
 import pickle
 from redis.exceptions import RedisError
 import time
+from flask_restful.reqparse import RequestParser
+from flask_restful.inputs import positive, int_range
 
 from models.news import Article
 from models.user import User, Follow
@@ -12,6 +14,8 @@ from toutiao.main import redis_cli, rpc_cli
 from rpc import article_reco_pb2_grpc
 from rpc import article_reco_pb2
 from .. import constants
+from utils import parser
+from cache import article as cache_article
 
 
 class ArticleResource(Resource):
@@ -121,6 +125,70 @@ class ArticleResource(Resource):
 
 
 class ArticleListResource(Resource):
-    pass
+    """
+    文章列表数据
+    """
+    def _get_recommended_articles(self, channel_id, page, per_page):
+        """
+        获取推荐的文章
+        :param channel_id: 频道id
+        :param page: 页数
+        :param per_page: 每页数量
+        :return: [article_id, ...]
+        """
+        # TODO 接入推荐系统后 需要改写
+        offset = (page - 1) * per_page
+        articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
+            .order_by(Article.id).offset(offset).limit(per_page).all()
+        if articles:
+            return [article.id for article in articles]
+        else:
+            return []
+
+    def get(self):
+        """
+        获取文章列表
+        /v1_0/articles?channel_id&page&per_page
+        """
+        qs_parser = RequestParser()
+        qs_parser.add_argument('channel_id', type=parser.channel_id, required=True, location='args')
+        qs_parser.add_argument('page', type=positive, required=False, location='args')
+        qs_parser.add_argument('per_page', type=int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
+                                                          constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
+                                                          'per_page'),
+                               required=False, location='args')
+        args = qs_parser.parse_args()
+        channel_id = args.channel_id
+        page = 1 if args.page is None else args.page
+        per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+
+        article_id_li = []
+        results = []
+
+        if page == 1:
+            # 第一页
+            ret = cache_article.get_channel_top_articles(channel_id)
+            if ret:
+                article_id_li = ret
+
+        # 获取推荐文章列表
+        ret = self._get_recommended_articles(channel_id, page, per_page)
+        if article_id_li:
+            article_id_set = set(article_id_li)
+            # 去重
+            for article_id in ret:
+                if article_id in article_id_set:
+                    continue
+                article_id_li.append(article_id)
+        else:
+            article_id_li = ret
+
+        # 查询文章
+        for article_id in article_id_li:
+            article = cache_article.get_article_info(article_id)
+            if article:
+                results.append(article)
+
+        return {'page': page, 'per_page': per_page, 'results': results}
 
 

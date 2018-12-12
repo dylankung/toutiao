@@ -59,6 +59,7 @@ class Article(db.Model):
     comment_count = db.Column(db.Integer, default=0, doc='评论数')
 
     content = db.relationship('ArticleContent', uselist=False)
+    user = db.relationship('User', uselist=False)
 
 
 class ArticleContent(db.Model):

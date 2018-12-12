@@ -5,7 +5,7 @@ from models.user import User
 from models.news import Article
 from models import db
 from cache import comment as cache_comment
-
+from cache import channel as cache_channel
 
 def mobile(mobile_str):
     """
@@ -101,3 +101,24 @@ def comment_id(value):
                 return _comment_id
             else:
                 raise ValueError('Invalid target comment id.')
+
+
+def channel_id(value):
+    """
+    检查是否是频道id
+    :param value: 被检验的值
+    :return: channel_id
+    """
+    try:
+        _channel_id = int(value)
+    except Exception:
+        raise ValueError('Invalid channel id.')
+    else:
+        if _channel_id <= 0:
+            raise ValueError('Invalid channel id.')
+        else:
+            ret = cache_channel.determine_channel_exists(_channel_id)
+            if ret:
+                return _channel_id
+            else:
+                raise ValueError('Invalid channel id.')
