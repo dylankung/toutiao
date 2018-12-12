@@ -208,9 +208,10 @@ def get_comments_by_article(article_id, offset, limit):
     else:
         # 已缓存
         total_count = int(figure['count'])  # 评论总数
-        end_id = int(figure['end_id'])  # 最后一个评论id
         if total_count == 0:
             return result
+
+        end_id = int(figure['end_id'])  # 最后一个评论id
 
         result['total_count'] = total_count
         result['end_id'] = end_id
@@ -418,10 +419,10 @@ def get_reply_by_comment(comment_id, offset, limit):
     else:
         # 已缓存
         total_count = int(figure['count'])  # 评论总数
-        end_id = int(figure['end_id'])  # 最后一个评论id
         if total_count == 0:
             return result
 
+        end_id = int(figure['end_id'])  # 最后一个评论id
         result['total_count'] = total_count
         result['end_id'] = end_id
 
