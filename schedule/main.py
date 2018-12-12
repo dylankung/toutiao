@@ -29,7 +29,8 @@ scheduler.add_job(clear_user_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_comment_cache, trigger='interval', minutes=10)
 
 from cover import generate_article_cover
-scheduler.add_job(generate_article_cover, trigger='interval', weeks=1)
+from datetime import datetime
+scheduler.add_job(generate_article_cover, trigger='interval', start_date=datetime.now(), weeks=1)
 
 scheduler.start()
 
