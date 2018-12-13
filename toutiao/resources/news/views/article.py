@@ -216,7 +216,7 @@ class ArticleListResource(Resource):
         # 查询文章
         for article_id in article_id_li:
             # TODO 临时，对测试数据生成封面
-            self._generate_article_cover(article_id)
+            # self._generate_article_cover(article_id)
             article = cache_article.get_article_info(article_id)
             if article:
                 results.append(article)
