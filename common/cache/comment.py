@@ -456,6 +456,11 @@ def get_reply_by_comment(comment_id, offset, limit):
     return result
 
 
+##################################################################################################
+#
+##################################################################################################
+
+
 def determine_comment_exists(comment_id):
     """
     判断评论或评论回复是否存在
@@ -490,8 +495,63 @@ def update_comment_reply_count(comment_id, increment=1):
     :param comment_id:  评论id
     :param increment: 增量
     """
+    Comment.query.filter_by(id=comment_id).update({'reply_count': Comment.reply_count + 1})
+    db.session.commit()
+
     r_comm_cache = redis_cli['comm_cache']
     key = 'comm:{}'.format(comment_id)
     exist = r_comm_cache.exists(key)
     if exist:
         r_comm_cache.hincrby(key, 'reply_count', increment)
+
+
+def update_comment_by_article(article_id, comment):
+    """
+    更新文章评论缓存
+    :param article_id: 文章id
+    :param comment: 评论数据
+    :return:
+    """
+    r_comm_cache = redis_cli['comm_cache']
+
+    exist = r_comm_cache.exists('art:{}:comm:figure'.format(article_id))
+    if not exist:
+        return
+
+    # TODO 使用user缓存获取用户头像
+    comment_format = marshal(comment, comment_fields)
+
+    pl = r_comm_cache.pipeline()
+    pl.hmset('comm:{}'.format(comment.id), comment_format)
+    pl.zadd('art:{}:comm'.format(article_id), {comment.id: comment.id})
+    pl.execute()
+
+    ret = r_comm_cache.hincrby('art:{}:comm:figure'.format(article_id), 'count')
+    if ret == 1:
+        r_comm_cache.hset('art:{}:comm:figure'.format(article_id), 'end_id', comment.id)
+
+
+def update_reply_by_comment(comment_id, reply):
+    """
+    更新文章评论缓存
+    :param comment_id: 评论id
+    :param reply: 回复数据
+    :return:
+    """
+    r_comm_cache = redis_cli['comm_cache']
+
+    exist = r_comm_cache.exists('comm:{}:reply:figure'.format(comment_id))
+    if not exist:
+        return
+
+    # TODO 使用user缓存获取用户头像
+    reply_format = marshal(reply, comment_fields)
+
+    pl = r_comm_cache.pipeline()
+    pl.hmset('comm:{}'.format(reply.id), reply_format)
+    pl.zadd('comm:{}:reply'.format(comment_id), {reply.id: reply.id})
+    pl.execute()
+
+    ret = r_comm_cache.hincrby('comm:{}:reply:figure'.format(comment_id), 'count')
+    if ret == 1:
+        r_comm_cache.hset('comm:{}:reply:figure'.format(comment_id), 'end_id', reply.id)

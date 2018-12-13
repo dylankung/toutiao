@@ -9,6 +9,7 @@ from utils import parser
 from models import db
 from models.news import Comment, Article
 from cache import comment as cache_comment
+from cache import article as cache_article
 from .. import constants
 
 
@@ -38,9 +39,10 @@ class CommentListResource(Resource):
 
             comment = Comment(user_id=g.user_id, article_id=article_id, parent_id=None, content=content)
             db.session.add(comment)
-            # TODO 增加评论审核后 在评论审核中累计评论数量
-            Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + 1})
             db.session.commit()
+            # TODO 增加评论审核后 在评论审核中累计评论数量
+            cache_article.update_article_comment_count(article_id)
+            cache_comment.update_comment_by_article(article_id, comment)
         else:
             # 对评论的回复
             ret = Comment.query.options(load_only(Comment.id)).filter_by(id=target, article_id=article_id).first()
@@ -49,11 +51,12 @@ class CommentListResource(Resource):
 
             comment = Comment(user_id=g.user_id, article_id=article_id, parent_id=target, content=content)
             db.session.add(comment)
-            # TODO 增加评论审核后 在评论审核中累计评论数量
-            Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + 1})
-            Comment.query.filter_by(id=target).update({'reply_count': Comment.reply_count + 1})
-            cache_comment.update_comment_reply_count(target)
             db.session.commit()
+
+            # TODO 增加评论审核后 在评论审核中累计评论数量
+            cache_article.update_article_comment_count(article_id)
+            cache_comment.update_comment_reply_count(target)
+            cache_comment.update_reply_by_comment(target, comment)
 
         return {'com_id': comment.id, 'target': target, 'art_id': article_id}, 201
 

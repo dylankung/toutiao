@@ -6,6 +6,7 @@ import time
 from models.news import Article
 from models.user import User
 from toutiao.main import redis_cli
+from models import db
 
 
 article_info_fields_redis = {
@@ -117,4 +118,22 @@ def get_article_detail(article_id):
     :return:
     """
     pass
+
+
+def update_article_comment_count(article_id, increment=1):
+    """
+    更新文章评论数量
+    :param article_id: 文章id
+    :param increment: 增量
+    :return:
+    """
+    Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + increment})
+    db.session.commit()
+
+    r = redis_cli['art_cache']
+    key = 'art:{}:info'.format(article_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hincrby(key, 'comm_count', increment)
 
