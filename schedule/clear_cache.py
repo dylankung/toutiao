@@ -1,9 +1,12 @@
 from common import redis_cli
 
 USER_CACHE_LIMIT = 10000
+
 ARTICLE_COMMENT_CACHE_LIMIT = 10000  # 热门评论的文章缓存数量
 COMMENT_REPLY_CACHE_LIMIT = 10000  # 热门回复的评论缓存数量
 COMMENT_CONTENT_CACHE_LIMIT = 100  # 评论的缓存限制
+
+ARTICLE_CACHE_LIMIT = 50000
 
 
 def clear_user_cache():
@@ -113,6 +116,25 @@ def clear_comment_cache():
         r.delete(*delete_keys)
 
 
+def clear_article_cache():
+    """
+    清理文章缓存
+    """
+    r = redis_cli['art_cache']
+    size = r.zcard('art')
+    if size <= ARTICLE_CACHE_LIMIT:
+        return
+
+    end_index = size - ARTICLE_CACHE_LIMIT
+    article_id_li = r.zrange('art', 0, end_index - 1)
+    article_cache_keys = []
+    for article_id in article_id_li:
+        article_cache_keys.append('art:{}:info'.format(article_id.decode()))
+        # TODO 清理文章detail缓存
+    pl = r.pipeline()
+    pl.delete(*article_cache_keys)
+    pl.zrem('art', *article_id_li)
+    pl.execute()
 
 
 
