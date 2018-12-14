@@ -33,7 +33,7 @@ class ReportListResource(Resource):
 
         try:
             report = Report(user_id=g.user_id, article_id=args.target, type=args.type)
-            if args.type == Report.TYPE.OTHER and 'remark' in args:
+            if args.type == Report.TYPE.OTHER and args.remark:
                 report.remark = args.remark
             db.session.add(report)
             db.session.commit()

@@ -8,7 +8,7 @@ from flask import jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import SQLAlchemyError
 import grpc
 
 from . import create_app
@@ -45,7 +45,7 @@ db.init_app(app)
 
 # 添加异常处理
 app.register_error_handler(RedisError, handle_redis_error)
-app.register_error_handler(DBAPIError, handler_mysql_error)
+app.register_error_handler(SQLAlchemyError, handler_mysql_error)
 
 # 添加请求钩子
 app.before_request(jwt_authentication)
