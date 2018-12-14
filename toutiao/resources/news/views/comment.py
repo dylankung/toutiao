@@ -33,6 +33,9 @@ class CommentListResource(Resource):
         content = args.content
         article_id = args.art_id
 
+        if not content:
+            return {'message': 'Empty content.'}, 400
+
         if not article_id:
             # 对文章评论
             article_id = target
