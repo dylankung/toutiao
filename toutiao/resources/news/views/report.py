@@ -30,10 +30,11 @@ class ReportListResource(Resource):
         json_parser.add_argument('type', type=self._report_type, required=True, location='json')
         json_parser.add_argument('remark', type=str, required=False, location='json')
         args = json_parser.parse_args()
-        remark = args.remark if args.remark else ''
 
         try:
-            report = Report(user_id=g.user_id, article_id=args.target, type=args.type, remark=remark)
+            report = Report(user_id=g.user_id, article_id=args.target, type=args.type)
+            if args.type == Report.TYPE.OTHER and args.remark:
+                report.remark = args.remark
             db.session.add(report)
             db.session.commit()
         except IntegrityError:
