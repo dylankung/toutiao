@@ -25,11 +25,13 @@ class UserChannel(db.Model):
 
     id = db.Column('user_channel_id', db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
-    channel_id = db.Column(db.Integer, doc='频道ID')
+    channel_id = db.Column(db.Integer, db.ForeignKey('news_channel.channel_id'), doc='频道ID')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
     is_deleted = db.Column(db.Boolean, default=False, doc='是否删除')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
     sequence = db.Column(db.Integer, default=0, doc='序号')
+
+    channel = db.relationship('Channel', uselist=False)
 
 
 class Article(db.Model):
@@ -146,7 +148,7 @@ class Report(db.Model):
     user_id = db.Column(db.Integer, doc='用户ID')
     article_id = db.Column(db.Integer, doc='文章ID')
     type = db.Column(db.Boolean, doc='问题类型')
-    remark = db.Column(db.String, doc='备注问题')
+    remark = db.Column(db.String, default='', doc='备注问题')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
 
 
