@@ -98,6 +98,7 @@ CREATE TABLE `news_channel` (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `sequence` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '序号',
   `is_visible` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可见',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否默认',
   PRIMARY KEY (`channel_id`),
   UNIQUE KEY `channel_name` (`channel_name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='新闻频道表';

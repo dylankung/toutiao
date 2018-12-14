@@ -4,7 +4,7 @@ from flask import request, g
 from sqlalchemy.orm import load_only, joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import insert
-from flask_restful import fields, marshal_with
+from flask_restful import fields, marshal
 from flask_restful import inputs
 
 from utils.decorators import login_required
@@ -20,7 +20,12 @@ class ChannelListResource(Resource):
     """
     用户频道
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'post': [login_required],
+        'put': [login_required],
+        'patch': [login_required],
+        'delete': [login_required]
+    }
 
     def _parse_channel_list(self):
         """
@@ -138,18 +143,22 @@ class ChannelListResource(Resource):
         'name': fields.String(attribute='channel.name')
     }
 
-    @marshal_with(channel_fields, envelope='channels')
     def get(self):
         """
         获取用户频道
         """
         user_id = g.user_id
-        user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
-                                                  joinedload(UserChannel.channel, innerjoin=True)
-                                                  .load_only(Channel.name))\
-            .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
-            .order_by(UserChannel.sequence).all()
-        return user_channels
+        if user_id:
+            user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
+                                                      joinedload(UserChannel.channel, innerjoin=True)
+                                                      .load_only(Channel.name))\
+                .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
+                .order_by(UserChannel.sequence).all()
+            return marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
+        else:
+            # Return default channels
+            default_channels = cache_channel.get_default_channels()
+            return {'channels': default_channels}
 
     def delete(self):
         """

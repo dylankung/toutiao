@@ -15,6 +15,7 @@ class Channel(db.Model):
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
     sequence = db.Column(db.Integer, default=0, doc='序号')
     is_visible = db.Column(db.Boolean, default=False, doc='是否可见')
+    is_default = db.Column(db.Boolean, default=False, doc='是否默认')
 
 
 class UserChannel(db.Model):
