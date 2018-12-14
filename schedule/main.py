@@ -22,7 +22,7 @@ create_logger()
 
 # 添加离线任务
 from reading_history import save_reading_history_to_mysql
-scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=30)
+scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=10)
 
 from clear_cache import clear_user_cache, clear_comment_cache, clear_article_cache
 scheduler.add_job(clear_user_cache, trigger='interval', minutes=10)

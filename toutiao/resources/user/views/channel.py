@@ -1,47 +1,207 @@
 from flask_restful import Resource
+from flask_restful.reqparse import RequestParser
+from flask import request, g
+from sqlalchemy.orm import load_only, joinedload
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.mysql import insert
+from flask_restful import fields, marshal_with
+from flask_restful import inputs
+
+from utils.decorators import login_required
+from models.news import UserChannel, Channel
+from models.user import User
+from models import db
+from utils import parser
+from toutiao.main import redis_cli
+from cache import channel as cache_channel
 
 
 class ChannelListResource(Resource):
     """
     用户频道
     """
+    method_decorators = [login_required]
+
+    def _parse_channel_list(self):
+        """
+        检验参数是否是合法的channel 列表
+        """
+        req = request.get_json(force=True)
+        if not req or not req.get('channels'):
+            raise ValueError('Channels param is required.')
+
+        channel_list = req['channels']
+        if not isinstance(channel_list, list):
+            raise ValueError('Invalid channels param.')
+
+        try:
+            channel_id_li = [channel['id'] for channel in channel_list]
+            channel_seq_li = [int(channel['seq']) for channel in channel_list]
+        except Exception:
+            raise ValueError('Invalid channels param.')
+
+        channel_id_set = set(channel_id_li)
+        if len(channel_id_li) > len(channel_id_set):
+            raise ValueError('Repeated channels occurred.')
+
+        r = redis_cli['art_cache']
+        all_channel_id = r.zrange('channel:id', 0, -1)
+        if all_channel_id:
+            all_channel_id = [int(channel_id) for channel_id in all_channel_id]
+        else:
+            all_channel = Channel.query.options(load_only(Channel.id)).filter_by(is_visible=True).all()
+            all_channel_id = [channel.id for channel in all_channel]
+
+        diff = channel_id_set - set(all_channel_id)
+        if len(diff) > 0:
+            raise ValueError('Invalid channels param.')
+
+        for seq in channel_seq_li:
+            if seq < 0:
+                raise ValueError('Invalid channel sequence param.')
+
+        return channel_list
+
     def post(self):
         """
-        编辑用户频道
+        编辑用户频道，首次
         """
-        pass
+        try:
+            channel_list = self._parse_channel_list()
+        except ValueError as e:
+            return {'message': '{}'.format(e)}, 400
 
+        user_id = g.user_id
+        try:
+            for channel in channel_list:
+                new_channel = UserChannel(user_id=user_id,
+                                          channel_id=channel['id'],
+                                          sequence=channel['seq'])
+                db.session.add(new_channel)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return {'message': 'Some conflict user channels occurred.'}, 409
+
+        return {'channels': channel_list}, 201
+
+    def put(self):
+        """
+        修改用户频道，重置
+        """
+        try:
+            channel_list = self._parse_channel_list()
+        except ValueError as e:
+            return {'message': '{}'.format(e)}, 400
+
+        user_id = g.user_id
+
+        # Update user's all previous channels to be deleted.
+        UserChannel.query.filter_by(user_id=user_id, is_deleted=False).update({'is_deleted': True})
+
+        for channel in channel_list:
+            query = insert(UserChannel).values(user_id=user_id,
+                                               channel_id=channel['id'],
+                                               sequence=channel['seq'])\
+                .on_duplicate_key_update(sequence=channel['seq'], is_deleted=False)
+            db.session.execute(query)
+
+        db.session.commit()
+
+        return {'channels': channel_list}, 201
+
+    def patch(self):
+        """
+        修改用户频道，部分
+        """
+        try:
+            channel_list = self._parse_channel_list()
+        except ValueError as e:
+            return {'message': '{}'.format(e)}, 400
+
+        user_id = g.user_id
+
+        for channel in channel_list:
+            query = insert(UserChannel).values(user_id=user_id,
+                                               channel_id=channel['id'],
+                                               sequence=channel['seq'])\
+                .on_duplicate_key_update(sequence=channel['seq'], is_deleted=False)
+            db.session.execute(query)
+
+        db.session.commit()
+
+        return {'channels': channel_list}, 201
+
+    # For response format.
+    channel_fields = {
+        'id': fields.Integer(attribute='channel_id'),
+        'name': fields.String(attribute='channel.name')
+    }
+
+    @marshal_with(channel_fields, envelope='channels')
     def get(self):
         """
         获取用户频道
         """
-        pass
+        user_id = g.user_id
+        user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
+                                                  joinedload(UserChannel.channel, innerjoin=True)
+                                                  .load_only(Channel.name))\
+            .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
+            .order_by(UserChannel.sequence).all()
+        return user_channels
 
     def delete(self):
         """
         批量删除用户频道
         """
-        pass
-
-    def put(self):
-        """
-        批量修改用户频道
-        """
-        pass
+        json_parser = RequestParser()
+        json_parser.add_argument('channels', action='append', type=inputs.positive, required=True, location='json')
+        args = json_parser.parse_args()
+        channel_id_li = args.channels
+        user_id = g.user_id
+        # Using synchronize_session=False when update many objects to
+        # indicate that Sqlalchemy does not need to trace new data.
+        UserChannel.query.filter(UserChannel.user_id == user_id, UserChannel.channel_id.in_(channel_id_li))\
+            .update({'is_deleted': True}, synchronize_session=False)
+        db.session.commit()
+        return {'message': 'OK'}, 204
 
 
 class ChannelResource(Resource):
     """
     用户频道
     """
-    def put(self):
+    method_decorators = [login_required]
+
+    def put(self, target):
         """
         修改指定用户频道
         """
-        pass
+        user_id = g.user_id
+        json_parser = RequestParser()
+        json_parser.add_argument('seq', type=inputs.positive, required=True, location='json')
+        args = json_parser.parse_args()
 
-    def delete(self):
+        exist = cache_channel.determine_channel_exists(target)
+        if not exist:
+            return {'message': 'Invalid channel id.'}, 400
+
+        query = insert(UserChannel).values(user_id=user_id,
+                                           channel_id=target,
+                                           sequence=args.seq)\
+            .on_duplicate_key_update(sequence=args.seq, is_deleted=False)
+        db.session.execute(query)
+
+        db.session.commit()
+
+        return {'id': target, 'seq': args.seq}, 201
+
+    def delete(self, target):
         """
         删除指定用户频道
         """
-        pass
+        user_id = g.user_id
+        UserChannel.query.filter_by(user_id=user_id, channel_id=target).update({'is_deleted': True})
+        db.session.commit()
+        return {'message': 'OK'}, 204
