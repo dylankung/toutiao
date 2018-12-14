@@ -68,3 +68,35 @@ def determine_channel_exists(channel_id):
         ret = db.session.query(func.count(Channel.id)).filter_by(id=channel_id, is_visible=True).first()
         return True if ret[0] > 0 else False
 
+
+def get_default_channels():
+    """
+    获取用户默认频道数据
+    :return: [{'name': 'python', 'id': '123'}, {}]
+    """
+    r = redis_cli['art_cache']
+
+    # 缓存取数据
+    ret = r.get('channel:default')
+    if ret:
+        results = pickle.loads(ret)
+        return results
+
+    # 数据库查询
+    results = []
+    cache = {}
+
+    channels = Channel.query.options(load_only(Channel.id, Channel.name))\
+        .filter(Channel.is_default == True, Channel.is_visible == True).order_by(Channel.sequence, Channel.id).all()
+
+    if not channels:
+        return results
+
+    for channel in channels:
+        results.append(marshal(channel, channel_fields))
+        cache[channel.id] = channel.id
+
+    # 设置缓存
+    r.set('channel:default', pickle.dumps(results))
+
+    return results
