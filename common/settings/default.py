@@ -30,7 +30,8 @@ class DefaultConfig(object):
 
     # JWT
     JWT_SECRET = 'TPmi4aLWRbyVq8zu9v82dWYW17/z+UvRnYTt4P6fAXA'
-    JWT_EXPIRES_DAY = 7
+    JWT_EXPIRY_HOURS = 2
+    JWT_REFRESH_DAYS = 14
 
     # rpc
     RPC_SERVER = '172.17.0.134:8888'

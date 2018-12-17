@@ -1,9 +1,9 @@
 from flask_restful import Resource
 from flask_limiter.util import get_remote_address
-from flask import request
+from flask import request, current_app, g
 from flask_restful.reqparse import RequestParser
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 
 from toutiao.main import limiter, redis_cli
@@ -42,7 +42,25 @@ class AuthorizationResource(Resource):
     """
     认证
     """
+
+    def _generate_tokens(self, user_id):
+        """
+        生成token 和refresh_token
+        :param user_id: 用户id
+        :return: token, refresh_token
+        """
+        # 颁发JWT
+        now = datetime.utcnow()
+        expiry = now + timedelta(hours=current_app.config['JWT_EXPIRY_HOURS'])
+        token = generate_jwt({'user_id': user_id, 'refresh': False}, expiry)
+        refresh_expiry = now + timedelta(days=current_app.config['JWT_REFRESH_DAYS'])
+        refresh_token = generate_jwt({'user_id': user_id, 'refresh': True}, refresh_expiry)
+        return token, refresh_token
+
     def post(self):
+        """
+        登录创建token
+        """
         json_parser = RequestParser()
         json_parser.add_argument('mobile', type=parser.mobile, required=True, location='json')
         json_parser.add_argument('code', type=parser.regex(r'^\d{6}$'), required=True, location='json')
@@ -66,14 +84,27 @@ class AuthorizationResource(Resource):
             db.session.add(profile)
             db.session.commit()
 
-        # 颁发JWT
-        token = generate_jwt({'user_id': user.id})
+        token, refresh_token = self._generate_tokens(user.id)
 
         # 缓存用户信息
         save_user_data_cache(user.id, user)
 
-        return {'token': token}, 201
+        return {'token': token, 'refresh_token': refresh_token}, 201
 
+    def put(self):
+        """
+        刷新token
+        """
+        user_id = g.user_id
+        if user_id and g.refresh_token:
+
+            token, refresh_token = self._generate_tokens(user_id)
+
+            return {'token': token, 'refresh_token': refresh_token}, 201
+
+        else:
+
+            return {'message': 'Wrong refresh token.'}, 403
 
 
 

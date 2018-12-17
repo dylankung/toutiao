@@ -1,4 +1,5 @@
 from flask import request, g
+
 from .jwt_util import verify_jwt
 
 
@@ -11,5 +12,6 @@ def jwt_authentication():
     if authorization and 'Bearer' in authorization:
         token = authorization.strip()[7:]
         payload = verify_jwt(token)
-        if payload and 'user_id' in payload:
-            g.user_id = payload['user_id']
+        if payload:
+            g.user_id = payload.get('user_id')
+            g.refresh_token = payload.get('refresh')
