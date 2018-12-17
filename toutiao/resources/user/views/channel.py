@@ -9,9 +9,7 @@ from flask_restful import inputs
 
 from utils.decorators import login_required
 from models.news import UserChannel, Channel
-from models.user import User
 from models import db
-from utils import parser
 from toutiao.main import redis_cli
 from cache import channel as cache_channel
 

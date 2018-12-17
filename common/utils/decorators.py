@@ -13,6 +13,8 @@ def login_required(func):
     def wrapper(*args, **kwargs):
         if not g.user_id:
             return {'message': 'User must be authorized.'}, 401
+        elif g.refresh_token:
+            return {'message': 'Do not use refresh token.'}, 403
         else:
             # 设置或更新用户缓存
             save_user_data_cache(g.user_id)
