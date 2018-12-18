@@ -2,8 +2,8 @@ import pickle
 from sqlalchemy.orm import load_only
 from flask_restful import marshal, fields
 from sqlalchemy import func
+from flask import current_app
 
-from toutiao.main import redis_cli
 from models.news import Channel
 from models import db
 
@@ -19,7 +19,7 @@ def get_all_channels():
     获取所有频道数据
     :return: [{'name': 'python', 'id': '123'}, {}]
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
 
     # 缓存取数据
     ret = r.get('channel')
@@ -56,7 +56,7 @@ def determine_channel_exists(channel_id):
     :param channel_id: 频道id
     :return: bool
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
     ret = r.exists('channel:id')
     if ret > 0:
         rank = r.zrank('channel:id', channel_id)
@@ -74,7 +74,7 @@ def get_default_channels():
     获取用户默认频道数据
     :return: [{'name': 'python', 'id': '123'}, {}]
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
 
     # 缓存取数据
     ret = r.get('channel:default')
