@@ -9,9 +9,10 @@ from flask_restful.reqparse import RequestParser
 from flask_restful.inputs import positive, int_range
 import re
 import random
+from sqlalchemy import func
 
 from models.news import Article, ArticleContent
-from models.user import User, Follow
+from models.user import User, Relation
 from toutiao.main import redis_cli, rpc_cli
 from rpc import article_reco_pb2_grpc
 from rpc import article_reco_pb2
@@ -87,8 +88,11 @@ class ArticleResource(Resource):
         # 查询关注
         article_dict['is_followed'] = False
         if user_id:
-            ret = Follow.query.filter_by(user_id=user_id, following_user_id=article_dict['aut_id'], is_deleted=False).count()
-            if ret > 0:
+            # TODO 使用用户缓存
+            ret = db.session.query(func.count(Relation.id))\
+                .filter_by(user_id=user_id, target_user_id=article_dict['aut_id'], relation=Relation.RELATION.FOLLOW)\
+                .first()
+            if ret[0] > 0:
                 article_dict['is_followed'] = True
 
         # TODO 查询登录用户对文章的态度（点赞or不喜欢）

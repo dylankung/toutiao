@@ -31,27 +31,16 @@ CREATE TABLE `user_profile` (
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户资料表';
 
-CREATE TABLE `user_follow` (
-  `follow_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
+CREATE TABLE `user_relation` (
+  `relation_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
   `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
-  `following_user_id` bigint(20) unsigned NOT NULL COMMENT '关注的用户ID',
-  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否取消关注，0-未取消，1-已取消',
+  `target_user_id` bigint(20) unsigned NOT NULL COMMENT '目标用户ID',
+  `relation` tinyint(1) NOT NULL DEFAULT '0' COMMENT '关系，0-取消，1-关注，2-拉黑',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`follow_id`),
-  UNIQUE KEY `user_following` (`user_id`, `following_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户关注表';
-
-CREATE TABLE `user_blacklist` (
-  `blacklist_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
-  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
-  `blacklist_user_id` bigint(20) unsigned NOT NULL COMMENT '拉黑的用户ID',
-  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否取消拉黑, 0-未取消，1-已取消',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`blacklist_id`),
-  UNIQUE KEY `user_blacklist` (`user_id`, `blacklist_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户拉黑表';
+  PRIMARY KEY (`relation_id`),
+  UNIQUE KEY `user_target` (`user_id`, `target_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户关系表';
 
 CREATE TABLE `user_search` (
   `search_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',

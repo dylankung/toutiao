@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from flask import g
 
 from utils.decorators import login_required
-from models.user import Follow, User
+from models.user import Relation, User
 from utils import parser
 from models import db
 
@@ -27,14 +27,17 @@ class FollowingListResource(Resource):
             return {'message': 'User cannot follow self.'}, 400
         ret = 1
         try:
-            follow = Follow(user_id=g.user_id, following_user_id=target)
+            follow = Relation(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW)
             db.session.add(follow)
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            ret = Follow.query.filter_by(user_id=g.user_id, following_user_id=target, is_deleted=True)\
-                .update({'is_deleted': False})
+            ret = Relation.query.filter(Relation.user_id == g.user_id,
+                                        Relation.target_user_id == target,
+                                        Relation.relation != Relation.RELATION.FOLLOW)\
+                .update({'relation': Relation.RELATION.FOLLOW})
         if ret > 0:
+            # TODO 更新用户缓存
             User.query.filter_by(id=target).update({'fans_count': User.fans_count+1})
             User.query.filter_by(id=g.user_id).update({'following_count': User.following_count+1})
         db.session.commit()
@@ -51,9 +54,12 @@ class FollowingResource(Resource):
         """
         取消关注用户
         """
-        ret = Follow.query.filter_by(user_id=g.user_id, following_user_id=target, is_deleted=False)\
-            .update({'is_deleted': True})
+        ret = Relation.query.filter(Relation.user_id == g.user_id,
+                                    Relation.target_user_id == target,
+                                    Relation.relation == Relation.RELATION.FOLLOW)\
+            .update({'relation': Relation.RELATION.DELETE})
         if ret > 0:
+            # TODO 更新用户缓存
             User.query.filter_by(id=target).update({'fans_count': User.fans_count-1})
             User.query.filter_by(id=g.user_id).update({'following_count': User.following_count-1})
         db.session.commit()

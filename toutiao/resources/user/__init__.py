@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import passport, following, channel
+from .views import passport, following, channel, blacklist
 from utils.output import output_json
 
 user_bp = Blueprint('user', __name__)
@@ -25,3 +25,9 @@ user_api.add_resource(channel.ChannelListResource, '/v1_0/user/channels',
 
 user_api.add_resource(channel.ChannelResource, '/v1_0/user/channels/<int(min=1):target>',
                       endpoint='Channel')
+
+user_api.add_resource(blacklist.BlacklistListResource, '/v1_0/user/blacklists',
+                      endpoint='Blacklists')
+
+user_api.add_resource(blacklist.BlacklistResource, '/v1_0/user/blacklists/<int(min=1):target>',
+                      endpoint='Blacklist')
