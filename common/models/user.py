@@ -44,30 +44,21 @@ class UserProfile(db.Model):
     register_media_time = db.Column(db.DateTime, doc='注册自媒体时间')
 
 
-class Follow(db.Model):
+class Relation(db.Model):
     """
-    用户关注表
+    用户关系表
     """
-    __tablename__ = 'user_follow'
+    __tablename__ = 'user_relation'
 
-    id = db.Column('follow_id', db.Integer, primary_key=True, doc='主键ID')
+    class RELATION:
+        DELETE = 0
+        FOLLOW = 1
+        BLACKLIST = 2
+
+    id = db.Column('relation_id', db.Integer, primary_key=True, doc='主键ID')
     user_id = db.Column(db.Integer, doc='用户ID')
-    following_user_id = db.Column(db.Integer, doc='关注的用户ID')
-    is_deleted = db.Column(db.Boolean, default=False, doc='是否取消关注')
-    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
-    utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
-
-
-class Blacklist(db.Model):
-    """
-    用户拉黑表
-    """
-    __tablename__ = 'user_blacklist'
-
-    id = db.Column('blacklist_id', db.Integer, primary_key=True, doc='主键ID')
-    user_id = db.Column(db.Integer, doc='用户ID')
-    blacklist_user_id = db.Column(db.Integer, doc='拉黑的用户ID')
-    is_deleted = db.Column(db.Boolean, default=False, doc='是否取消拉黑')
+    target_user_id = db.Column(db.Integer, doc='目标用户ID')
+    relation = db.Column(db.Integer, doc='关系')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 

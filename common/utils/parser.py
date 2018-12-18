@@ -1,11 +1,10 @@
 import re
-from sqlalchemy import func
 
-from models.user import User
-from models.news import Article
-from models import db
 from cache import comment as cache_comment
 from cache import channel as cache_channel
+from cache import article as cache_article
+from cache import user as cache_user
+
 
 def mobile(mobile_str):
     """
@@ -53,8 +52,8 @@ def user_id(value):
         if _user_id <= 0:
             raise ValueError('Invalid target user id.')
         else:
-            ret = db.session.query(func.count(User.id)).filter_by(id=_user_id).first()
-            if ret[0] > 0:
+            ret = cache_user.determine_user_exists(_user_id)
+            if ret:
                 return _user_id
             else:
                 raise ValueError('Invalid target user id.')
@@ -66,7 +65,6 @@ def article_id(value):
     :param value: 被检验的值
     :return: article_id
     """
-    # TODO 从缓存中判断
     try:
         _article_id = int(value)
     except Exception:
@@ -75,8 +73,8 @@ def article_id(value):
         if _article_id <= 0:
             raise ValueError('Invalid target article id.')
         else:
-            ret = db.session.query(func.count(Article.id)).filter_by(id=_article_id).first()
-            if ret[0] > 0:
+            ret = cache_article.determine_article_exists(_article_id)
+            if ret:
                 return _article_id
             else:
                 raise ValueError('Invalid target article id.')

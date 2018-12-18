@@ -2,10 +2,11 @@ from sqlalchemy.orm import joinedload, load_only
 from flask_restful import fields, marshal
 import pickle
 import time
+from sqlalchemy import func
+from flask import current_app
 
 from models.news import Article
 from models.user import User
-from toutiao.main import redis_cli
 from models import db
 
 
@@ -33,7 +34,7 @@ def get_channel_top_articles(channel_id):
     :param channel_id: 频道id
     :return: [article_id, ...]
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
 
     ret = r.zrevrange('ch:{}:art:top'.format(channel_id), 0, -1)
     if not ret:
@@ -48,7 +49,7 @@ def get_channel_top_articles_count(channel_id):
     :param channel_id: 频道id
     :return: int
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
 
     ret = r.zcard('ch:{}:art:top'.format(channel_id))
     return ret
@@ -60,7 +61,7 @@ def get_article_info(article_id):
     :param article_id: 文章id
     :return: {}
     """
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
 
     # 从缓存中查询
     # TODO 后续可能只几个获取指定字段
@@ -130,10 +131,24 @@ def update_article_comment_count(article_id, increment=1):
     Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + increment})
     db.session.commit()
 
-    r = redis_cli['art_cache']
+    r = current_app.redis_cli['art_cache']
     key = 'art:{}:info'.format(article_id)
     exist = r.exists(key)
 
     if exist:
         r.hincrby(key, 'comm_count', increment)
 
+
+def determine_article_exists(article_id):
+    """
+    判断文章是否存在
+    :param article_id: 文章id
+    :return: bool
+    """
+    r = current_app.redis_cli['art_cache']
+    ret = r.exists('art:{}:info'.format(article_id))
+    if ret > 0:
+        return True
+    else:
+        ret = db.session.query(func.count(Article.id)).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
+        return True if ret[0] > 0 else False

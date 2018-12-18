@@ -2,11 +2,11 @@ from sqlalchemy.orm import load_only, joinedload
 from sqlalchemy import func
 from flask_restful import marshal, fields
 import time
+from flask import current_app
 
 from models import db
 from models.user import User
 from models.news import Comment
-from toutiao.main import redis_cli
 from . import constants
 
 
@@ -44,7 +44,7 @@ def _get_comm_from_cache(article_id, offset, limit):
     :param limit: 读取的数量
     :return: list[{comment}, {}...]
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     key = 'art:{}:comm'.format(article_id)
 
     if offset is None:
@@ -106,7 +106,7 @@ def _get_comm_from_db(article_id, offset, limit):
 
     if comments:
 
-        r_comm_cache = redis_cli['comm_cache']
+        r_comm_cache = current_app.redis_cli['comm_cache']
         pl = r_comm_cache.pipeline()
 
         for comment in comments:
@@ -151,7 +151,7 @@ def get_comments_by_article(article_id, offset, limit):
             'end_id': 0,
         }
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     pl = r_comm_cache.pipeline()
     timestamp = time.time()
 
@@ -259,7 +259,7 @@ def _get_reply_from_cache(comment_id, offset, limit):
     :param limit: 读取的数量
     :return: list[{comment}, {}...]
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     key = 'comm:{}:reply'.format(comment_id)
 
     if offset is None:
@@ -319,7 +319,7 @@ def _get_reply_from_db(comment_id, offset, limit):
 
     if comments:
 
-        r_comm_cache = redis_cli['comm_cache']
+        r_comm_cache = current_app.redis_cli['comm_cache']
         pl = r_comm_cache.pipeline()
 
         for comment in comments:
@@ -364,7 +364,7 @@ def get_reply_by_comment(comment_id, offset, limit):
             'end_id': 0,
         }
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     pl = r_comm_cache.pipeline()
     timestamp = time.time()
 
@@ -467,7 +467,7 @@ def determine_comment_exists(comment_id):
     :param comment_id: 评论id（或回复id）
     :return: bool
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     ret = r_comm_cache.exists('comm:{}'.format(comment_id))
     if ret > 0:
         return True
@@ -482,7 +482,7 @@ def update_comment_liking_count(comment_id, increment=1):
     :param comment_id: 评论id(或回复id）
     :param increment: 增量
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     key = 'comm:{}'.format(comment_id)
     exist = r_comm_cache.exists(key)
     if exist:
@@ -498,7 +498,7 @@ def update_comment_reply_count(comment_id, increment=1):
     Comment.query.filter_by(id=comment_id).update({'reply_count': Comment.reply_count + 1})
     db.session.commit()
 
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
     key = 'comm:{}'.format(comment_id)
     exist = r_comm_cache.exists(key)
     if exist:
@@ -512,7 +512,7 @@ def update_comment_by_article(article_id, comment):
     :param comment: 评论数据
     :return:
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
 
     exist = r_comm_cache.exists('art:{}:comm:figure'.format(article_id))
     if not exist:
@@ -538,7 +538,7 @@ def update_reply_by_comment(comment_id, reply):
     :param reply: 回复数据
     :return:
     """
-    r_comm_cache = redis_cli['comm_cache']
+    r_comm_cache = current_app.redis_cli['comm_cache']
 
     exist = r_comm_cache.exists('comm:{}:reply:figure'.format(comment_id))
     if not exist:

@@ -1,9 +1,10 @@
 from flask import current_app
 import time
 from sqlalchemy.orm import load_only
-import pickle
+from sqlalchemy import func
 
 from models.user import User
+from models import db
 
 
 def save_user_data_cache(user_id, user=None):
@@ -22,4 +23,19 @@ def save_user_data_cache(user_id, user=None):
             'name': user.name,
             'photo': user.profile_photo
         }
-        r.set('user:{}'.format(user_id), pickle.dumps(user_data))
+        r.hmset('user:{}'.format(user_id), user_data)
+
+
+def determine_user_exists(user_id):
+    """
+    判断用户是否存在
+    :param user_id: 用户id
+    :return: bool
+    """
+    r = current_app.redis_cli['user_cache']
+    ret = r.exists('user:{}'.format(user_id))
+    if ret > 0:
+        return True
+    else:
+        ret = db.session.query(func.count(User.id)).filter_by(id=user_id).first()
+        return True if ret[0] > 0 else False
