@@ -47,7 +47,7 @@ class BlacklistListResource(Resource):
                     .update({'relation': Relation.RELATION.BLACKLIST})
 
                 if ret > 0:
-                    cache_user.update_user_following_count(g.user_id, target, -1)
+                    cache_user.update_user_following(g.user_id, target, -1)
 
         db.session.commit()
         return {'target': target}, 201

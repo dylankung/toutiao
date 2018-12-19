@@ -25,10 +25,10 @@ class UserResource(Resource):
         user_data['is_following'] = False
         if g.user_id:
             # Check if user has followed target user.
-            ret = Relation.query.options(load_only(Relation.id))\
-                .filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW).first()
-            if ret:
-                user_data['is_following'] = True
+            # ret = Relation.query.options(load_only(Relation.id))\
+            #     .filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW).first()
+            user_data['is_following'] = cache_user.determine_user_follows_target(g.user_id, target)
+
         user_data['id'] = target
         del user_data['mobile']
         return user_data

@@ -19,6 +19,7 @@ from rpc import article_reco_pb2
 from .. import constants
 from utils import parser
 from cache import article as cache_article
+from cache import user as cache_user
 from models import db
 
 
@@ -89,11 +90,12 @@ class ArticleResource(Resource):
         article_dict['is_followed'] = False
         if user_id:
             # TODO 使用用户缓存
-            ret = db.session.query(func.count(Relation.id))\
-                .filter_by(user_id=user_id, target_user_id=article_dict['aut_id'], relation=Relation.RELATION.FOLLOW)\
-                .first()
-            if ret[0] > 0:
-                article_dict['is_followed'] = True
+            # ret = db.session.query(func.count(Relation.id))\
+            #     .filter_by(user_id=user_id, target_user_id=article_dict['aut_id'], relation=Relation.RELATION.FOLLOW)\
+            #     .first()
+            # if ret[0] > 0:
+            #     article_dict['is_followed'] = True
+            article_dict['is_followed'] = cache_user.determine_user_follows_target(user_id, article_dict['aut_id'])
 
         # TODO 查询登录用户对文章的态度（点赞or不喜欢）
 
