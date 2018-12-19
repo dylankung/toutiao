@@ -55,6 +55,10 @@ def _get_comm_from_cache(article_id, offset, limit):
 
     results = []
     if ret:
+        # 更新缓存最新使用时间
+        timestamp = time.time()
+        r_comm_cache.zadd('art:comm', {article_id: timestamp})
+
         for comment_id in ret:
             comment = r_comm_cache.hgetall('comm:{}'.format(comment_id))
             if not comment:
@@ -270,6 +274,10 @@ def _get_reply_from_cache(comment_id, offset, limit):
 
     results = []
     if ret:
+        # 更新缓存最新使用时间
+        timestamp = time.time()
+        r_comm_cache.zadd('comm:reply', {comment_id: timestamp})
+
         for comment_id in ret:
             comment = r_comm_cache.hgetall('comm:{}'.format(comment_id))
             if not comment:

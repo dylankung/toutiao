@@ -62,11 +62,14 @@ def get_article_info(article_id):
     :return: {}
     """
     r = current_app.redis_cli['art_cache']
+    timestamp = time.time()
 
     # 从缓存中查询
     # TODO 后续可能只几个获取指定字段
     article = r.hgetall('art:{}:info'.format(article_id))
     if article:
+        # 更新文章最新使用时间
+        r.zadd('art', {article_id: timestamp})
         # 不能处理bytes类型
         # article_formatted = marshal(article, article_info_fields_redis)
         article_formatted = dict(
@@ -100,7 +103,6 @@ def get_article_info(article_id):
     # 设置缓存
     article_formatted['cover'] = pickle.dumps(article.cover)
 
-    timestamp = time.time()
     pl = r.pipeline()
     pl.zadd('art', {article_id: timestamp})
     pl.hmset('art:{}:info'.format(article_id), article_formatted)
