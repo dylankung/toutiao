@@ -10,4 +10,11 @@ alter table news_channel add `is_visible` tinyint(1) NOT NULL DEFAULT '0' COMMEN
 
 alter table news_user_channel add `sequence` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '序号';
 
+alter table user_profile drop column introduction;
+
+alter table user_basic add `introduction` varchar(50) NULL COMMENT '简介';
+
+alter table user_basic modify `introduction` varchar(50) NULL COMMENT '简介';
+
+alter table user_basic add `certificate` varchar(30) NULL COMMENT '认证';
 ```
