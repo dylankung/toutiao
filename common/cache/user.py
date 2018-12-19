@@ -180,7 +180,7 @@ def get_user_followings(user_id):
         return []
 
     ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime))\
-        .fitler_by(user_id=user_id, relation=Relation.RELATION.FOLLOW)\
+        .filter_by(user_id=user_id, relation=Relation.RELATION.FOLLOW)\
         .order_by(Relation.utime.desc()).all()
 
     followings = []

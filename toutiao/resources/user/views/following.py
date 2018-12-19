@@ -61,7 +61,8 @@ class FollowingListResource(Resource):
         results = []
         followings = cache_user.get_user_followings(g.user_id)
         total_count = len(followings)
-        for following_user_id in followings:
+        req_followings = followings[(page-1)*per_page:page*per_page]
+        for following_user_id in req_followings:
             user = cache_user.get_user(following_user_id)
             results.append(dict(
                 id=following_user_id,
