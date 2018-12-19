@@ -72,8 +72,6 @@ class ChannelListResource(Resource):
         try:
             channel_list = self._parse_channel_list()
         except ValueError as e:
-            current_app.logger.error(e)
-            current_app.logger.error(request.get_json())
             return {'message': '{}'.format(e)}, 400
 
         user_id = g.user_id
@@ -97,8 +95,6 @@ class ChannelListResource(Resource):
         try:
             channel_list = self._parse_channel_list()
         except ValueError as e:
-            current_app.logger.error(e)
-            current_app.logger.error(request.get_json())
             return {'message': '{}'.format(e)}, 400
 
         user_id = g.user_id

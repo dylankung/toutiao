@@ -173,7 +173,8 @@ def get_user_followings(user_id):
     r = current_app.redis_cli['user_cache']
     ret = r.zrevrange('user:{}:following'.format(user_id), 0, -1)
     if ret:
-        return ret
+        # In order to be consistent with db data type.
+        return [int(uid) for uid in ret]
 
     ret = r.hget('user:{}'.format(user_id), 'follow_count')
     if ret is not None and int(ret) == 0:
@@ -186,8 +187,7 @@ def get_user_followings(user_id):
     followings = []
     cache = {}
     for relation in ret:
-        # In order to be consistent with cache data type.
-        followings.append(str(relation.target_user_id))
+        followings.append(relation.target_user_id)
         cache[relation.target_user_id] = relation.utime.timestamp()
 
     if cache:
@@ -209,4 +209,40 @@ def determine_user_follows_target(user_id, target_user_id):
     """
     followings = get_user_followings(user_id)
 
-    return str(target_user_id) in followings
+    return int(target_user_id) in followings
+
+
+def get_user_followers(user_id):
+    """
+    获取用户的粉丝列表
+    :param user_id:
+    :return:
+    """
+    r = current_app.redis_cli['user_cache']
+    ret = r.zrevrange('user:{}:fans'.format(user_id), 0, -1)
+    if ret:
+        return [int(uid) for uid in ret]
+
+    ret = r.hget('user:{}'.format(user_id), 'fans_count')
+    if ret is not None and int(ret) == 0:
+        return []
+
+    ret = Relation.query.options(load_only(Relation.user_id, Relation.utime))\
+        .filter_by(target_user_id=user_id, relation=Relation.RELATION.FOLLOW)\
+        .order_by(Relation.utime.desc()).all()
+
+    followers = []
+    cache = {}
+    for relation in ret:
+        # In order to be consistent with cache data type.
+        followers.append(relation.user_id)
+        cache[relation.user_id] = relation.utime.timestamp()
+
+    if cache:
+        timestamp = time.time()
+        pl = r.pipeline()
+        pl.zadd('user:fans', {user_id: timestamp})
+        pl.zadd('user:{}:fans'.format(user_id), cache)
+        pl.execute()
+
+    return followers
