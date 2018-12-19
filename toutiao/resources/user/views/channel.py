@@ -146,13 +146,15 @@ class ChannelListResource(Resource):
         获取用户频道
         """
         user_id = g.user_id
-        if user_id:
+        if g.use_token and user_id:
             user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
                                                       joinedload(UserChannel.channel, innerjoin=True)
                                                       .load_only(Channel.name))\
                 .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
                 .order_by(UserChannel.sequence).all()
             return marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
+        elif g.use_token and not user_id:
+            return {'message': 'Token has some errors.'}, 401
         else:
             # Return default channels
             default_channels = cache_channel.get_default_channels()

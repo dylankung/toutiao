@@ -112,3 +112,27 @@ def get_user(user_id):
         pl.execute()
 
     return user_data
+
+
+def update_user_following_count(user_id, target_user_id, increment=1):
+    """
+    更新用户的关注缓存数据
+    :param user_id: 操作用户
+    :param target_user_id: 被关注的目标用户
+    :param increment: 增量
+    :return:
+    """
+    User.query.filter_by(id=target_user_id).update({'fans_count': User.fans_count + increment})
+    User.query.filter_by(id=user_id).update({'following_count': User.following_count + increment})
+    db.session.commit()
+
+    r = current_app.redis_cli['user_cache']
+    key = 'user:{}'.format(user_id)
+    exist = r.exists(key)
+    if exist:
+        r.hincrby(key, 'follow_count', increment)
+
+    key = 'user:{}'.format(target_user_id)
+    exist = r.exists(key)
+    if exist:
+        r.hincrby(key, 'fans_count', increment)

@@ -18,3 +18,5 @@ alter table user_basic modify `introduction` varchar(50) NULL COMMENT '简介';
 
 alter table user_basic add `certificate` varchar(30) NULL COMMENT '认证';
 ```
+
+db.session.commit 与 update_cache 的重叠。。
