@@ -30,6 +30,7 @@ class UserResource(Resource):
             if ret:
                 user_data['is_following'] = True
         user_data['id'] = target
+        del user_data['mobile']
         return user_data
 
 
@@ -45,4 +46,5 @@ class UserSelfResource(Resource):
         """
         user_data = cache_user.get_user(g.user_id)
         user_data['id'] = g.user_id
+        del user_data['mobile']
         return user_data
