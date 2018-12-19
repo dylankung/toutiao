@@ -29,6 +29,7 @@ class UserResource(Resource):
                 .filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW).first()
             if ret:
                 user_data['is_following'] = True
+        user_data['id'] = target
         return user_data
 
 
@@ -43,4 +44,5 @@ class UserSelfResource(Resource):
         获取当前用户自己的数据
         """
         user_data = cache_user.get_user(g.user_id)
+        user_data['id'] = g.user_id
         return user_data
