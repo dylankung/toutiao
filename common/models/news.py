@@ -63,6 +63,7 @@ class Article(db.Model):
 
     content = db.relationship('ArticleContent', uselist=False)
     user = db.relationship('User', uselist=False)
+    statistic = db.relationship('ArticleStatistic', uselist=False)
 
 
 class ArticleContent(db.Model):
@@ -81,7 +82,7 @@ class ArticleStatistic(db.Model):
     """
     __tablename__ = 'news_article_statistic'
 
-    id = db.Column('article_id', db.Integer, primary_key=True, doc='文章ID')
+    id = db.Column('article_id', db.Integer, db.ForeignKey('news_article_basic.article_id'), primary_key=True, doc='文章ID')
     read_count = db.Column(db.Integer, default=0, doc='阅读量')
     like_count = db.Column(db.Integer, default=0, doc='点赞量')
     dislike_count = db.Column(db.Integer, default=0, doc='不喜欢数')

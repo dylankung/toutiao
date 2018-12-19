@@ -5,7 +5,7 @@ import time
 from sqlalchemy import func
 from flask import current_app
 
-from models.news import Article
+from models.news import Article, ArticleStatistic
 from models.user import User
 from models import db
 
@@ -24,7 +24,9 @@ article_info_fields_db = {
     'aut_id': fields.Integer(attribute='user_id'),
     'aut_name': fields.String(attribute='user.name'),
     'comm_count': fields.Integer(attribute='comment_count'),
-    'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601')
+    'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
+    'like_count': fields.Integer(attribute='statistic.like_count'),
+    'collect_count': fields.Integer(attribute='statistic.collect_count')
 }
 
 
@@ -80,13 +82,17 @@ def get_article_info(article_id):
             comm_count=int(article[b'comm_count']),
             pubdate=article[b'pubdate'].decode(),
             is_top=int(article[b'is_top']),
-            cover=pickle.loads(article[b'cover'])
+            cover=pickle.loads(article[b'cover']),
+            like_count=int(article[b'like_count']),
+            collect_count=int(article[b'collect_count'])
         )
         return article_formatted
 
     article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
                                               Article.cover, Article.ctime, Article.comment_count),
-                                    joinedload(Article.user, innerjoin=True).load_only(User.name))\
+                                    joinedload(Article.user, innerjoin=True).load_only(User.name),
+                                    joinedload(Article.statistic, innerjoin=True).load_only(ArticleStatistic.like_count,
+                                                                                            ArticleStatistic.collect_count))\
         .filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
     if article is None:
         return

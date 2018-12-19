@@ -25,12 +25,13 @@ from reading_history import save_reading_history_to_mysql
 scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=10)
 
 from clear_cache import clear_user_cache, clear_comment_cache, clear_article_cache
-from clear_cache import clear_user_following_cache, clear_user_fans_cache
+from clear_cache import clear_user_following_cache, clear_user_fans_cache, clear_user_article_cache
 scheduler.add_job(clear_user_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_comment_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_article_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_user_following_cache, trigger='interval', minutes=10)
 scheduler.add_job(clear_user_fans_cache, trigger='interval', minutes=10)
+scheduler.add_job(clear_user_article_cache, trigger='interval', minutes=10)
 
 # 用于生成测试数据的cover图片
 # from cover import generate_article_cover

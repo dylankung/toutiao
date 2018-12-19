@@ -3,6 +3,7 @@ from common import redis_cli
 USER_CACHE_LIMIT = 10000
 USER_FOLLOWING_CACHE_LIMIT = 10000
 USER_FANS_CACHE_LIMIT = 10000
+USER_ARTICLE_CACHE_LIMIT = 10000
 
 
 ARTICLE_COMMENT_CACHE_LIMIT = 10000  # 热门评论的文章缓存数量
@@ -69,6 +70,26 @@ def clear_user_fans_cache():
     pl = r.pipeline()
     pl.delete(*user_cache_keys)
     pl.zrem('user:fans', *user_id_li)
+    pl.execute()
+
+
+def clear_user_article_cache():
+    """
+    清理用户文章数据
+    """
+    r = redis_cli['user_cache']
+    size = r.zcard('user:art')
+    if size <= USER_ARTICLE_CACHE_LIMIT:
+        return
+
+    end_index = size - USER_ARTICLE_CACHE_LIMIT
+    user_id_li = r.zrange('user:art', 0, end_index - 1)
+    user_cache_keys = []
+    for user_id in user_id_li:
+        user_cache_keys.append('user:{}:art'.format(user_id))
+    pl = r.pipeline()
+    pl.delete(*user_cache_keys)
+    pl.zrem('user:art', *user_id_li)
     pl.execute()
 
 

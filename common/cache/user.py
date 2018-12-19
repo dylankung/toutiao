@@ -5,6 +5,7 @@ from sqlalchemy import func
 from flask_restful import marshal, fields
 
 from models.user import User, Relation
+from models.news import Article
 from models import db
 
 
@@ -171,8 +172,11 @@ def get_user_followings(user_id):
     :return:
     """
     r = current_app.redis_cli['user_cache']
+    timestamp = time.time()
+
     ret = r.zrevrange('user:{}:following'.format(user_id), 0, -1)
     if ret:
+        r.zadd('user:following', {user_id: timestamp})
         # In order to be consistent with db data type.
         return [int(uid) for uid in ret]
 
@@ -191,7 +195,6 @@ def get_user_followings(user_id):
         cache[relation.target_user_id] = relation.utime.timestamp()
 
     if cache:
-        timestamp = time.time()
         pl = r.pipeline()
         pl.zadd('user:following', {user_id: timestamp})
         pl.zadd('user:{}:following'.format(user_id), cache)
@@ -219,8 +222,12 @@ def get_user_followers(user_id):
     :return:
     """
     r = current_app.redis_cli['user_cache']
+    timestamp = time.time()
+
     ret = r.zrevrange('user:{}:fans'.format(user_id), 0, -1)
     if ret:
+        r.zadd('user:fans', {user_id: timestamp})
+        # In order to be consistent with db data type.
         return [int(uid) for uid in ret]
 
     ret = r.hget('user:{}'.format(user_id), 'fans_count')
@@ -234,15 +241,50 @@ def get_user_followers(user_id):
     followers = []
     cache = {}
     for relation in ret:
-        # In order to be consistent with cache data type.
         followers.append(relation.user_id)
         cache[relation.user_id] = relation.utime.timestamp()
 
     if cache:
-        timestamp = time.time()
         pl = r.pipeline()
         pl.zadd('user:fans', {user_id: timestamp})
         pl.zadd('user:{}:fans'.format(user_id), cache)
         pl.execute()
 
     return followers
+
+
+def get_user_articles(user_id):
+    """
+    获取用户的文章列表
+    :param user_id:
+    :return:
+    """
+    r = current_app.redis_cli['user_cache']
+    timestamp = time.time()
+
+    ret = r.zrevrange('user:{}:art'.format(user_id), 0, -1)
+    if ret:
+        r.zadd('user:art', {user_id: timestamp})
+        return [int(aid) for aid in ret]
+
+    ret = r.hget('user:{}'.format(user_id), 'art_count')
+    if ret is not None and int(ret) == 0:
+        return []
+
+    ret = Article.query.options(load_only(Article.id, Article.ctime))\
+        .filter_by(user_id=user_id, status=Article.STATUS.APPROVED)\
+        .order_by(Article.ctime.desc()).all()
+
+    articles = []
+    cache = {}
+    for article in ret:
+        articles.append(article.id)
+        cache[article.id] = article.ctime.timestamp()
+
+    if cache:
+        pl = r.pipeline()
+        pl.zadd('user:art', {user_id: timestamp})
+        pl.zadd('user:{}:art'.format(user_id), cache)
+        pl.execute()
+
+    return articles

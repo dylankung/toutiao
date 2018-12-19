@@ -10,12 +10,17 @@
 | key                      | 类型 | 说明                   | 举例                     |
 | ------------------------ | ---- | ---------------------- | ------------------------ |
 | user:following           | zset | 最近缓存的用户关注信息 | [{user_id, timestamp}]   |
-| user:{user_id}:following | zset | user_id的关注用户      | [{user_id, create_time}] |
+| user:{user_id}:following | zset | user_id的关注用户      | [{user_id, update_time}] |
 
 | key                 | 类型 | 说明                   | 举例                     |
 | ------------------- | ---- | ---------------------- | ------------------------ |
 | user:fans           | zset | 最近缓存的用户关注信息 | [{user_id, timestamp}]   |
-| user:{user_id}:fans | zset | user_id的粉丝用户      | [{user_id, create_time}] |
+| user:{user_id}:fans | zset | user_id的粉丝用户      | [{user_id, update_time}] |
+
+| key                | 类型 | 说明                   | 举例                        |
+| ------------------ | ---- | ---------------------- | --------------------------- |
+| user:art           | zset | 最近缓存的用户文章数据 | [{user_id, timestamp}]      |
+| user:{user_id}:art | zset | user_id的文章          | [{article_id, create_time}] |
 
 
 
