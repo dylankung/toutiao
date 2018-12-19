@@ -60,6 +60,7 @@ class FollowingListResource(Resource):
 
         results = []
         followings = cache_user.get_user_followings(g.user_id)
+        followers = cache_user.get_user_followers(g.user_id)
         total_count = len(followings)
         req_followings = followings[(page-1)*per_page:page*per_page]
         for following_user_id in req_followings:
@@ -68,7 +69,8 @@ class FollowingListResource(Resource):
                 id=following_user_id,
                 name=user['name'],
                 photo=user['photo'],
-                fans_count=user['fans_count']
+                fans_count=user['fans_count'],
+                mutual_follow=following_user_id in followers
             ))
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
@@ -105,4 +107,30 @@ class FollowerListResource(Resource):
         """
         获取粉丝列表
         """
-        pass
+        qs_parser = RequestParser()
+        qs_parser.add_argument('page', type=inputs.positive, required=False, location='args')
+        qs_parser.add_argument('per_page', type=inputs.int_range(constants.DEFAULT_USER_FOLLOWINGS_PER_PAGE_MIN,
+                                                                 constants.DEFAULT_USER_FOLLOWINGS_PER_PAGE_MAX,
+                                                                 'per_page'),
+                               required=False, location='args')
+        args = qs_parser.parse_args()
+        page = 1 if args.page is None else args.page
+        per_page = args.per_page if args.per_page else constants.DEFAULT_USER_FOLLOWINGS_PER_PAGE_MIN
+
+        results = []
+        followers = cache_user.get_user_followers(g.user_id)
+        followings = cache_user.get_user_followings(g.user_id)
+        total_count = len(followers)
+        req_followers = followers[(page - 1) * per_page:page * per_page]
+        for follower_user_id in req_followers:
+            user = cache_user.get_user(follower_user_id)
+            results.append(dict(
+                id=follower_user_id,
+                name=user['name'],
+                photo=user['photo'],
+                fans_count=user['fans_count'],
+                mutual_follow=follower_user_id in followings
+            ))
+
+        return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
+
