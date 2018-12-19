@@ -6,7 +6,7 @@ import pickle
 from redis.exceptions import RedisError
 import time
 from flask_restful.reqparse import RequestParser
-from flask_restful.inputs import positive, int_range
+from flask_restful import inputs
 import re
 import random
 from sqlalchemy import func
@@ -21,6 +21,7 @@ from utils import parser
 from cache import article as cache_article
 from cache import user as cache_user
 from models import db
+from utils.decorators import login_required
 
 
 class ArticleResource(Resource):
@@ -188,10 +189,10 @@ class ArticleListResource(Resource):
         """
         qs_parser = RequestParser()
         qs_parser.add_argument('channel_id', type=parser.channel_id, required=True, location='args')
-        qs_parser.add_argument('page', type=positive, required=False, location='args')
-        qs_parser.add_argument('per_page', type=int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
-                                                          constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
-                                                          'per_page'),
+        qs_parser.add_argument('page', type=inputs.positive, required=False, location='args')
+        qs_parser.add_argument('per_page', type=inputs.int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
+                                                                 constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
+                                                                 'per_page'),
                                required=False, location='args')
         args = qs_parser.parse_args()
         channel_id = args.channel_id
@@ -221,7 +222,6 @@ class ArticleListResource(Resource):
 
         # 查询文章
         for article_id in article_id_li:
-            # TODO 临时，对测试数据生成封面
             # self._generate_article_cover(article_id)
             article = cache_article.get_article_info(article_id)
             if article:
@@ -229,4 +229,68 @@ class ArticleListResource(Resource):
 
         return {'page': page, 'per_page': per_page, 'results': results}
 
+
+class UserArticleListResource(Resource):
+    """
+    用户文章列表
+    """
+    def get(self, user_id):
+        """
+        获取user_id 用户的文章数据
+        """
+        exist = cache_user.determine_user_exists(user_id)
+        if not exist:
+            return {'message': 'Invalid request.'}, 400
+        qs_parser = RequestParser()
+        qs_parser.add_argument('page', type=inputs.positive, required=False, location='args')
+        qs_parser.add_argument('per_page', type=inputs.int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
+                                                                 constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
+                                                                 'per_page'),
+                               required=False, location='args')
+        args = qs_parser.parse_args()
+        page = 1 if args.page is None else args.page
+        per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+
+        results = []
+        articles = cache_user.get_user_articles(user_id)
+        total_count = len(articles)
+        req_articles = articles[(page - 1) * per_page:page * per_page]
+        for article_id in req_articles:
+            article = cache_article.get_article_info(article_id)
+            if article:
+                results.append(article)
+
+        return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
+
+
+class CurrentUserArticleListResource(Resource):
+    """
+    当前用户的文章列表
+    """
+    method_decorators = [login_required]
+
+    def get(self):
+        """
+        获取当前用户的文章列表
+        """
+        qs_parser = RequestParser()
+        qs_parser.add_argument('page', type=inputs.positive, required=False, location='args')
+        qs_parser.add_argument('per_page', type=inputs.int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
+                                                                 constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
+                                                                 'per_page'),
+                               required=False, location='args')
+        args = qs_parser.parse_args()
+        page = 1 if args.page is None else args.page
+        per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+
+        results = []
+        articles = cache_user.get_user_articles(g.user_id)
+        total_count = len(articles)
+        req_articles = articles[(page - 1) * per_page:page * per_page]
+        for article_id in req_articles:
+            article = cache_article.get_article_info(article_id)
+            if article:
+                results.append(article)
+
+        return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
