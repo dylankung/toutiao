@@ -8,8 +8,10 @@ def jwt_authentication():
     根据jwt验证用户身份
     """
     g.user_id = None
+    g.use_token = False
     authorization = request.headers.get('Authorization')
     if authorization and 'Bearer' in authorization:
+        g.use_token = True
         token = authorization.strip()[7:]
         payload = verify_jwt(token)
         if payload:

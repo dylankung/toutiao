@@ -43,7 +43,7 @@ class AuthorizationResource(Resource):
     认证
     """
 
-    def _generate_tokens(self, user_id):
+    def _generate_tokens(self, user_id, with_refresh_token=True):
         """
         生成token 和refresh_token
         :param user_id: 用户id
@@ -53,8 +53,10 @@ class AuthorizationResource(Resource):
         now = datetime.utcnow()
         expiry = now + timedelta(hours=current_app.config['JWT_EXPIRY_HOURS'])
         token = generate_jwt({'user_id': user_id, 'refresh': False}, expiry)
-        refresh_expiry = now + timedelta(days=current_app.config['JWT_REFRESH_DAYS'])
-        refresh_token = generate_jwt({'user_id': user_id, 'refresh': True}, refresh_expiry)
+        refresh_token = None
+        if with_refresh_token:
+            refresh_expiry = now + timedelta(days=current_app.config['JWT_REFRESH_DAYS'])
+            refresh_token = generate_jwt({'user_id': user_id, 'refresh': True}, refresh_expiry)
         return token, refresh_token
 
     def post(self):
@@ -98,9 +100,9 @@ class AuthorizationResource(Resource):
         user_id = g.user_id
         if user_id and g.refresh_token:
 
-            token, refresh_token = self._generate_tokens(user_id)
+            token, refresh_token = self._generate_tokens(user_id, with_refresh_token=False)
 
-            return {'token': token, 'refresh_token': refresh_token}, 201
+            return {'token': token}, 201
 
         else:
 
