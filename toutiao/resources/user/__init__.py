@@ -20,6 +20,9 @@ user_api.add_resource(following.FollowingListResource, '/v1_0/user/followings',
 user_api.add_resource(following.FollowingResource, '/v1_0/user/followings/<int(min=1):target>',
                       endpoint='Following')
 
+user_api.add_resource(following.FollowerListResource, '/v1_0/user/followers',
+                      endpoint='Followers')
+
 user_api.add_resource(channel.ChannelListResource, '/v1_0/user/channels',
                       endpoint='Channels')
 
@@ -37,3 +40,4 @@ user_api.add_resource(profile.UserResource, '/v1_0/users/<int(min=1):target>',
 
 user_api.add_resource(profile.CurrentUserResource, '/v1_0/user',
                       endpoint='CurrentUser')
+

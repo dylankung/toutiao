@@ -12,10 +12,10 @@
 | user:following           | zset | 最近缓存的用户关注信息 | [{user_id, timestamp}]   |
 | user:{user_id}:following | zset | user_id的关注用户      | [{user_id, create_time}] |
 
-| key                     | 类型 | 说明                   | 举例                     |
-| ----------------------- | ---- | ---------------------- | ------------------------ |
-| user:follower           | zset | 最近缓存的用户关注信息 | [{user_id, timestamp}]   |
-| user:{user_id}:follower | zset | user_id的粉丝用户      | [{user_id, create_time}] |
+| key                 | 类型 | 说明                   | 举例                     |
+| ------------------- | ---- | ---------------------- | ------------------------ |
+| user:fans           | zset | 最近缓存的用户关注信息 | [{user_id, timestamp}]   |
+| user:{user_id}:fans | zset | user_id的粉丝用户      | [{user_id, create_time}] |
 
 
 

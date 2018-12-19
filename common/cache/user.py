@@ -4,7 +4,7 @@ from sqlalchemy.orm import load_only
 from sqlalchemy import func
 from flask_restful import marshal, fields
 
-from models.user import User
+from models.user import User, Relation
 from models import db
 
 
@@ -114,7 +114,7 @@ def get_user(user_id):
     return user_data
 
 
-def update_user_following_count(user_id, target_user_id, increment=1):
+def update_user_following(user_id, target_user_id, increment=1):
     """
     更新用户的关注缓存数据
     :param user_id: 操作用户
@@ -127,12 +127,86 @@ def update_user_following_count(user_id, target_user_id, increment=1):
     db.session.commit()
 
     r = current_app.redis_cli['user_cache']
+    timestamp = time.time()
+
+    pl = r.pipeline()
+
+    # Update user following count
     key = 'user:{}'.format(user_id)
     exist = r.exists(key)
     if exist:
-        r.hincrby(key, 'follow_count', increment)
+        pl.hincrby(key, 'follow_count', increment)
 
+    # Update user following user id list
+    key = 'user:{}:following'.format(user_id)
+    exist = r.exists(key)
+    if exist:
+        if increment > 0:
+            pl.zadd(key, {target_user_id, timestamp})
+        else:
+            pl.zrem(key, target_user_id)
+
+    # Update target user followers(fans) count
     key = 'user:{}'.format(target_user_id)
     exist = r.exists(key)
     if exist:
-        r.hincrby(key, 'fans_count', increment)
+        pl.hincrby(key, 'fans_count', increment)
+
+    # Update target user followers(fans) user id list
+    key = 'user:{}:fans'.format(target_user_id)
+    exist = r.exists(key)
+    if exist:
+        if increment > 0:
+            pl.zadd(key, {user_id, timestamp})
+        else:
+            pl.zrem(key, user_id)
+
+    pl.execute()
+
+
+def get_user_followings(user_id):
+    """
+    获取用户的关注列表
+    :param user_id:
+    :return:
+    """
+    r = current_app.redis_cli['user_cache']
+    ret = r.zrevrange('user:{}:following'.format(user_id), 0, -1)
+    if ret:
+        return ret
+
+    ret = r.hget('user:{}'.format(user_id), 'follow_count')
+    if ret is not None and int(ret) == 0:
+        return []
+
+    ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime))\
+        .fitler_by(user_id=user_id, relation=Relation.RELATION.FOLLOW)\
+        .order_by(Relation.utime.desc()).all()
+
+    followings = []
+    cache = {}
+    for relation in ret:
+        # In order to be consistent with cache data type.
+        followings.append(str(relation.target_user_id))
+        cache[relation.target_user_id] = relation.utime.timestamp()
+
+    if cache:
+        timestamp = time.time()
+        pl = r.pipeline()
+        pl.zadd('user:following', {user_id: timestamp})
+        pl.zadd('user:{}:following'.format(user_id), cache)
+        pl.execute()
+
+    return followings
+
+
+def determine_user_follows_target(user_id, target_user_id):
+    """
+    判断用户是否关注了目标用户
+    :param user_id:
+    :param target_user_id: 被关注的用户id
+    :return:
+    """
+    followings = get_user_followings(user_id)
+
+    return str(target_user_id) in followings
