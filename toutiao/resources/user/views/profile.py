@@ -34,7 +34,7 @@ class UserResource(Resource):
         return user_data
 
 
-class UserSelfResource(Resource):
+class CurrentUserResource(Resource):
     """
     用户自己的数据
     """

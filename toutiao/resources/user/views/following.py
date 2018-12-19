@@ -7,6 +7,7 @@ from utils.decorators import login_required
 from models.user import Relation, User
 from utils import parser
 from models import db
+from cache import user as cache_user
 
 
 class FollowingListResource(Resource):
@@ -36,12 +37,16 @@ class FollowingListResource(Resource):
                                         Relation.target_user_id == target,
                                         Relation.relation != Relation.RELATION.FOLLOW)\
                 .update({'relation': Relation.RELATION.FOLLOW})
+            db.session.commit()
         if ret > 0:
-            # TODO 更新用户缓存
-            User.query.filter_by(id=target).update({'fans_count': User.fans_count+1})
-            User.query.filter_by(id=g.user_id).update({'following_count': User.following_count+1})
-        db.session.commit()
+            cache_user.update_user_following_count(g.user_id, target)
         return {'target': target}, 201
+
+    def get(self):
+        """
+        获取关注的用户列表
+        """
+        pass
 
 
 class FollowingResource(Resource):
@@ -58,10 +63,9 @@ class FollowingResource(Resource):
                                     Relation.target_user_id == target,
                                     Relation.relation == Relation.RELATION.FOLLOW)\
             .update({'relation': Relation.RELATION.DELETE})
-        if ret > 0:
-            # TODO 更新用户缓存
-            User.query.filter_by(id=target).update({'fans_count': User.fans_count-1})
-            User.query.filter_by(id=g.user_id).update({'following_count': User.following_count-1})
         db.session.commit()
+
+        if ret > 0:
+            cache_user.update_user_following_count(g.user_id, target, -1)
         return {'message': 'OK'}, 204
 

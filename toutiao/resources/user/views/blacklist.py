@@ -8,6 +8,7 @@ from utils.decorators import login_required
 from models.user import Relation, User
 from utils import parser
 from models import db
+from cache import user as cache_user
 
 
 class BlacklistListResource(Resource):
@@ -46,9 +47,7 @@ class BlacklistListResource(Resource):
                     .update({'relation': Relation.RELATION.BLACKLIST})
 
                 if ret > 0:
-                    # TODO 更新用户缓存
-                    User.query.filter_by(id=target).update({'fans_count': User.fans_count - 1})
-                    User.query.filter_by(id=g.user_id).update({'following_count': User.following_count - 1})
+                    cache_user.update_user_following_count(g.user_id, target, -1)
 
         db.session.commit()
         return {'target': target}, 201
