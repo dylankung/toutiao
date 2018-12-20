@@ -47,3 +47,12 @@
 | art:{article_id}:info   | hash   | 文章的基本信息                        |                           |
 | art:{article_id}:detail | string | 文章的内容                            | 'pickled data'            |
 
+
+
+# 4 Announcement Cache
+
+| key                        | 类型   | 说明 | 举例                               |
+| -------------------------- | ------ | ---- | ---------------------------------- |
+| announce                   | zset   |      | [{'pickle data', announcement_id}] |
+| announce:{announcement_id} | string |      | 'pickle data'                      |
+

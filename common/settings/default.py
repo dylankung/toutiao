@@ -22,6 +22,7 @@ class DefaultConfig(object):
         ARTICLE_CACHE = 'redis://127.0.0.1:6379/2'
         USER_CACHE = 'redis://127.0.0.1:6379/3'
         COMMENT_CACHE = 'redis://127.0.0.1:6379/4'
+        NOTICE_CACHE = 'redis://127.0.0.1:6379/5'
 
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'

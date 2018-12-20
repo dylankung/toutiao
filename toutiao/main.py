@@ -60,6 +60,11 @@ from .resources.news import news_bp
 
 app.register_blueprint(news_bp)
 
+# 注册通知模块
+from .resources.notice import notice_bp
+
+app.register_blueprint(notice_bp)
+
 
 @app.route('/')
 def route_map():
