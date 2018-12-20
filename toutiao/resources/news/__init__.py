@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import article, collection, liking, dislike, report, comment, channel
+from .views import article, collection, liking, dislike, report, comment, channel, reading_history
 from utils.output import output_json
 
 
@@ -54,3 +54,6 @@ news_api.add_resource(liking.CommentLikingResource, '/v1_0/comment/likings/<int(
 
 news_api.add_resource(channel.ChannelListResource, '/v1_0/channels',
                       endpoint='Channels')
+
+news_api.add_resource(reading_history.ReadingHistoryListResource, '/v1_0/user/histories',
+                      endpoint='UserReadingHistories')
