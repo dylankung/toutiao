@@ -255,7 +255,7 @@ def get_user_followers(user_id):
 
 def get_user_articles(user_id):
     """
-    获取用户的文章列表
+    获取用户的所有文章列表
     :param user_id:
     :return:
     """
@@ -288,3 +288,53 @@ def get_user_articles(user_id):
         pl.execute()
 
     return articles
+
+
+def get_user_articles_by_page(user_id, page, per_page):
+    """
+    获取用户的文章列表
+    :param user_id:
+    :param page: 页数
+    :param per_page: 每页数量
+    :return: total_count, [article_id, ..]
+    """
+    r = current_app.redis_cli['user_cache']
+    timestamp = time.time()
+
+    key = 'user:{}:art'.format(user_id)
+    exist = r.exists(key)
+    if exist:
+        # Cache exists.
+        r.zadd('user:art', {user_id: timestamp})
+        total_count = r.zcard(key)
+        ret = r.zrevrange(key, (page - 1) * per_page, page * per_page)
+        if ret:
+            return total_count, [int(aid) for aid in ret]
+        else:
+            return total_count, []
+    else:
+        # No cache.
+        ret = r.hget('user:{}'.format(user_id), 'art_count')
+        if ret is not None and int(ret) == 0:
+            return 0, []
+
+        ret = Article.query.options(load_only(Article.id, Article.ctime)) \
+            .filter_by(user_id=user_id, status=Article.STATUS.APPROVED) \
+            .order_by(Article.ctime.desc()).all()
+
+        articles = []
+        cache = {}
+        for article in ret:
+            articles.append(article.id)
+            cache[article.id] = article.ctime.timestamp()
+
+        if cache:
+            pl = r.pipeline()
+            pl.zadd('user:art', {user_id: timestamp})
+            pl.zadd(key, cache)
+            pl.execute()
+
+        total_count = len(articles)
+        page_articles = articles[(page - 1) * per_page:page * per_page]
+
+        return total_count, page_articles
