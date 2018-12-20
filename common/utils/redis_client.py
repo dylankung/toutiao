@@ -13,4 +13,5 @@ def create_redis_clients(flask_app):
         'art_cache': Redis.from_url(flask_app.config['REDIS'].ARTICLE_CACHE),
         'user_cache': Redis.from_url(flask_app.config['REDIS'].USER_CACHE, decode_responses=True),
         'comm_cache': Redis.from_url(flask_app.config['REDIS'].COMMENT_CACHE, decode_responses=True),
+        'notice_cache': Redis.from_url(flask_app.config['REDIS'].NOTICE_CACHE),
     }
