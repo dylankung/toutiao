@@ -8,6 +8,7 @@ from utils import parser
 from models import db
 from models.news import Attitude, ArticleStatistic, CommentLiking, Comment
 from cache import comment as cache_comment
+from cache import article as cache_article
 
 
 class ArticleLikingListResource(Resource):
@@ -32,7 +33,8 @@ class ArticleLikingListResource(Resource):
         if atti is None:
             attitude = Attitude(user_id=g.user_id, article_id=target, attitude=Attitude.ATTITUDE.LIKING)
             db.session.add(attitude)
-            ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count + 1})
+            # ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count + 1})
+            cache_article.update_article_liking_count(target)
             db.session.commit()
         else:
             if atti.attitude == Attitude.ATTITUDE.DISLIKE:
@@ -40,17 +42,18 @@ class ArticleLikingListResource(Resource):
                 atti.attitude = Attitude.ATTITUDE.LIKING
                 db.session.add(atti)
                 ArticleStatistic.query.filter_by(id=target).update({
-                    'like_count': ArticleStatistic.like_count + 1,
                     'dislike_count': ArticleStatistic.dislike_count - 1
                 })
+                cache_article.update_article_liking_count(target)
                 db.session.commit()
             elif atti.attitude is None:
                 # 存在数据，但是无态度
                 atti.attitude = Attitude.ATTITUDE.LIKING
                 db.session.add(atti)
-                ArticleStatistic.query.filter_by(id=target).update({
-                    'like_count': ArticleStatistic.like_count + 1,
-                })
+                # ArticleStatistic.query.filter_by(id=target).update({
+                #     'like_count': ArticleStatistic.like_count + 1,
+                # })
+                cache_article.update_article_liking_count(target)
                 db.session.commit()
 
         return {'target': target}, 201
@@ -69,7 +72,8 @@ class ArticleLikingResource(Resource):
         ret = Attitude.query.filter_by(user_id=g.user_id, article_id=target, attitude=Attitude.ATTITUDE.LIKING) \
             .update({'attitude': None})
         if ret > 0:
-            ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count - 1})
+            # ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count - 1})
+            cache_article.update_article_liking_count(target, -1)
         db.session.commit()
         return {'message': 'OK'}, 204
 
