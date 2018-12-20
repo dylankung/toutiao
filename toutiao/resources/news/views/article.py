@@ -100,6 +100,10 @@ class ArticleResource(Resource):
 
         # TODO 查询登录用户对文章的态度（点赞or不喜欢）
 
+        # 更新阅读数
+        cache_article.update_article_read_count(article_id)
+        cache_user.update_user_article_read_count(article_dict['aut_id'])
+
         article_dict['recomments'] = []
         # # 获取相关文章推荐
         # req_article = article_reco_pb2.Article()

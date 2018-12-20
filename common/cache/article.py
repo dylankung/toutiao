@@ -196,3 +196,20 @@ def update_article_liking_count(article_id, increment=1):
 
     if exist:
         r.hincrby(key, 'like_count', increment)
+
+
+def update_article_read_count(article_id):
+    """
+    更新文章阅读数
+    :param article_id:
+    :return:
+    """
+    ArticleStatistic.query.filter_by(id=article_id).update({'read_count': ArticleStatistic.read_count + 1})
+    db.session.commit()
+
+    r = current_app.redis_cli['art_cache']
+    key = 'art:{}:info'.format(article_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hincrby(key, 'read_count', 1)

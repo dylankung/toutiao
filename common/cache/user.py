@@ -19,7 +19,8 @@ user_fields_db = {
     'art_count': fields.Integer(attribute='article_count'),
     'follow_count': fields.Integer(attribute='following_count'),
     'fans_count': fields.Integer(attribute='fans_count'),
-    'like_count': fields.Integer(attribute='like_count')
+    'like_count': fields.Integer(attribute='like_count'),
+    'read_count': fields.Integer(attribute='read_count'),
 }
 
 
@@ -33,7 +34,8 @@ user_fields_cache = {
     'art_count': fields.Integer(attribute='art_count'),
     'follow_count': fields.Integer(attribute='follow_count'),
     'fans_count': fields.Integer(attribute='fans_count'),
-    'like_count': fields.Integer(attribute='like_count')
+    'like_count': fields.Integer(attribute='like_count'),
+    'read_count': fields.Integer(attribute='read_count'),
 }
 
 
@@ -54,7 +56,8 @@ def _generate_user_cache_data(user_id, user=None):
                                             User.article_count,
                                             User.following_count,
                                             User.fans_count,
-                                            User.like_count)) \
+                                            User.like_count,
+                                            User.read_count)) \
             .filter_by(id=user_id).first()
     user.profile_photo = user.profile_photo or ''
     user.introduction = user.introduction or ''
@@ -368,4 +371,20 @@ def synchronize_reading_history_to_db(user_id):
         db.session.execute(sql)
         db.session.commit()
 
+
+def update_user_article_read_count(user_id):
+    """
+    更新用户文章被阅读数
+    :param user_id:
+    :return:
+    """
+    User.query.filter_by(id=user_id).update({'read_count': User.read_count + 1})
+    db.session.commit()
+
+    r = current_app.redis_cli['user_cache']
+    key = 'user:{}'.format(user_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hincrby(key, 'read_count', 1)
 
