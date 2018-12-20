@@ -32,7 +32,7 @@ def save_reading_history_to_mysql():
             read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(timestamp)))
             sql += "INSERT INTO news_read (user_id, article_id, create_time, update_time) VALUES({}, {}, '{}', '{}')" \
                    " ON DUPLICATE KEY UPDATE update_time ='{}';".format(
-                        user_id, article_id.decode(), read_time, read_time, read_time
+                        user_id, article_id, read_time, read_time, read_time
                    )
 
     # 处理浏览历史

@@ -338,3 +338,34 @@ def get_user_articles_by_page(user_id, page, per_page):
         page_articles = articles[(page - 1) * per_page:page * per_page]
 
         return total_count, page_articles
+
+
+def synchronize_reading_history_to_db(user_id):
+    """
+    同步用户的阅读历史到数据库
+    :param user_id:
+    :return:
+    """
+    r = current_app.redis_cli['read_his']
+    history = r.hgetall('his:{}'.format(user_id))
+    if not history:
+        return
+
+    pl = r.pipeline()
+    pl.srem('users', user_id)
+    pl.delete('his:{}'.format(user_id))
+    pl.execute()
+
+    sql = ''
+    for article_id, timestamp in history.items():
+        read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(timestamp)))
+        sql += "INSERT INTO news_read (user_id, article_id, create_time, update_time) VALUES({}, {}, '{}', '{}')" \
+               " ON DUPLICATE KEY UPDATE update_time ='{}';".format(
+                    user_id, article_id, read_time, read_time, read_time
+               )
+
+    if sql:
+        db.session.execute(sql)
+        db.session.commit()
+
+
