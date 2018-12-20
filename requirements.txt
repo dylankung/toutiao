@@ -5,6 +5,8 @@ APScheduler==3.5.3
 billiard==3.5.0.4
 blinker==1.4
 celery==4.2.1
+certifi==2018.11.29
+chardet==3.0.4
 Click==7.0
 Flask==1.0.2
 Flask-Limiter==1.0.1
@@ -13,6 +15,7 @@ Flask-SQLAlchemy==2.3.2
 grpcio==1.16.1
 grpcio-tools==1.16.1
 gunicorn==19.9.0
+idna==2.8
 itsdangerous==1.1.0
 Jinja2==2.10
 kombu==4.2.1
@@ -24,9 +27,12 @@ pycryptodome==3.7.0
 PyJWT==1.6.4
 pymongo==3.7.2
 pytz==2018.7
+qiniu==7.2.2
 redis==3.0.1
+requests==2.21.0
 six==1.11.0
 SQLAlchemy==1.2.14
 tzlocal==1.5.1
+urllib3==1.24.1
 vine==1.1.4
 Werkzeug==0.14.1

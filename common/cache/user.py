@@ -7,6 +7,7 @@ from flask_restful import marshal, fields
 from models.user import User, Relation
 from models.news import Article
 from models import db
+from . import constants
 
 
 user_fields_db = {
@@ -115,6 +116,9 @@ def get_user(user_id):
         pl.hmset('user:{}'.format(user_id), user_data)
         pl.execute()
 
+    if not user_data['photo']:
+        user_data['photo'] = constants.DEFAULT_USER_PROFILE_PHOTO
+    user_data['photo'] = current_app.config['QINIU_DOMAIN'] + user_data['photo']
     return user_data
 
 
@@ -388,3 +392,18 @@ def update_user_article_read_count(user_id):
     if exist:
         r.hincrby(key, 'read_count', 1)
 
+
+def update_user_profile(user_id, profile):
+    """
+    更新用户资料
+    :param user_id:
+    :param profile: dict
+    :return:
+    """
+    r = current_app.redis_cli['user_cache']
+
+    key = 'user:{}'.format(user_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hmset(key, profile)
