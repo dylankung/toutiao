@@ -160,3 +160,39 @@ def determine_article_exists(article_id):
     else:
         ret = db.session.query(func.count(Article.id)).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
         return True if ret[0] > 0 else False
+
+
+def update_article_collect_count(article_id, increment=1):
+    """
+    更新文章收藏数量
+    :param article_id: 文章id
+    :param increment: 增量
+    :return:
+    """
+    ArticleStatistic.query.filter_by(id=article_id).update({'collect_count': ArticleStatistic.collect_count + increment})
+    db.session.commit()
+
+    r = current_app.redis_cli['art_cache']
+    key = 'art:{}:info'.format(article_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hincrby(key, 'collect_count', increment)
+
+
+def update_article_liking_count(article_id, increment=1):
+    """
+    更新文章点赞数量
+    :param article_id: 文章id
+    :param increment: 增量
+    :return:
+    """
+    ArticleStatistic.query.filter_by(id=article_id).update({'like_count': ArticleStatistic.like_count + increment})
+    db.session.commit()
+
+    r = current_app.redis_cli['art_cache']
+    key = 'art:{}:info'.format(article_id)
+    exist = r.exists(key)
+
+    if exist:
+        r.hincrby(key, 'like_count', increment)
