@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from cache import comment as cache_comment
 from cache import channel as cache_channel
@@ -120,3 +121,17 @@ def channel_id(value):
                 return _channel_id
             else:
                 raise ValueError('Invalid channel id.')
+
+
+def date(value):
+    """
+    检查是否是合法日期
+    :param value: 被检验的值
+    :return: date
+    """
+    try:
+        _date = datetime.strptime(value, '%Y-%m-%d')
+    except Exception:
+        raise ValueError('Invalid date param.')
+    else:
+        return _date
