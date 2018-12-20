@@ -252,10 +252,12 @@ class UserArticleListResource(Resource):
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
         results = []
-        articles = cache_user.get_user_articles(user_id)
-        total_count = len(articles)
-        req_articles = articles[(page - 1) * per_page:page * per_page]
-        for article_id in req_articles:
+        # articles = cache_user.get_user_articles(user_id)
+        # total_count = len(articles)
+        # page_articles = articles[(page - 1) * per_page:page * per_page]
+        total_count, page_articles = cache_user.get_user_articles_by_page(user_id, page, per_page)
+
+        for article_id in page_articles:
             article = cache_article.get_article_info(article_id)
             if article:
                 results.append(article)
@@ -284,10 +286,12 @@ class CurrentUserArticleListResource(Resource):
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
         results = []
-        articles = cache_user.get_user_articles(g.user_id)
-        total_count = len(articles)
-        req_articles = articles[(page - 1) * per_page:page * per_page]
-        for article_id in req_articles:
+        # articles = cache_user.get_user_articles(g.user_id)
+        # total_count = len(articles)
+        # page_articles = articles[(page - 1) * per_page:page * per_page]
+        total_count, page_articles = cache_user.get_user_articles_by_page(g.user_id, page, per_page)
+
+        for article_id in page_articles:
             article = cache_article.get_article_info(article_id)
             if article:
                 results.append(article)
