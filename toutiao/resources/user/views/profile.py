@@ -101,14 +101,14 @@ class ProfileResource(Resource):
         """
         json_parser = RequestParser()
         json_parser.add_argument('name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
-        json_parser.add_argument('photo', type=parser.image, required=False, location='json')
+        json_parser.add_argument('photo', type=parser.image_base64, required=False, location='json')
         json_parser.add_argument('gender', type=self._gender, required=False, location='json')
         json_parser.add_argument('birthday', type=parser.date, required=False, location='json')
         json_parser.add_argument('real_name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
         json_parser.add_argument('id_number', type=parser.id_number, required=False, location='json')
-        json_parser.add_argument('id_card_front', type=parser.image, required=False, location='json')
-        json_parser.add_argument('id_card_back', type=parser.image, required=False, location='json')
-        json_parser.add_argument('id_card_handheld', type=parser.image, required=False, location='json')
+        json_parser.add_argument('id_card_front', type=parser.image_base64, required=False, location='json')
+        json_parser.add_argument('id_card_back', type=parser.image_base64, required=False, location='json')
+        json_parser.add_argument('id_card_handheld', type=parser.image_base64, required=False, location='json')
         args = json_parser.parse_args()
 
         user_id = g.user_id
@@ -191,3 +191,71 @@ class ProfileResource(Resource):
         return return_values, 201
 
 
+class PhotoResource(Resource):
+    """
+    用户图像 （头像，身份证）
+    """
+    method_decorators = [login_required]
+
+    def patch(self):
+        file_parser = RequestParser()
+        file_parser.add_argument('photo', type=parser.image_file, required=False, location='files')
+        file_parser.add_argument('id_card_front', type=parser.image_file, required=False, location='files')
+        file_parser.add_argument('id_card_back', type=parser.image_file, required=False, location='files')
+        file_parser.add_argument('id_card_handheld', type=parser.image_file, required=False, location='files')
+        files = file_parser.parse_args()
+
+        user_id = g.user_id
+        new_cache_values = {}
+        new_user_values = {}
+        new_profile_values = {}
+        return_values = {'id': user_id}
+
+        if files.photo:
+            try:
+                photo_url = upload_image(files.photo.read())
+            except Exception as e:
+                current_app.logger.error('upload failed {}'.format(e))
+                return {'message': 'Uploading profile photo image failed.'}, 507
+            new_cache_values['photo'] = photo_url
+            new_user_values['profile_photo'] = photo_url
+            return_values['photo'] = current_app.config['QINIU_DOMAIN'] + photo_url
+
+        if files.id_card_front:
+            try:
+                id_card_front_url = upload_image(files.id_card_front.read())
+            except Exception as e:
+                current_app.logger.error('upload failed {}'.format(e))
+                return {'message': 'Uploading id_card_front image failed.'}, 507
+            new_profile_values['id_card_front'] = id_card_front_url
+            return_values['id_card_front'] = current_app.config['QINIU_DOMAIN'] + id_card_front_url
+
+        if files.id_card_back:
+            try:
+                id_card_back_url = upload_image(files.id_card_back.read())
+            except Exception as e:
+                current_app.logger.error('upload failed {}'.format(e))
+                return {'message': 'Uploading id_card_back image failed.'}, 507
+            new_profile_values['id_card_back'] = id_card_back_url
+            return_values['id_card_back'] = current_app.config['QINIU_DOMAIN'] + id_card_back_url
+
+        if files.id_card_handheld:
+            try:
+                id_card_handheld_url = upload_image(files.id_card_handheld.read())
+            except Exception as e:
+                current_app.logger.error('upload failed {}'.format(e))
+                return {'message': 'Uploading id_card_handheld image failed.'}, 507
+            new_profile_values['id_card_handheld'] = id_card_handheld_url
+            return_values['id_card_handheld'] = current_app.config['QINIU_DOMAIN'] + id_card_handheld_url
+
+        if new_user_values:
+            User.query.filter_by(id=user_id).update(new_user_values)
+        if new_profile_values:
+            UserProfile.query.filter_by(id=user_id).update(new_profile_values)
+
+        db.session.commit()
+
+        if new_cache_values:
+            cache_user.update_user_profile(user_id, new_cache_values)
+
+        return return_values, 201
