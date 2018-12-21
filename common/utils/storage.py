@@ -25,7 +25,7 @@ def upload_image(file_data):
     key = None
 
     # 生成上传 Token，可以指定过期时间等
-    token = q.upload_token(bucket_name, expires=180)
+    token = q.upload_token(bucket_name, expires=1800)
 
     # # 要上传文件的本地路径
     # localfile = '/Users/jemy/Documents/qiniu.png'
