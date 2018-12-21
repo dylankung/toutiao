@@ -1,4 +1,6 @@
 import re
+import base64
+import imghdr
 from datetime import datetime
 
 from cache import comment as cache_comment
@@ -135,3 +137,30 @@ def date(value):
         raise ValueError('Invalid date param.')
     else:
         return _date
+
+
+def image(value):
+    """
+    检查是否是图片文件
+    :param value:
+    :return:
+    """
+    try:
+        photo = base64.b64decode(value)
+        file_header = photo[:32]
+        file_type = imghdr.what(None, file_header)
+    except Exception:
+        raise ValueError('Invalid image.')
+    else:
+        if not file_type:
+            raise ValueError('Invalid image.')
+        else:
+            return photo
+
+
+def id_number(value):
+    id_number_pattern = r'(^[1-9]\d{5}(18|19|([23]\d))\d{2}((0[1-9])|(10|11|12))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$)|(^[1-9]\d{5}\d{2}((0[1-9])|(10|11|12))(([0-2][1-9])|10|20|30|31)\d{2}$)'
+    if re.match(id_number_pattern, value):
+        return value.upper()
+    else:
+        raise ValueError('Invalid id number.')
