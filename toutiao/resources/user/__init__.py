@@ -46,3 +46,6 @@ user_api.add_resource(profile.ProfileResource, '/v1_0/user/profile',
 
 user_api.add_resource(figure.FigureResource, '/v1_0/user/figure',
                       endpoint='Figure')
+
+user_api.add_resource(profile.PhotoResource, '/v1_0/user/photo',
+                      endpoint='Photo')
