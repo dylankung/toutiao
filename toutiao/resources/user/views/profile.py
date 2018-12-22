@@ -104,6 +104,7 @@ class ProfileResource(Resource):
         json_parser.add_argument('photo', type=parser.image_base64, required=False, location='json')
         json_parser.add_argument('gender', type=self._gender, required=False, location='json')
         json_parser.add_argument('birthday', type=parser.date, required=False, location='json')
+        json_parser.add_argument('intro', type=inputs.regex(r'^.{1, 60}$'), required=False, location='json')
         json_parser.add_argument('real_name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
         json_parser.add_argument('id_number', type=parser.id_number, required=False, location='json')
         json_parser.add_argument('id_card_front', type=parser.image_base64, required=False, location='json')
@@ -139,6 +140,11 @@ class ProfileResource(Resource):
         if args.birthday:
             new_profile_values['birthday'] = args.birthday
             return_values['birthday'] = args.birthday.strftime('%Y-%m-%d')
+
+        if args.intro:
+            new_cache_values['intro'] = args.intro
+            new_user_values['introduction'] = args.intro
+            return_values['intro'] = args.intro
 
         if args.real_name:
             new_profile_values['real_name'] = args.real_name
