@@ -121,22 +121,32 @@ class SearchResource(Resource):
                 results.append(article)
 
         # Record user search history
-        if g.user_id:
+        if g.user_id and page == 1:
             _search = Search(user_id=g.user_id, keyword=q)
             db.session.add(_search)
             db.session.commit()
 
         # Add new es index doc
-        if total_count:
-            doc = {
-                'suggest': {
-                    'input': q,
-                    'weight': constants.USER_KEYWORD_ES_SUGGEST_WEIGHT
+        if total_count and page == 1:
+            query = {
+                '_source': False,
+                'query': {
+                    'match': {
+                        'suggest': q
+                    }
                 }
             }
-            try:
-                es.index(index='completions', doc_type='words', body=doc)
-            except Exception:
-                pass
+            ret = es.search(index='completions', doc_type='words', body=query)
+            if ret['hits']['total'] == 0:
+                doc = {
+                    'suggest': {
+                        'input': q,
+                        'weight': constants.USER_KEYWORD_ES_SUGGEST_WEIGHT
+                    }
+                }
+                try:
+                    es.index(index='completions', doc_type='words', body=doc)
+                except Exception:
+                    pass
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
