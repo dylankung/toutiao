@@ -10,6 +10,7 @@ from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 import grpc
+from elasticsearch5 import Elasticsearch
 
 from . import create_app
 from settings.default import DefaultConfig
@@ -38,6 +39,17 @@ app.redis_cli = redis_cli
 # rpc
 rpc_cli = grpc.insecure_channel(app.config['RPC_SERVER'])
 
+# Elasticsearch
+es = Elasticsearch(
+    app.config['ES'],
+    # sniff before doing anything
+    sniff_on_start=True,
+    # refresh nodes after a node fails to respond
+    sniff_on_connection_fail=True,
+    # and also every 60 seconds
+    sniffer_timeout=60
+)
+
 # MySQL数据库连接初始化
 from models import db
 
@@ -52,18 +64,19 @@ app.before_request(jwt_authentication)
 
 # 注册用户模块蓝图
 from .resources.user import user_bp
-
 app.register_blueprint(user_bp)
 
 # 注册新闻模块蓝图
 from .resources.news import news_bp
-
 app.register_blueprint(news_bp)
 
 # 注册通知模块
 from .resources.notice import notice_bp
-
 app.register_blueprint(notice_bp)
+
+# 搜索
+from .resources.search import search_bp
+app.register_blueprint(search_bp)
 
 
 @app.route('/')

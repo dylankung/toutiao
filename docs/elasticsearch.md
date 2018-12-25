@@ -102,7 +102,7 @@ curl -X PUT 172.17.0.135:9200/completions/_mapping/words -H 'Content-Type: appli
 
 
 ```http
-curl 172.17.0.135:9200/articles/article/_search?pretty -d '
+curl -XGET 172.17.0.135:9200/articles/article/_search?pretty -d '
 {
 	"_source": ["title"],
 	"query": {

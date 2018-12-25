@@ -37,6 +37,11 @@ class DefaultConfig(object):
     # rpc
     RPC_SERVER = '172.17.0.134:8888'
 
+    # ES
+    ES = [
+        '172.17.0.135:9200'
+    ]
+
     QINIU_ACCESS_KEY = ''
     QINIU_SECRET_KEY = ''
     QINIU_BUCKET_NAME = ''
