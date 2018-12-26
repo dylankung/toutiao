@@ -50,7 +50,7 @@ CREATE TABLE `user_relation` (
 CREATE TABLE `user_search` (
   `search_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
   `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
-  `keyword` varchar(32) NOT NULL COMMENT '关键词',
+  `keyword` varchar(100) NOT NULL COMMENT '关键词',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否删除, 0-未删除，1-已删除',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
