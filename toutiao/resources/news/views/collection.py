@@ -9,9 +9,10 @@ from sqlalchemy import func
 from utils.decorators import login_required
 from utils import parser
 from models import db
-from models.news import Collection, ArticleStatistic
+from models.news import Collection
 from .. import constants
 from cache import article as cache_article
+from utils.logging import write_trace_log
 
 
 class CollectionListResource(Resource):
@@ -24,9 +25,15 @@ class CollectionListResource(Resource):
         """
         用户收藏文章
         """
-        json_parser = RequestParser()
-        json_parser.add_argument('target', type=parser.article_id, required=True, location='json')
-        args = json_parser.parse_args()
+        req_parser = RequestParser()
+        req_parser.add_argument('target', type=parser.article_id, required=True, location='json')
+        req_parser.add_argument('trace', type=inputs.regex(r'^.+$'), required=False, location='args')
+        args = req_parser.parse_args()
+
+        # 记录埋点日志
+        if args.trace:
+            write_trace_log(args.trace)
+
         target = args.target
         ret = 1
         try:
