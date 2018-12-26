@@ -4,10 +4,13 @@ import pickle
 import time
 from sqlalchemy import func
 from flask import current_app
+from redis.exceptions import RedisError
 
 from models.news import Article, ArticleStatistic
 from models.user import User
 from models import db
+from . import user as cache_user
+from . import constants
 
 
 article_info_fields_redis = {
@@ -126,7 +129,44 @@ def get_article_detail(article_id):
     :param article_id: 文章id
     :return:
     """
-    pass
+    # 查询文章数据
+    r = current_app.redis_cli['art_cache']
+    article_bytes = r.get('art:{}:detail'.format(article_id))
+    if article_bytes:
+        # 使用缓存
+        article_dict = pickle.loads(article_bytes)
+        return article_dict
+
+    # 查询数据库
+    article = Article.query.options(load_only(
+        Article.id,
+        Article.user_id,
+        Article.title,
+        Article.is_advertising,
+        Article.ctime
+    )).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
+
+    article_fields = {
+        'art_id': fields.Integer(attribute='id'),
+        'title': fields.String(attribute='title'),
+        'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
+        'content': fields.String(attribute='content.content'),
+        'aut_id': fields.Integer(attribute='user_id'),
+    }
+    article_dict = marshal(article, article_fields)
+    user = cache_user.get_user(article.user_id)
+
+    article_dict['aut_name'] = user['name']
+    article_dict['aut_photo'] = user['photo']
+
+    # 缓存
+    article_cache = pickle.dumps(article_dict)
+    try:
+        r.setex('art:{}'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
+    except RedisError:
+        pass
+
+    return article_dict
 
 
 def update_article_comment_count(article_id, increment=1):
