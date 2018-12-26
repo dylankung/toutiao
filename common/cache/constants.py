@@ -3,3 +3,6 @@ COMMENTS_CACHE_MAX_SCORE = 2e19
 
 # 默认用户头像
 DEFAULT_USER_PROFILE_PHOTO = 'Fkj6tQi3xJwVXi1u2swCElotfdCi'  # 程序猿
+
+# 文章数据缓存时间
+CACHE_ARTICLE_EXPIRE = 60 * 60

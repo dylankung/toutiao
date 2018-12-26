@@ -7,7 +7,7 @@ from sqlalchemy.dialects.mysql import insert
 from flask_restful import fields, marshal
 from flask_restful import inputs
 
-from utils.decorators import login_required
+from utils.decorators import login_required, validate_token_if_using
 from models.news import UserChannel, Channel
 from models import db
 from toutiao.main import redis_cli
@@ -22,7 +22,8 @@ class ChannelListResource(Resource):
         'post': [login_required],
         'put': [login_required],
         'patch': [login_required],
-        'delete': [login_required]
+        'delete': [login_required],
+        'get': [validate_token_if_using]
     }
 
     def _parse_channel_list(self):
@@ -141,23 +142,40 @@ class ChannelListResource(Resource):
         'name': fields.String(attribute='channel.name')
     }
 
+    def _get_recommendation_channel(self):
+        """
+        获取0号「推荐」频道
+        """
+        # return {'id': 0, 'name': '推荐'}
+        return {}
+
     def get(self):
         """
         获取用户频道
         """
         user_id = g.user_id
-        if g.use_token and user_id:
+        if user_id:
             user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
                                                       joinedload(UserChannel.channel, innerjoin=True)
                                                       .load_only(Channel.name))\
                 .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
                 .order_by(UserChannel.sequence).all()
-            return marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
-        elif g.use_token and not user_id:
-            return {'message': 'Token has some errors.'}, 401
+            ret = marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
+
+            recommendation_channel = self._get_recommendation_channel()
+            if recommendation_channel:
+                ret['channels'].insert(0, recommendation_channel)
+
+            return ret
+
         else:
             # Return default channels
             default_channels = cache_channel.get_default_channels()
+
+            recommendation_channel = self._get_recommendation_channel()
+            if recommendation_channel:
+                default_channels.insert(0, recommendation_channel)
+
             return {'channels': default_channels}
 
     def delete(self):

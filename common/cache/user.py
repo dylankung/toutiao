@@ -407,3 +407,18 @@ def update_user_profile(user_id, profile):
 
     if exist:
         r.hmset(key, profile)
+
+
+def save_user_read_history(user_id, article_id):
+    """
+    保存用户阅读历史
+    :param user_id:
+    :param article_id: 文章id
+    :return:
+    """
+    if user_id:
+        r = current_app.redis_cli['read_his']
+        pl = r.pipeline()
+        pl.sadd('users', user_id)
+        pl.hset('his:{}'.format(user_id), article_id, int(time.time()))
+        pl.execute()
