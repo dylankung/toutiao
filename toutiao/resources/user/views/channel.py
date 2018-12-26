@@ -141,6 +141,13 @@ class ChannelListResource(Resource):
         'name': fields.String(attribute='channel.name')
     }
 
+    def _get_recommendation_channel(self):
+        """
+        获取0号「推荐」频道
+        """
+        # return {'id': 0, 'name': '推荐'}
+        return {}
+
     def get(self):
         """
         获取用户频道
@@ -152,12 +159,24 @@ class ChannelListResource(Resource):
                                                       .load_only(Channel.name))\
                 .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
                 .order_by(UserChannel.sequence).all()
-            return marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
+            ret = marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
+
+            recommendation_channel = self._get_recommendation_channel()
+            if recommendation_channel:
+                ret['channels'].insert(0, recommendation_channel)
+
+            return ret
+
         elif g.use_token and not user_id:
             return {'message': 'Token has some errors.'}, 401
         else:
             # Return default channels
             default_channels = cache_channel.get_default_channels()
+
+            recommendation_channel = self._get_recommendation_channel()
+            if recommendation_channel:
+                default_channels.insert(0, recommendation_channel)
+
             return {'channels': default_channels}
 
     def delete(self):
