@@ -11,6 +11,7 @@ from cache import user as cache_user
 from cache import article as cache_article
 from models.news import Read
 from models import db
+from utils.logging import write_trace_log
 
 
 class ReadingHistoryListResource(Resource):
@@ -51,4 +52,16 @@ class ReadingHistoryListResource(Resource):
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
 
+class ReadingTime(Resource):
+    """
+    阅读时长
+    """
+    def post(self):
+        req_parser = RequestParser()
+        req_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=True, location='headers')
+        req_parser.add_argument('duration', type=inputs.natural, required=True, location='json')
+        args = req_parser.parse_args()
 
+        write_trace_log(args.Trace, args.duration)
+
+        return {'message': 'OK'}, 201
