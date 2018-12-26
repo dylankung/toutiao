@@ -14,14 +14,14 @@ from sqlalchemy import func
 from models.news import Article, ArticleContent
 from models.user import User, Relation
 from toutiao.main import redis_cli, rpc_cli
-from rpc import article_reco_pb2_grpc
-from rpc import article_reco_pb2
+from rpc import user_reco_pb2, user_reco_pb2_grpc
 from .. import constants
 from utils import parser
 from cache import article as cache_article
 from cache import user as cache_user
 from models import db
-from utils.decorators import login_required
+from utils.decorators import login_required, validate_token_if_using
+from utils.logging import write_trace_log
 
 
 class ArticleResource(Resource):
@@ -142,15 +142,16 @@ class ArticleListResource(Resource):
     """
     文章列表数据
     """
+    method_decorators = [validate_token_if_using]
+
     def _get_recommended_articles(self, channel_id, page, per_page):
         """
-        获取推荐的文章
+        获取推荐的文章（伪推荐）
         :param channel_id: 频道id
         :param page: 页数
         :param per_page: 每页数量
         :return: [article_id, ...]
         """
-        # TODO 接入推荐系统后 需要改写
         offset = (page - 1) * per_page
         articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
             .order_by(Article.id).offset(offset).limit(per_page).all()
@@ -158,6 +159,34 @@ class ArticleListResource(Resource):
             return [article.id for article in articles]
         else:
             return []
+
+    def _feed_articles(self, channel_id, feed_count):
+        """
+        获取推荐文章
+        :param channel_id: 频道id
+        :param feed_count: 推荐数量
+        :return: [{article_id, trace_params}, ...]
+        """
+        req = user_reco_pb2.User()
+
+        if g.user_id:
+            req.user_id = str(g.user_id)
+        elif g.anonymous_id:
+            req.user_id = str(g.anonymous_id)
+        else:
+            req.user_id = ''
+
+        req.channel_id = channel_id
+        req.article_num = feed_count
+
+        stub = user_reco_pb2_grpc.UserRecommendStub(rpc_cli)
+        resp = stub.user_recommend(req)
+
+        # 曝光埋点参数
+        trace_exposure = resp.exposure
+        write_trace_log(trace_exposure)
+
+        return resp.recommends
 
     def _generate_article_cover(self, article_id):
         """
@@ -203,32 +232,32 @@ class ArticleListResource(Resource):
         page = 1 if args.page is None else args.page
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
-        article_id_li = []
         results = []
 
         if page == 1:
             # 第一页
-            ret = cache_article.get_channel_top_articles(channel_id)
-            if ret:
-                article_id_li = ret
+            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            for article_id in top_article_id_li:
+                article = cache_article.get_article_info(article_id)
+                if article:
+                    results.append(article)
 
         # 获取推荐文章列表
-        ret = self._get_recommended_articles(channel_id, page, per_page)
-        if article_id_li:
-            article_id_set = set(article_id_li)
-            # 去重
-            for article_id in ret:
-                if article_id in article_id_set:
-                    continue
-                article_id_li.append(article_id)
-        else:
-            article_id_li = ret
+        # ret = self._get_recommended_articles(channel_id, page, per_page)
+        # feed推荐 未使用page参数
+        feeds = self._feed_articles(channel_id, per_page)
 
         # 查询文章
-        for article_id in article_id_li:
+        for feed in feeds:
             # self._generate_article_cover(article_id)
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.get_article_info(feed.article_id)
             if article:
+                article['trace'] = {
+                    'click': feed.params.click,
+                    'collect': feed.params.collect,
+                    'share': feed.params.share,
+                    'read': feed.params.read
+                }
                 results.append(article)
 
         return {'page': page, 'per_page': per_page, 'results': results}

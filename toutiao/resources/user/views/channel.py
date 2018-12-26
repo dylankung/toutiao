@@ -7,7 +7,7 @@ from sqlalchemy.dialects.mysql import insert
 from flask_restful import fields, marshal
 from flask_restful import inputs
 
-from utils.decorators import login_required
+from utils.decorators import login_required, validate_token_if_using
 from models.news import UserChannel, Channel
 from models import db
 from toutiao.main import redis_cli
@@ -22,7 +22,8 @@ class ChannelListResource(Resource):
         'post': [login_required],
         'put': [login_required],
         'patch': [login_required],
-        'delete': [login_required]
+        'delete': [login_required],
+        'get': [validate_token_if_using]
     }
 
     def _parse_channel_list(self):
@@ -153,7 +154,7 @@ class ChannelListResource(Resource):
         获取用户频道
         """
         user_id = g.user_id
-        if g.use_token and user_id:
+        if user_id:
             user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
                                                       joinedload(UserChannel.channel, innerjoin=True)
                                                       .load_only(Channel.name))\
@@ -167,8 +168,6 @@ class ChannelListResource(Resource):
 
             return ret
 
-        elif g.use_token and not user_id:
-            return {'message': 'Token has some errors.'}, 401
         else:
             # Return default channels
             default_channels = cache_channel.get_default_channels()

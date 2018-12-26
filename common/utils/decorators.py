@@ -21,3 +21,20 @@ def login_required(func):
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def validate_token_if_using(func):
+    """
+    如果Authorization中携带了Token，则检验token的有效性，否则放行
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if g.use_token and not g.user_id:
+            return {'message': 'Token has some errors.'}, 401
+        else:
+            if g.user_id:
+                # 设置或更新用户缓存
+                save_user_data_cache(g.user_id)
+            return func(*args, **kwargs)
+
+    return wrapper

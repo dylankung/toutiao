@@ -115,8 +115,11 @@ def channel_id(value):
     except Exception:
         raise ValueError('Invalid channel id.')
     else:
-        if _channel_id <= 0:
+        if _channel_id < 0:
             raise ValueError('Invalid channel id.')
+        if _channel_id == 0:
+            # Recommendation channel
+            return _channel_id
         else:
             ret = cache_channel.determine_channel_exists(_channel_id)
             if ret:
