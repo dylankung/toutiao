@@ -57,3 +57,6 @@ news_api.add_resource(channel.ChannelListResource, '/v1_0/channels',
 
 news_api.add_resource(reading.ReadingHistoryListResource, '/v1_0/user/histories',
                       endpoint='UserReadingHistories')
+
+news_api.add_resource(reading.ReadingDurationResource, '/v1_0/reading/durations',
+                      endpoint='UserReadingDurations')

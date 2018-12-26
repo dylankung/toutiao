@@ -31,8 +31,8 @@ class CollectionListResource(Resource):
         args = req_parser.parse_args()
 
         # 记录埋点日志
-        if args.trace:
-            write_trace_log(args.trace)
+        if args.Trace:
+            write_trace_log(args.Trace)
 
         target = args.target
         ret = 1

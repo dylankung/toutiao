@@ -48,8 +48,8 @@ class ArticleResource(Resource):
         qs_parser = RequestParser()
         qs_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=False, location='headers')
         args = qs_parser.parse_args()
-        if args.trace:
-            write_trace_log(args.trace)
+        if args.Trace:
+            write_trace_log(args.Trace)
 
         user_id = g.user_id
 

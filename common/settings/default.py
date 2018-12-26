@@ -35,7 +35,7 @@ class DefaultConfig(object):
     JWT_REFRESH_DAYS = 14
 
     # rpc
-    RPC_SERVER = '172.17.0.134:8888'
+    RPC_SERVER = '172.17.0.134:9999'
 
     # ES
     ES = [

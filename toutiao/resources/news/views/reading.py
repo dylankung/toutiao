@@ -52,7 +52,7 @@ class ReadingHistoryListResource(Resource):
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
 
-class ReadingTime(Resource):
+class ReadingDurationResource(Resource):
     """
     阅读时长
     """
