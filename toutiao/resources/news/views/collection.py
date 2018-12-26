@@ -27,7 +27,7 @@ class CollectionListResource(Resource):
         """
         req_parser = RequestParser()
         req_parser.add_argument('target', type=parser.article_id, required=True, location='json')
-        req_parser.add_argument('trace', type=inputs.regex(r'^.+$'), required=False, location='args')
+        req_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=False, location='headers')
         args = req_parser.parse_args()
 
         # 记录埋点日志
