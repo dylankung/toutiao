@@ -1,7 +1,7 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from flask import request, g, current_app
-from sqlalchemy.orm import load_only, joinedload
+from sqlalchemy.orm import load_only, joinedload, contains_eager
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import insert
 from flask_restful import fields, marshal
@@ -155,11 +155,19 @@ class ChannelListResource(Resource):
         """
         user_id = g.user_id
         if user_id:
-            user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
-                                                      joinedload(UserChannel.channel, innerjoin=True)
-                                                      .load_only(Channel.name))\
+            # error
+            # user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
+            #                                           joinedload(UserChannel.channel, innerjoin=True)
+            #                                           .load_only(Channel.name))\
+            #     .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
+            #     .order_by(UserChannel.sequence).all()
+
+            user_channels = UserChannel.query.join(UserChannel.channel).options(load_only(UserChannel.channel_id),
+                                                                                contains_eager(UserChannel.channel)
+                                                                                .load_only(Channel.name))\
                 .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
                 .order_by(UserChannel.sequence).all()
+
             ret = marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
 
             recommendation_channel = self._get_recommendation_channel()
