@@ -119,7 +119,7 @@ def get_article_info(article_id):
         article_formatted['cover'] = article.cover
 
     # 获取作者名
-    author = cache_user.get_user(article.user_id)
+    author = cache_user.get_user(article_formatted['aut_id'])
     article_formatted['aut_name'] = author['name']
 
     return article_formatted
