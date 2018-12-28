@@ -16,7 +16,7 @@ from . import constants
 article_info_fields_redis = {
     'title': fields.String(attribute=b'title'),
     'aut_id': fields.Integer(attribute=b'aut_id'),
-    'aut_name': fields.String(attribute=b'aut_name'),
+    # 'aut_name': fields.String(attribute=b'aut_name'),
     'comm_count': fields.Integer(attribute=b'comm_count'),
     'pubdate': fields.String(attribute=b'pubdate'),
     'is_top': fields.Integer(attribute=b'is_top')
@@ -25,7 +25,7 @@ article_info_fields_redis = {
 article_info_fields_db = {
     'title': fields.String(attribute='title'),
     'aut_id': fields.Integer(attribute='user_id'),
-    'aut_name': fields.String(attribute='user.name'),
+    # 'aut_name': fields.String(attribute='user.name'),
     'comm_count': fields.Integer(attribute='comment_count'),
     'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
     'like_count': fields.Integer(attribute='statistic.like_count'),
@@ -81,7 +81,7 @@ def get_article_info(article_id):
             art_id=article_id,
             title=article[b'title'].decode(),
             aut_id=int(article[b'aut_id']),
-            aut_name=article[b'aut_name'].decode(),
+            # aut_name=article[b'aut_name'].decode(),
             comm_count=int(article[b'comm_count']),
             pubdate=article[b'pubdate'].decode(),
             is_top=int(article[b'is_top']),
@@ -89,36 +89,38 @@ def get_article_info(article_id):
             like_count=int(article[b'like_count']),
             collect_count=int(article[b'collect_count'])
         )
-        return article_formatted
-
-    article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
-                                              Article.cover, Article.ctime, Article.comment_count),
-                                    joinedload(Article.user, innerjoin=True).load_only(User.name),
-                                    joinedload(Article.statistic, innerjoin=True).load_only(ArticleStatistic.like_count,
-                                                                                            ArticleStatistic.collect_count))\
-        .filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
-    if article is None:
-        return
-
-    article_formatted = marshal(article, article_info_fields_db)
-
-    # 判断是否置顶
-    rank = r.zrank('channel:{}:art:top'.format(article.channel_id), article_id)
-    if rank is None:
-        article_formatted['is_top'] = 0
     else:
-        article_formatted['is_top'] = 1
+        article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
+                                                  Article.cover, Article.ctime, Article.comment_count),
+                                        joinedload(Article.statistic, innerjoin=True).load_only(ArticleStatistic.like_count,
+                                                                                                ArticleStatistic.collect_count))\
+            .filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
+        if article is None:
+            return
 
-    # 设置缓存
-    article_formatted['cover'] = pickle.dumps(article.cover)
+        article_formatted = marshal(article, article_info_fields_db)
 
-    pl = r.pipeline()
-    pl.zadd('art', {article_id: timestamp})
-    pl.hmset('art:{}:info'.format(article_id), article_formatted)
-    pl.execute()
+        # 判断是否置顶
+        rank = r.zrank('channel:{}:art:top'.format(article.channel_id), article_id)
+        if rank is None:
+            article_formatted['is_top'] = 0
+        else:
+            article_formatted['is_top'] = 1
 
-    article_formatted['art_id'] = article_id
-    article_formatted['cover'] = article.cover
+        # 设置缓存
+        article_formatted['cover'] = pickle.dumps(article.cover)
+
+        pl = r.pipeline()
+        pl.zadd('art', {article_id: timestamp})
+        pl.hmset('art:{}:info'.format(article_id), article_formatted)
+        pl.execute()
+
+        article_formatted['art_id'] = article_id
+        article_formatted['cover'] = article.cover
+
+    # 获取作者名
+    author = cache_user.get_user(article.user_id)
+    article_formatted['aut_name'] = author['name']
 
     return article_formatted
 
@@ -135,36 +137,36 @@ def get_article_detail(article_id):
     if article_bytes:
         # 使用缓存
         article_dict = pickle.loads(article_bytes)
-        return article_dict
+    else:
+        # 查询数据库
+        article = Article.query.options(load_only(
+            Article.id,
+            Article.user_id,
+            Article.title,
+            Article.is_advertising,
+            Article.ctime
+        )).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
 
-    # 查询数据库
-    article = Article.query.options(load_only(
-        Article.id,
-        Article.user_id,
-        Article.title,
-        Article.is_advertising,
-        Article.ctime
-    )).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
+        article_fields = {
+            'art_id': fields.Integer(attribute='id'),
+            'title': fields.String(attribute='title'),
+            'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
+            'content': fields.String(attribute='content.content'),
+            'aut_id': fields.Integer(attribute='user_id'),
+        }
+        article_dict = marshal(article, article_fields)
 
-    article_fields = {
-        'art_id': fields.Integer(attribute='id'),
-        'title': fields.String(attribute='title'),
-        'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
-        'content': fields.String(attribute='content.content'),
-        'aut_id': fields.Integer(attribute='user_id'),
-    }
-    article_dict = marshal(article, article_fields)
-    user = cache_user.get_user(article.user_id)
+        # 缓存
+        article_cache = pickle.dumps(article_dict)
+        try:
+            r.setex('art:{}:detail'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
+        except RedisError:
+            pass
+
+    user = cache_user.get_user(article_dict['aut_id'])
 
     article_dict['aut_name'] = user['name']
     article_dict['aut_photo'] = user['photo']
-
-    # 缓存
-    article_cache = pickle.dumps(article_dict)
-    try:
-        r.setex('art:{}'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
-    except RedisError:
-        pass
 
     return article_dict
 
