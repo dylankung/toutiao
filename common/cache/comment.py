@@ -7,14 +7,15 @@ from flask import current_app
 from models import db
 from models.user import User
 from models.news import Comment
+from cache import user as cache_user
 from . import constants
 
 
 comment_fields = {
     'com_id': fields.Integer(attribute='id'),
     'aut_id': fields.Integer(attribute='user_id'),
-    'aut_name': fields.String(attribute='user.name'),
-    'aut_photo': fields.String(attribute='user.profile_photo', default=''),
+    # 'aut_name': fields.String(attribute='user.name'),
+    # 'aut_photo': fields.String(attribute='user.profile_photo', default=''),
     'like_count': fields.Integer(attribute='like_count'),
     'reply_count': fields.Integer(attribute='reply_count'),
     'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
@@ -26,8 +27,8 @@ comment_fields = {
 comment_cache_fields = {
     'com_id': fields.Integer(attribute='com_id'),
     'aut_id': fields.Integer(attribute='aut_id'),
-    'aut_name': fields.String(attribute='aut_name'),
-    'aut_photo': fields.String(attribute='aut_photo'),
+    # 'aut_name': fields.String(attribute='aut_name'),
+    # 'aut_photo': fields.String(attribute='aut_photo'),
     'like_count': fields.Integer(attribute='like_count'),
     'reply_count': fields.Integer(attribute='reply_count'),
     'pubdate': fields.String(attribute='pubdate'),
@@ -66,15 +67,21 @@ def _get_comm_from_cache(article_id, offset, limit):
             # comment = {
             #     'com_id': 1,
             #     'aut_id': 0,
-            #     'aut_name': '',
-            #     'aut_photo': '',
+            # #     'aut_name': '',
+            # #     'aut_photo': '',
             #     'like_count': 0,
             #     'reply_count': 0,
             #     'pubdate': '',
             #     'content': '',
             #     'is_top': False
             # }
-            results.append(marshal(comment, comment_cache_fields))
+            comment_format = marshal(comment, comment_cache_fields)
+
+            # 获取用户信息
+            _user = cache_user.get_user(comment_format['aut_id'])
+            comment_format['aut_name'] = _user['name']
+            comment_format['aut_photo'] = _user['photo']
+            results.append(comment_format)
 
     return results
 
@@ -93,15 +100,13 @@ def _get_comm_from_db(article_id, offset, limit):
     # 通过双字段排序将置顶放在结果前列
     # 如果offset为None，不做偏移
     if offset is None:
-        comments = Comment.query.options(joinedload(Comment.user, innerjoin=True)
-                                         .load_only(User.name, User.profile_photo)) \
+        comments = Comment.query \
             .filter(Comment.article_id == article_id,
                     Comment.parent_id == None,
                     Comment.status == Comment.STATUS.APPROVED) \
             .order_by(Comment.is_top.desc(), Comment.id.desc()).limit(limit).all()
     else:
-        comments = Comment.query.options(joinedload(Comment.user, innerjoin=True)
-                                         .load_only(User.name, User.profile_photo)) \
+        comments = Comment.query \
             .filter(Comment.id < offset,
                     Comment.article_id == article_id,
                     Comment.parent_id == None,
@@ -117,12 +122,16 @@ def _get_comm_from_db(article_id, offset, limit):
             # 处理序列化字段
             comment_format = marshal(comment, comment_fields)
 
-            if not (offset is not None and comment.is_top):
-                results.append(comment_format)
-
             # 构造缓存数据
             new_cache[comment.id] = constants.COMMENTS_CACHE_MAX_SCORE+comment.id if comment.is_top else comment.id
             pl.hmset('comm:{}'.format(comment.id), comment_format)
+
+            if not (offset is not None and comment.is_top):
+                # 获取用户信息
+                _user = cache_user.get_user(comment_format['aut_id'])
+                comment_format['aut_name'] = _user['name']
+                comment_format['aut_photo'] = _user['photo']
+                results.append(comment_format)
 
         if new_cache:
             pl.zadd('art:{}:comm'.format(article_id), new_cache)
@@ -285,15 +294,21 @@ def _get_reply_from_cache(comment_id, offset, limit):
             # comment = {
             #     'com_id': 1,
             #     'aut_id': 0,
-            #     'aut_name': '',
-            #     'aut_photo': '',
+            # #     'aut_name': '',
+            # #     'aut_photo': '',
             #     'like_count': 0,
             #     'reply_count': 0,
             #     'pubdate': '',
             #     'content': '',
             #     'is_top': False
             # }
-            results.append(marshal(comment, comment_cache_fields))
+            comment_format = marshal(comment, comment_cache_fields)
+
+            # 获取用户信息
+            _user = cache_user.get_user(comment_format['aut_id'])
+            comment_format['aut_name'] = _user['name']
+            comment_format['aut_photo'] = _user['photo']
+            results.append(comment_format)
 
     return results
 
@@ -312,14 +327,12 @@ def _get_reply_from_db(comment_id, offset, limit):
     # 通过双字段排序将置顶放在结果前列
     # 如果offset为None，不做偏移
     if offset is None:
-        comments = Comment.query.options(joinedload(Comment.user, innerjoin=True)
-                                         .load_only(User.name, User.profile_photo)) \
+        comments = Comment.query \
             .filter(Comment.parent_id == comment_id,
                     Comment.status == Comment.STATUS.APPROVED) \
             .order_by(Comment.is_top.desc(), Comment.id.desc()).limit(limit).all()
     else:
-        comments = Comment.query.options(joinedload(Comment.user, innerjoin=True)
-                                         .load_only(User.name, User.profile_photo)) \
+        comments = Comment.query \
             .filter(Comment.id < offset,
                     Comment.parent_id == comment_id,
                     Comment.status == Comment.STATUS.APPROVED) \
@@ -334,12 +347,16 @@ def _get_reply_from_db(comment_id, offset, limit):
             # 处理序列化字段
             comment_format = marshal(comment, comment_fields)
 
-            if not (offset is not None and comment.is_top):
-                results.append(comment_format)
-
             # 构造缓存数据
             new_cache[comment.id] = constants.COMMENTS_CACHE_MAX_SCORE+comment.id if comment.is_top else comment.id
             pl.hmset('comm:{}'.format(comment.id), comment_format)
+
+            if not (offset is not None and comment.is_top):
+                # 获取用户信息
+                _user = cache_user.get_user(comment_format['aut_id'])
+                comment_format['aut_name'] = _user['name']
+                comment_format['aut_photo'] = _user['photo']
+                results.append(comment_format)
 
         if new_cache:
             pl.zadd('comm:{}:reply'.format(comment_id), new_cache)
@@ -526,7 +543,6 @@ def update_comment_by_article(article_id, comment):
     if not exist:
         return
 
-    # TODO 使用user缓存获取用户头像
     comment_format = marshal(comment, comment_fields)
 
     pl = r_comm_cache.pipeline()
@@ -552,7 +568,6 @@ def update_reply_by_comment(comment_id, reply):
     if not exist:
         return
 
-    # TODO 使用user缓存获取用户头像
     reply_format = marshal(reply, comment_fields)
 
     pl = r_comm_cache.pipeline()
