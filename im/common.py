@@ -2,9 +2,11 @@ import importlib.util
 import os
 import logging
 import logging.handlers
+from werkzeug.wrappers import Request
 
 from settings.default import DefaultConfig
 from utils import constants
+from utils.jwt_util import verify_jwt
 
 
 def import_from_source(module_name, file_path):
@@ -59,3 +61,25 @@ def create_logger(config):
     log.addHandler(file_handler)
     log.setLevel(logging_level)
     return log
+
+
+def check_user_id(environ, secret):
+    """
+    检查用户id
+    :param environ:
+    :param secret:
+    :return: user_id or None
+    """
+    # 判断用户身份
+    request = Request(environ)
+    authorization = request.headers.get('Authorization')
+    user_id = None
+    if authorization and authorization.startswith('Bearer '):
+        token = authorization.strip()[7:]
+        payload = verify_jwt(token, secret=secret)
+        if payload:
+            user_id = payload.get('user_id')
+    elif authorization and authorization.startswith('Anony '):
+        user_id = authorization.strip()[6:]
+
+    return user_id

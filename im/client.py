@@ -42,5 +42,8 @@ now = datetime.utcnow()
 expiry = now + timedelta(hours=2)
 token = generate_jwt({'user_id': 1, 'refresh': False}, expiry, secret=config.JWT_SECRET)
 
-sio.connect('http://127.0.0.1:8001', headers={'Authorization': 'Bearer {}'.format(token)}, namespaces=[CHATBOOT_NS])
+sio.connect('http://127.0.0.1:8003',
+            socketio_path='im',
+            headers={'Authorization': 'Bearer {}'.format(token)},
+            namespaces=[CHATBOOT_NS])
 sio.wait()
