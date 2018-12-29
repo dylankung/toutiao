@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'common'))
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ProcessPoolExecutor
 
-from common import create_logger
+from schedule.common import create_logger
 
 
 # 创建scheduler，多进程执行
