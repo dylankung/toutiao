@@ -1,7 +1,5 @@
 from flask import Flask
 
-from utils import constants
-
 
 def create_app(config, enable_config_file=False):
     """
@@ -13,6 +11,7 @@ def create_app(config, enable_config_file=False):
     app = Flask(__name__)
     app.config.from_object(config)
     if enable_config_file:
+        from utils import constants
         app.config.from_envvar(constants.GLOBAL_SETTING_ENV_NAME, silent=True)
 
     return app
