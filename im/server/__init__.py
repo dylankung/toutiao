@@ -24,7 +24,7 @@ def run(port):
     # 添加处理
     from . import chatbot, notify
 
-    app = socketio.Middleware(sio)
+    app = socketio.Middleware(sio, socketio_path='im')
 
     eventlet.wsgi.server(eventlet.listen(('', port)), app, log=log)
 
