@@ -8,7 +8,7 @@ import random
 
 from models.news import Article, ArticleContent, Attitude
 from toutiao.main import rpc_cli
-from rpc import user_reco_pb2, user_reco_pb2_grpc
+from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
 from .. import constants
 from utils import parser
 from cache import article as cache_article
