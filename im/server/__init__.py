@@ -1,9 +1,11 @@
 import socketio
 import eventlet.wsgi
+import grpc
 
 from im.common import get_config, create_logger
 
 sio = socketio.Server()
+rpc_chat = None
 
 
 def run(port):
@@ -14,6 +16,10 @@ def run(port):
     """
     config = get_config()
     log = create_logger(config)
+
+    # rpc
+    global rpc_chat
+    rpc_chat = grpc.insecure_channel(config.RPC.CHATBOT)
 
     # create a Socket.IO server
     global sio

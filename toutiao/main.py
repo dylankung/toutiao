@@ -37,7 +37,7 @@ redis_cli = create_redis_clients(app)
 app.redis_cli = redis_cli
 
 # rpc
-rpc_cli = grpc.insecure_channel(app.config['RPC_SERVER'])
+rpc_reco = grpc.insecure_channel(app.config['RPC'].RECOMMEND)
 
 # Elasticsearch
 es = Elasticsearch(

@@ -1,8 +1,9 @@
 import logging
 import time
 
-from . import sio
+from . import sio, rpc_chat
 from common import check_user_id
+from rpc.chatbot import chatbot_pb2, chatbot_pb2_grpc
 
 
 logger = logging.getLogger('im')
@@ -66,7 +67,20 @@ def on_message(sid, data):
     assert user_id != ''
 
     # TODO 接入chatbot RPC服务
-    timestamp = time.time()
-    msg = '我已知悉，请容我三思[]...'.format(timestamp)
+    stub = chatbot_pb2_grpc.ChatBotServiceStub(rpc_chat)
+    req = chatbot_pb2.ReceivedMessage(
+        user_id=str(user_id),
+        user_message=data.get('msg', ''),
+        create_time=data.get('timestamp', int(time.time()))
+    )
+    try:
+        resp = stub.Chatbot(req)
+    except Exception as e:
+        logger.error(e)
+        msg = 'oops，我病了，容我缓一下...'
+        timestamp = int(time.time())
+    else:
+        msg = resp.user_response
+        timestamp = resp.create_time
 
     sio.send({'msg': msg, 'timestamp': timestamp}, room=sid, namespace=__NAMESPACE)

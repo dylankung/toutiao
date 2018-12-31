@@ -24,14 +24,14 @@ CHATBOOT_NS = '/chatbot'
 def on_connect():
     print('connected')
     msg = input('Say:')
-    sio.send({'msg': msg, 'timestamp': time.time()}, namespace=CHATBOOT_NS)
+    sio.send({'msg': msg, 'timestamp': int(time.time())}, namespace=CHATBOOT_NS)
 
 
 @sio.on('message', namespace=CHATBOOT_NS)
 def on_message(data):
     print('I received: {}'.format(data))
     msg = input('Say:')
-    sio.send({'msg': msg, 'timestamp': time.time()}, namespace=CHATBOOT_NS)
+    sio.send({'msg': msg, 'timestamp': int(time.time())}, namespace=CHATBOOT_NS)
 
 
 # 获取配置信息
