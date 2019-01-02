@@ -1,7 +1,8 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
-from flask import g
+from flask import g, current_app
 from sqlalchemy.exc import IntegrityError
+import time
 
 from utils.decorators import login_required
 from utils import parser
@@ -9,6 +10,7 @@ from models import db
 from models.news import Attitude, ArticleStatistic, CommentLiking, Comment
 from cache import comment as cache_comment
 from cache import article as cache_article
+from cache import user as cache_user
 
 
 class ArticleLikingListResource(Resource):
@@ -55,6 +57,19 @@ class ArticleLikingListResource(Resource):
                 # })
                 cache_article.update_article_liking_count(target)
                 db.session.commit()
+
+        # 发送点赞通知
+        _user = cache_user.get_user(g.user_id)
+        _article = cache_article.get_article_info(target)
+        _data = {
+            'user_id': g.user_id,
+            'user_name': _user['name'],
+            'user_photo': _user['photo'],
+            'art_id': target,
+            'art_title': _article['title'],
+            'timestamp': int(time.time())
+        }
+        current_app.sio.emit('liking notify', data=_data, room=str(target))
 
         return {'target': target}, 201
 
