@@ -69,7 +69,7 @@ class ArticleLikingListResource(Resource):
             'art_title': _article['title'],
             'timestamp': int(time.time())
         }
-        current_app.sio.emit('liking notify', data=_data, room=str(target))
+        current_app.sio.emit('liking notify', data=_data, room=str(_article['aut_id']))
 
         return {'target': target}, 201
 
