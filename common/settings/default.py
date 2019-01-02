@@ -49,6 +49,8 @@ class DefaultConfig(object):
     QINIU_BUCKET_NAME = ''
     QINIU_DOMAIN = 'http://pk1bdaj9n.bkt.clouddn.com/'
 
+    RABBITMQ = 'amqp://admin:rabbitmq@localhost:5672/delron'
+
 
 class CeleryConfig(object):
     """

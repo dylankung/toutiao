@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import socketio
 import eventlet.wsgi
 import grpc
@@ -22,8 +25,10 @@ def run(port):
     rpc_chat = grpc.insecure_channel(config.RPC.CHATBOT)
 
     # create a Socket.IO server
+    mgr = socketio.KombuManager(config.RABBITMQ)
+
     global sio
-    sio = socketio.Server(async_mode='eventlet', logger=log, ping_timeout=300)
+    sio = socketio.Server(async_mode='eventlet', client_manager=mgr, logger=log, ping_timeout=300)
 
     sio.JWT_SECRET = config.JWT_SECRET
 

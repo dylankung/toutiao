@@ -1,10 +1,9 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
-from flask import g
+from flask import g, current_app
 
 from .. import constants
-from toutiao.main import es
 from cache import article as cache_article
 from models.user import Search
 from models import db
@@ -36,7 +35,7 @@ class SuggestionResource(Resource):
                 }
             }
         }
-        ret = es.search(index='completions', body=query)
+        ret = current_app.es.search(index='completions', body=query)
         options = ret['suggest']['word-completion'][0]['options']
         if not options:
             query = {
@@ -57,7 +56,7 @@ class SuggestionResource(Resource):
                     }
                 }
             }
-            ret = es.search(index='articles', doc_type='article', body=query)
+            ret = current_app.es.search(index='articles', doc_type='article', body=query)
             options = ret['suggest']['word-phrase'][0]['options']
 
         results = []
@@ -107,7 +106,7 @@ class SearchResource(Resource):
                 }
             }
         }
-        ret = es.search(index='articles', doc_type='article', body=query)
+        ret = current_app.es.search(index='articles', doc_type='article', body=query)
 
         total_count = ret['hits']['total']
 
@@ -136,7 +135,7 @@ class SearchResource(Resource):
                     }
                 }
             }
-            ret = es.search(index='completions', doc_type='words', body=query)
+            ret = current_app.es.search(index='completions', doc_type='words', body=query)
             if ret['hits']['total'] == 0:
                 doc = {
                     'suggest': {
@@ -145,7 +144,7 @@ class SearchResource(Resource):
                     }
                 }
                 try:
-                    es.index(index='completions', doc_type='words', body=doc)
+                    current_app.es.index(index='completions', doc_type='words', body=doc)
                 except Exception:
                     pass
 

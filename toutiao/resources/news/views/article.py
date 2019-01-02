@@ -7,7 +7,6 @@ import re
 import random
 
 from models.news import Article, ArticleContent, Attitude
-from toutiao.main import rpc_reco
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
 from .. import constants
 from utils import parser
@@ -34,7 +33,7 @@ class ArticleResource(Resource):
         req.article_id = article_id
         req.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
 
-        stub = user_reco_pb2_grpc.UserRecommendStub(rpc_reco)
+        stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
         resp = stub.article_recommend(req)
 
         return resp.article_id
@@ -134,7 +133,7 @@ class ArticleListResource(Resource):
         req.channel_id = channel_id
         req.article_num = feed_count
 
-        stub = user_reco_pb2_grpc.UserRecommendStub(rpc_reco)
+        stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
         resp = stub.user_recommend(req)
 
         # 曝光埋点参数

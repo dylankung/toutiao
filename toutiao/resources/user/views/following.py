@@ -1,8 +1,9 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from sqlalchemy.exc import IntegrityError
-from flask import g
+from flask import g, current_app
 from flask_restful import inputs
+import time
 
 from utils.decorators import login_required
 from models.user import Relation
@@ -42,6 +43,17 @@ class FollowingListResource(Resource):
             db.session.commit()
         if ret > 0:
             cache_user.update_user_following(g.user_id, target)
+
+        # 发送关注通知
+        _user = cache_user.get_user(g.user_id)
+        _data = {
+            'id': g.user_id,
+            'name': _user['name'],
+            'photo': _user['photo'],
+            'timestamp': int(time.time())
+        }
+        current_app.sio.emit('comment notify', data=_data, room=str(target))
+
         return {'target': target}, 201
 
     def get(self):

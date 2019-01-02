@@ -20,7 +20,6 @@ def on_connect(sid, environ):
     :param environ: WSGI dict
     :return:
     """
-    print('chatbot: {}'.format(sid))
     user_id = check_user_id(environ, sio.JWT_SECRET)
 
     if not user_id:

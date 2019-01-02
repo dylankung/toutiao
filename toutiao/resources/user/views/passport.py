@@ -6,7 +6,6 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 
-from toutiao.main import limiter, redis_cli
 from celery_tasks.sms.tasks import send_verification_code
 from .. import constants
 from utils import parser
@@ -14,6 +13,7 @@ from models import db
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
 from cache.user import save_user_data_cache
+from toutiao import limiter
 
 
 class SMSVerificationCodeResource(Resource):
@@ -33,7 +33,7 @@ class SMSVerificationCodeResource(Resource):
 
     def get(self, mobile):
         code = '{:0>6d}'.format(random.randint(0, 999999))
-        redis_cli['sms_code'].setex('code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+        current_app.redis_cli['sms_code'].setex('code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
         send_verification_code.delay(mobile, code)
         return {'mobile': mobile}
 
@@ -72,7 +72,7 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = redis_cli['sms_code'].get('code:{}'.format(mobile))
+        real_code = current_app.redis_cli['sms_code'].get('code:{}'.format(mobile))
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 
