@@ -150,7 +150,7 @@ def update_user_following(user_id, target_user_id, increment=1):
     exist = r.exists(key)
     if exist:
         if increment > 0:
-            pl.zadd(key, {target_user_id, timestamp})
+            pl.zadd(key, {target_user_id: timestamp})
         else:
             pl.zrem(key, target_user_id)
 
@@ -165,7 +165,7 @@ def update_user_following(user_id, target_user_id, increment=1):
     exist = r.exists(key)
     if exist:
         if increment > 0:
-            pl.zadd(key, {user_id, timestamp})
+            pl.zadd(key, {user_id: timestamp})
         else:
             pl.zrem(key, user_id)
 
