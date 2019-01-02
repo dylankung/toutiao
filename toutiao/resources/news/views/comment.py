@@ -60,7 +60,7 @@ class CommentListResource(Resource):
                 'art_title': _article['title'],
                 'timestamp': int(time.time())
             }
-            current_app.sio.emit('comment notify', data=_data, room=str(target))
+            current_app.sio.emit('comment notify', data=_data, room=str(_article['aut_id']))
 
         else:
             # 对评论的回复
