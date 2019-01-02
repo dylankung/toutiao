@@ -145,8 +145,8 @@ class ChannelListResource(Resource):
         """
         获取0号「推荐」频道
         """
-        # return {'id': 0, 'name': '推荐'}
-        return {}
+        return {'id': 0, 'name': '推荐'}
+        # return {}
 
     def get(self):
         """

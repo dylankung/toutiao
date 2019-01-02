@@ -73,6 +73,7 @@ def write_trace_log(param, read_time='', channel_id=0):
     写埋点日志
     :param read_time: 阅读时间
     :param param: 埋点参数
+    :param channel_id: 频道id
     """
     logger = logging.getLogger('trace')
     message = '{{"actionTime":"{action_time}","readTime":"{read_time}","channelId":{channel_id},"param":{param}}}'.format(

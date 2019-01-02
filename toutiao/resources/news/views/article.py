@@ -96,7 +96,7 @@ class ArticleResource(Resource):
 
 class ArticleListResource(Resource):
     """
-    文章列表数据
+    获取推荐文章列表数据
     """
     method_decorators = [validate_token_if_using]
 
@@ -217,6 +217,85 @@ class ArticleListResource(Resource):
                 results.append(article)
 
         return {'page': page, 'per_page': per_page, 'results': results}
+
+
+class ArticleListResourceV1D1(Resource):
+    """
+    获取推荐文章列表数据
+    """
+    method_decorators = [validate_token_if_using]
+
+    def _feed_articles(self, channel_id, timestamp, feed_count):
+        """
+        获取推荐文章
+        :param channel_id: 频道id
+        :param feed_count: 推荐数量
+        :param timestamp: 时间戳
+        :return: [{article_id, trace_params}, ...], timestamp
+        """
+        req = user_reco_pb2.User()
+
+        if g.user_id:
+            req.user_id = str(g.user_id)
+        elif g.anonymous_id:
+            req.user_id = str(g.anonymous_id)
+        else:
+            req.user_id = ''
+
+        req.channel_id = channel_id
+        req.article_num = feed_count
+        req.time_stamp = timestamp
+
+        stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
+        resp = stub.user_recommend(req)
+
+        # 曝光埋点参数
+        trace_exposure = resp.exposure
+        write_trace_log(trace_exposure, channel_id=channel_id)
+
+        return resp.recommends, resp.time_stamp
+
+    def get(self):
+        """
+        获取文章列表
+        /v1_1/articles?channel_id&timestamp
+        """
+        qs_parser = RequestParser()
+        qs_parser.add_argument('channel_id', type=parser.channel_id, required=True, location='args')
+        qs_parser.add_argument('timestamp', type=inputs.positive, required=True, location='args')
+        qs_parser.add_argument('with_top', type=inputs.boolean, required=True, location='args')
+        args = qs_parser.parse_args()
+        channel_id = args.channel_id
+        timestamp = args.timestamp
+        with_top = args.with_top
+        per_page = constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+
+        results = []
+
+        if with_top:
+            # 包含置顶
+            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            for article_id in top_article_id_li:
+                article = cache_article.get_article_info(article_id)
+                if article:
+                    results.append(article)
+
+        # 获取推荐文章列表
+        feeds, pre_timestamp = self._feed_articles(channel_id, timestamp, per_page)
+
+        # 查询文章
+        for feed in feeds:
+            article = cache_article.get_article_info(feed.article_id)
+            if article:
+                article['trace'] = {
+                    'click': feed.params.click,
+                    'collect': feed.params.collect,
+                    'share': feed.params.share,
+                    'read': feed.params.read
+                }
+                results.append(article)
+
+        return {'pre_timestamp': pre_timestamp, 'results': results}
 
 
 class UserArticleListResource(Resource):

@@ -16,6 +16,9 @@ news_api.add_resource(article.ArticleResource, '/v1_0/articles/<int(min=1):artic
 news_api.add_resource(article.ArticleListResource, '/v1_0/articles',
                       endpoint='Articles')
 
+news_api.add_resource(article.ArticleListResourceV1D1, '/v1_1/articles',
+                      endpoint='ArticlesV1_1')
+
 news_api.add_resource(article.UserArticleListResource, '/v1_0/users/<int(min=1):user_id>/articles',
                       endpoint='UserArticles')
 
