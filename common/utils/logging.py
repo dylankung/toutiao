@@ -68,16 +68,17 @@ def create_logger(app):
         log_flask_limiter.addHandler(flask_console_handler)
 
 
-def write_trace_log(param, read_time=''):
+def write_trace_log(param, read_time='', channel_id=0):
     """
     写埋点日志
     :param read_time: 阅读时间
     :param param: 埋点参数
     """
     logger = logging.getLogger('trace')
-    message = '{{"actionTime":"{action_time}","readTime":"{read_time}","param":{param}}}'.format(
+    message = '{{"actionTime":"{action_time}","readTime":"{read_time}","channelId":{channel_id},"param":{param}}}'.format(
         action_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         read_time=read_time,
+        channel_id=channel_id,
         param=param
     )
     logger.info(message)

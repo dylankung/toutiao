@@ -30,11 +30,13 @@ class CollectionListResource(Resource):
         req_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=False, location='headers')
         args = req_parser.parse_args()
 
+        target = args.target
+
         # 记录埋点日志
         if args.Trace:
-            write_trace_log(args.Trace)
+            article = cache_article.get_article_info(target)
+            write_trace_log(args.Trace, channel_id=article['ch_id'])
 
-        target = args.target
         ret = 1
         try:
             collection = Collection(user_id=g.user_id, article_id=target)
