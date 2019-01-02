@@ -47,12 +47,12 @@ class FollowingListResource(Resource):
         # 发送关注通知
         _user = cache_user.get_user(g.user_id)
         _data = {
-            'id': g.user_id,
-            'name': _user['name'],
-            'photo': _user['photo'],
+            'user_id': g.user_id,
+            'user_name': _user['name'],
+            'user_photo': _user['photo'],
             'timestamp': int(time.time())
         }
-        current_app.sio.emit('comment notify', data=_data, room=str(target))
+        current_app.sio.emit('following notify', data=_data, room=str(target))
 
         return {'target': target}, 201
 

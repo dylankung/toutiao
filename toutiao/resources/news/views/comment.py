@@ -1,8 +1,9 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from flask_restful.inputs import positive, int_range
-from flask import g
+from flask import g, current_app
 from sqlalchemy.orm import load_only
+import time
 
 from utils.decorators import login_required
 from utils import parser
@@ -10,6 +11,7 @@ from models import db
 from models.news import Comment, Article
 from cache import comment as cache_comment
 from cache import article as cache_article
+from cache import user as cache_user
 from .. import constants
 
 
@@ -46,6 +48,20 @@ class CommentListResource(Resource):
             # TODO 增加评论审核后 在评论审核中累计评论数量
             cache_article.update_article_comment_count(article_id)
             cache_comment.update_comment_by_article(article_id, comment)
+
+            # 发送评论通知
+            _user = cache_user.get_user(g.user_id)
+            _article = cache_article.get_article_info(article_id)
+            _data = {
+                'user_id': g.user_id,
+                'user_name': _user['name'],
+                'user_photo': _user['photo'],
+                'art_id': article_id,
+                'art_title': _article['title'],
+                'timestamp': int(time.time())
+            }
+            current_app.sio.emit('comment notify', data=_data, room=str(target))
+
         else:
             # 对评论的回复
             ret = Comment.query.options(load_only(Comment.id)).filter_by(id=target, article_id=article_id).first()
