@@ -47,8 +47,6 @@ class ArticleResource(Resource):
         qs_parser = RequestParser()
         qs_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=False, location='headers')
         args = qs_parser.parse_args()
-        if args.Trace:
-            write_trace_log(args.Trace)
 
         user_id = g.user_id
 
@@ -58,6 +56,10 @@ class ArticleResource(Resource):
             abort(404, message='The article does not exist.')
 
         article = cache_article.get_article_detail(article_id)
+
+        # 埋点
+        if args.Trace:
+            write_trace_log(args.Trace, channel_id=article['ch_id'])
 
         article['is_followed'] = False
         article['attitude'] = None
@@ -138,7 +140,7 @@ class ArticleListResource(Resource):
 
         # 曝光埋点参数
         trace_exposure = resp.exposure
-        write_trace_log(trace_exposure)
+        write_trace_log(trace_exposure, channel_id=channel_id)
 
         return resp.recommends
 

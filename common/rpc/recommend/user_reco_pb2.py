@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0fuser_reco.proto\"@\n\x04User\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x12\n\nchannel_id\x18\x02 \x01(\x05\x12\x13\n\x0b\x61rticle_num\x18\x03 \x01(\x05\"2\n\x07\x41rticle\x12\x12\n\narticle_id\x18\x01 \x01(\x05\x12\x13\n\x0b\x61rticle_num\x18\x02 \x01(\x05\"E\n\x06param2\x12\r\n\x05\x63lick\x18\x01 \x01(\t\x12\x0f\n\x07\x63ollect\x18\x02 \x01(\t\x12\r\n\x05share\x18\x03 \x01(\t\x12\x0c\n\x04read\x18\x04 \x01(\t\"5\n\x06param1\x12\x12\n\narticle_id\x18\x01 \x01(\x05\x12\x17\n\x06params\x18\x02 \x01(\x0b\x32\x07.param2\"6\n\x05Track\x12\x10\n\x08\x65xposure\x18\x01 \x01(\t\x12\x1b\n\nrecommends\x18\x02 \x03(\x0b\x32\x07.param1\"\x1d\n\x07Similar\x12\x12\n\narticle_id\x18\x01 \x03(\x05\x32]\n\rUserRecommend\x12!\n\x0euser_recommend\x12\x05.User\x1a\x06.Track\"\x00\x12)\n\x11\x61rticle_recommend\x12\x08.Article\x1a\x08.Similar\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0fuser_reco.proto\"T\n\x04User\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x12\n\nchannel_id\x18\x02 \x01(\x05\x12\x13\n\x0b\x61rticle_num\x18\x03 \x01(\x05\x12\x12\n\ntime_stamp\x18\x04 \x01(\x05\"2\n\x07\x41rticle\x12\x12\n\narticle_id\x18\x01 \x01(\x05\x12\x13\n\x0b\x61rticle_num\x18\x02 \x01(\x05\"E\n\x06param2\x12\r\n\x05\x63lick\x18\x01 \x01(\t\x12\x0f\n\x07\x63ollect\x18\x02 \x01(\t\x12\r\n\x05share\x18\x03 \x01(\t\x12\x0c\n\x04read\x18\x04 \x01(\t\"5\n\x06param1\x12\x12\n\narticle_id\x18\x01 \x01(\x05\x12\x17\n\x06params\x18\x02 \x01(\x0b\x32\x07.param2\"J\n\x05Track\x12\x10\n\x08\x65xposure\x18\x01 \x01(\t\x12\x1b\n\nrecommends\x18\x02 \x03(\x0b\x32\x07.param1\x12\x12\n\ntime_stamp\x18\x03 \x01(\x05\"\x1d\n\x07Similar\x12\x12\n\narticle_id\x18\x01 \x03(\x05\x32]\n\rUserRecommend\x12!\n\x0euser_recommend\x12\x05.User\x1a\x06.Track\"\x00\x12)\n\x11\x61rticle_recommend\x12\x08.Article\x1a\x08.Similar\"\x00\x62\x06proto3')
 )
 
 
@@ -53,6 +53,13 @@ _USER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='time_stamp', full_name='User.time_stamp', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -66,7 +73,7 @@ _USER = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=19,
-  serialized_end=83,
+  serialized_end=103,
 )
 
 
@@ -103,8 +110,8 @@ _ARTICLE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=85,
-  serialized_end=135,
+  serialized_start=105,
+  serialized_end=155,
 )
 
 
@@ -155,8 +162,8 @@ _PARAM2 = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=137,
-  serialized_end=206,
+  serialized_start=157,
+  serialized_end=226,
 )
 
 
@@ -193,8 +200,8 @@ _PARAM1 = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=208,
-  serialized_end=261,
+  serialized_start=228,
+  serialized_end=281,
 )
 
 
@@ -219,6 +226,13 @@ _TRACK = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='time_stamp', full_name='Track.time_stamp', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -231,8 +245,8 @@ _TRACK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=263,
-  serialized_end=317,
+  serialized_start=283,
+  serialized_end=357,
 )
 
 
@@ -262,8 +276,8 @@ _SIMILAR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=319,
-  serialized_end=348,
+  serialized_start=359,
+  serialized_end=388,
 )
 
 _PARAM1.fields_by_name['params'].message_type = _PARAM2
@@ -326,8 +340,8 @@ _USERRECOMMEND = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=350,
-  serialized_end=443,
+  serialized_start=390,
+  serialized_end=483,
   methods=[
   _descriptor.MethodDescriptor(
     name='user_recommend',

@@ -12,6 +12,7 @@ from cache import article as cache_article
 from models.news import Read
 from models import db
 from utils.logging import write_trace_log
+from utils import parser
 
 
 class ReadingHistoryListResource(Resource):
@@ -60,8 +61,10 @@ class ReadingDurationResource(Resource):
         req_parser = RequestParser()
         req_parser.add_argument('Trace', type=inputs.regex(r'^.+$'), required=True, location='headers')
         req_parser.add_argument('duration', type=inputs.natural, required=True, location='json')
+        req_parser.add_argument('art_id', type=parser.article_id, required=True, location='json')
         args = req_parser.parse_args()
 
-        write_trace_log(args.Trace, args.duration)
+        article = cache_article.get_article_info(args.art_id)
+        write_trace_log(args.Trace, args.duration, channel_id=article['ch_id'])
 
         return {'message': 'OK'}, 201

@@ -13,14 +13,15 @@ from . import user as cache_user
 from . import constants
 
 
-article_info_fields_redis = {
-    'title': fields.String(attribute=b'title'),
-    'aut_id': fields.Integer(attribute=b'aut_id'),
-    # 'aut_name': fields.String(attribute=b'aut_name'),
-    'comm_count': fields.Integer(attribute=b'comm_count'),
-    'pubdate': fields.String(attribute=b'pubdate'),
-    'is_top': fields.Integer(attribute=b'is_top')
-}
+# article_info_fields_redis = {
+#     'title': fields.String(attribute=b'title'),
+#     'aut_id': fields.Integer(attribute=b'aut_id'),
+#     # 'aut_name': fields.String(attribute=b'aut_name'),
+#     'comm_count': fields.Integer(attribute=b'comm_count'),
+#     'pubdate': fields.String(attribute=b'pubdate'),
+#     'is_top': fields.Integer(attribute=b'is_top'),
+#     'ch_id': fields.Integer(attribute=b'ch_id')
+# }
 
 article_info_fields_db = {
     'title': fields.String(attribute='title'),
@@ -29,7 +30,8 @@ article_info_fields_db = {
     'comm_count': fields.Integer(attribute='comment_count'),
     'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
     'like_count': fields.Integer(attribute='statistic.like_count'),
-    'collect_count': fields.Integer(attribute='statistic.collect_count')
+    'collect_count': fields.Integer(attribute='statistic.collect_count'),
+    'ch_id': fields.Integer(attribute='channel_id')
 }
 
 
@@ -87,7 +89,8 @@ def get_article_info(article_id):
             is_top=int(article[b'is_top']),
             cover=pickle.loads(article[b'cover']),
             like_count=int(article[b'like_count']),
-            collect_count=int(article[b'collect_count'])
+            collect_count=int(article[b'collect_count']),
+            ch_id=int(article[b'ch_id'])
         )
     else:
         article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
