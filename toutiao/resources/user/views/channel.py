@@ -1,7 +1,7 @@
 from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from flask import request, g, current_app
-from sqlalchemy.orm import load_only, joinedload, contains_eager
+from sqlalchemy.orm import load_only, contains_eager
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import insert
 from flask_restful import fields, marshal
@@ -10,7 +10,6 @@ from flask_restful import inputs
 from utils.decorators import login_required, validate_token_if_using
 from models.news import UserChannel, Channel
 from models import db
-from toutiao.main import redis_cli
 from cache import channel as cache_channel
 
 
@@ -48,7 +47,7 @@ class ChannelListResource(Resource):
         if len(channel_id_li) > len(channel_id_set):
             raise ValueError('Repeated channels occurred.')
 
-        r = redis_cli['art_cache']
+        r = current_app.redis_cli['art_cache']
         all_channel_id = r.zrange('channel:id', 0, -1)
         if all_channel_id:
             all_channel_id = [int(channel_id) for channel_id in all_channel_id]
