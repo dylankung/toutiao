@@ -104,7 +104,7 @@ def get_article_info(article_id):
         article_formatted = marshal(article, article_info_fields_db)
 
         # 判断是否置顶
-        rank = r.zrank('channel:{}:art:top'.format(article.channel_id), article_id)
+        rank = r.zrank('ch:{}:art:top'.format(article.channel_id), article_id)
         if rank is None:
             article_formatted['is_top'] = 0
         else:
