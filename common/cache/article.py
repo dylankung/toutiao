@@ -147,7 +147,8 @@ def get_article_detail(article_id):
             Article.user_id,
             Article.title,
             Article.is_advertising,
-            Article.ctime
+            Article.ctime,
+            Article.channel_id
         )).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
 
         article_fields = {
@@ -156,6 +157,7 @@ def get_article_detail(article_id):
             'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
             'content': fields.String(attribute='content.content'),
             'aut_id': fields.Integer(attribute='user_id'),
+            'ch_id': fields.Integer(attribute='channel_id'),
         }
         article_dict = marshal(article, article_fields)
 
