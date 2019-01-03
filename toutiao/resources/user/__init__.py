@@ -26,6 +26,9 @@ user_api.add_resource(following.FollowerListResource, '/v1_0/user/followers',
 user_api.add_resource(channel.ChannelListResource, '/v1_0/user/channels',
                       endpoint='Channels')
 
+user_api.add_resource(channel.ChannelListResource, '/v1_1/user/channels',
+                      endpoint='ChannelsV1_1')
+
 user_api.add_resource(channel.ChannelResource, '/v1_0/user/channels/<int(min=1):target>',
                       endpoint='Channel')
 
