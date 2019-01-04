@@ -98,8 +98,7 @@ def check_user_id_from_querystring(environ, secret):
     anonymous = request.args.get('a')
 
     if token:
-        _token = token.strip()[7:]
-        payload = verify_jwt(_token, secret=secret)
+        payload = verify_jwt(token, secret=secret)
         if payload:
             user_id = payload.get('user_id')
             return user_id
