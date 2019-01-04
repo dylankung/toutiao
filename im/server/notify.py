@@ -1,5 +1,5 @@
 from . import sio
-from common import check_user_id
+from common import check_user_id_from_querystring
 
 
 @sio.on('connect')
@@ -10,7 +10,7 @@ def on_connect(sid, environ):
     :param environ: WSGI dict
     :return:
     """
-    user_id = check_user_id(environ, sio.JWT_SECRET)
+    user_id = check_user_id_from_querystring(environ, sio.JWT_SECRET)
 
     if not user_id:
         return False

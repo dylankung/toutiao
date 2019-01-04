@@ -83,3 +83,27 @@ def check_user_id(environ, secret):
         user_id = authorization.strip()[6:]
 
     return user_id
+
+
+def check_user_id_from_querystring(environ, secret):
+    """
+    检查用户id
+    :param environ:
+    :param secret:
+    :return: user_id or None
+    """
+    # 判断用户身份
+    request = Request(environ)
+    token = request.args.get('token')
+    anonymous = request.args.get('a')
+
+    if token:
+        _token = token.strip()[7:]
+        payload = verify_jwt(_token, secret=secret)
+        if payload:
+            user_id = payload.get('user_id')
+            return user_id
+    elif anonymous:
+        return anonymous
+
+    return None
