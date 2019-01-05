@@ -14,5 +14,5 @@ notice_api.add_resource(announcement.AnnouncementListResource, '/v1_0/announceme
 notice_api.add_resource(announcement.AnnouncementResource, '/v1_0/announcements/<int(min=1):target>',
                         endpoint='Announcement')
 
-notice_api.add_resource(imtest.IMTestResource, '/imtest/<event>',
+notice_api.add_resource(imtest.IMTestResource, '/imtest/<str:event>',
                         endpoint='IMTest')
