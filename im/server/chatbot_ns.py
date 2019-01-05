@@ -9,7 +9,42 @@ from rpc.chatbot import chatbot_pb2, chatbot_pb2_grpc
 logger = logging.getLogger('im')
 
 
-@sio.on('message')
+__NAMESPACE = '/chatbot'
+
+
+@sio.on('connect', namespace=__NAMESPACE)
+def on_connect(sid, environ):
+    """
+    上线时
+    :param sid:
+    :param environ: WSGI dict
+    :return:
+    """
+    user_id = check_user_id(environ, sio.JWT_SECRET)
+
+    if not user_id:
+        return False
+
+    sio.enter_room(sid, str(user_id), namespace=__NAMESPACE)
+
+    timestamp = time.time()
+    msg = '您好，传智黑客为您服务，请问您有什么问题？'
+    sio.send({'msg': msg, 'timestamp': timestamp}, room=sid, namespace=__NAMESPACE)
+
+
+@sio.on('disconnect', namespace=__NAMESPACE)
+def on_disconnect(sid):
+    """
+    下线时
+    :param sid:
+    :return:
+    """
+    rooms = sio.rooms(sid, namespace=__NAMESPACE)
+    for room in rooms:
+        sio.leave_room(sid, room, namespace=__NAMESPACE)
+
+
+@sio.on('message', namespace=__NAMESPACE)
 def on_message(sid, data):
     """
     客户端发送消息时
@@ -17,7 +52,7 @@ def on_message(sid, data):
     :param data:
     :return:
     """
-    rooms = sio.rooms(sid)
+    rooms = sio.rooms(sid, namespace=__NAMESPACE)
     assert len(rooms) == 2
 
     user_id = ''
@@ -47,4 +82,4 @@ def on_message(sid, data):
         msg = resp.user_response
         timestamp = resp.create_time
 
-    sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+    sio.send({'msg': msg, 'timestamp': timestamp}, room=sid, namespace=__NAMESPACE)
