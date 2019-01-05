@@ -51,7 +51,7 @@ class IMTestResource(Resource):
             _user = cache_user.get_user(user_id)
             _article = cache_article.get_article_info(article_id)
             _data = {
-                'user_id': g.user_id,
+                'user_id': user_id,
                 'user_name': _user['name'],
                 'user_photo': _user['photo'],
                 'art_id': article_id,
