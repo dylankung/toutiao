@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import announcement
+from .views import announcement, imtest
 from utils.output import output_json
 
 notice_bp = Blueprint('notice', __name__)
@@ -13,3 +13,6 @@ notice_api.add_resource(announcement.AnnouncementListResource, '/v1_0/announceme
 
 notice_api.add_resource(announcement.AnnouncementResource, '/v1_0/announcements/<int(min=1):target>',
                         endpoint='Announcement')
+
+notice_api.add_resource(imtest.IMTestResource, '/imtest/<event>',
+                        endpoint='IMTest')
