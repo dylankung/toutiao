@@ -5,6 +5,8 @@ from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
 import re
 import random
+from datetime import datetime
+import time
 
 from models.news import Article, ArticleContent, Attitude
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
@@ -250,8 +252,9 @@ class ArticleListResourceV1D1(Resource):
         resp = stub.user_recommend(req)
 
         # 曝光埋点参数
-        trace_exposure = resp.exposure
-        write_trace_log(trace_exposure, channel_id=channel_id)
+        if len(resp.recommends) > 0:
+            trace_exposure = resp.exposure
+            write_trace_log(trace_exposure, channel_id=channel_id)
 
         return resp.recommends, resp.time_stamp
 
@@ -269,8 +272,13 @@ class ArticleListResourceV1D1(Resource):
         timestamp = args.timestamp
         with_top = args.with_top
         per_page = constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+        try:
+            feed_time = time.localtime(timestamp).strftime('%Y-%m-%dT%H:%M:%S')
+        except Exception:
+            return {'message': 'timestamp param error'}, 400
 
         results = []
+        now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
         if with_top:
             # 包含置顶
@@ -278,6 +286,7 @@ class ArticleListResourceV1D1(Resource):
             for article_id in top_article_id_li:
                 article = cache_article.get_article_info(article_id)
                 if article:
+                    article['pubdate'] = now
                     results.append(article)
 
         # 获取推荐文章列表
@@ -287,6 +296,7 @@ class ArticleListResourceV1D1(Resource):
         for feed in feeds:
             article = cache_article.get_article_info(feed.article_id)
             if article:
+                article['pubdate'] = feed_time
                 article['trace'] = {
                     'click': feed.params.click,
                     'collect': feed.params.collect,
