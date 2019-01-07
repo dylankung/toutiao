@@ -5,6 +5,8 @@ from json import dumps
 
 def output_json(data, code, headers=None):
     """Makes a Flask response with a JSON encoded body"""
+    if str(code) == '400':
+        current_app.logger.warn(str(data))
 
     if 'message' not in data:
         data = {
