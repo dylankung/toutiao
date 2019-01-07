@@ -1,4 +1,4 @@
-from flask import make_response, current_app
+from flask import make_response, current_app, request
 from flask_restful.utils import PY3
 from json import dumps
 
@@ -6,6 +6,8 @@ from json import dumps
 def output_json(data, code, headers=None):
     """Makes a Flask response with a JSON encoded body"""
     if str(code) == '400':
+        current_app.logger.warn(request.headers)
+        current_app.logger.warn(request.data)
         current_app.logger.warn(str(data))
 
     if 'message' not in data:
