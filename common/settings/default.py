@@ -37,7 +37,7 @@ class DefaultConfig(object):
     # rpc
     class RPC:
         RECOMMEND = '172.17.0.134:9999'
-        CHATBOT = '172.17.0.59:3333'
+        CHATBOT = '172.17.0.59:9999'
 
     # ES
     ES = [
