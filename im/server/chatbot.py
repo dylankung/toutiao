@@ -38,7 +38,7 @@ def on_message(sid, data):
         create_time=data.get('timestamp', int(time.time()))
     )
     try:
-        resp = stub.Chatbot(req)
+        resp = stub.Chatbot(req, timeout=3)
     except Exception as e:
         logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
