@@ -74,9 +74,9 @@ def create_app(config, enable_config_file=False):
     from utils.middlewares import jwt_authentication
     app.before_request(jwt_authentication)
 
-    # # 注册用户模块蓝图
-    # from .resources.user import user_bp
-    # app.register_blueprint(user_bp)
+    # 注册用户模块蓝图
+    from .resources.user import user_bp
+    app.register_blueprint(user_bp)
 
     return app
 
