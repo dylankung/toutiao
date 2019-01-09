@@ -10,7 +10,7 @@ from models.user import Relation
 from utils import parser
 from models import db
 from cache import user as cache_user
-from .. import constants
+from . import constants
 
 
 class FollowingListResource(Resource):

@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import load_only
 
 from utils.decorators import login_required
-from .. import constants
+from . import constants
 from cache import user as cache_user
 from cache import article as cache_article
 from models.news import Read

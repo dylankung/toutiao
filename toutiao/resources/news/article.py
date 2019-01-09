@@ -10,7 +10,7 @@ import time
 
 from models.news import Article, ArticleContent, Attitude
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
-from .. import constants
+from . import constants
 from utils import parser
 from cache import article as cache_article
 from cache import user as cache_user

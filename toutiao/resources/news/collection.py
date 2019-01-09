@@ -10,7 +10,7 @@ from utils.decorators import login_required
 from utils import parser
 from models import db
 from models.news import Collection
-from .. import constants
+from . import constants
 from cache import article as cache_article
 from utils.logging import write_trace_log
 

@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import passport, following, channel, blacklist, profile, figure
+from . import passport, following, channel, blacklist, profile, figure
 from utils.output import output_json
 
 user_bp = Blueprint('user', __name__)

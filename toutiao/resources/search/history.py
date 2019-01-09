@@ -4,7 +4,7 @@ from sqlalchemy.orm import load_only
 
 from utils.decorators import login_required
 from models.user import Search
-from .. import constants
+from . import constants
 from models import db
 
 
