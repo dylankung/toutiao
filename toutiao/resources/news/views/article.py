@@ -142,7 +142,7 @@ class ArticleListResource(Resource):
 
         # 曝光埋点参数
         trace_exposure = resp.exposure
-        if trace_exposure:
+        if len(trace_exposure) > 0:
             write_trace_log(trace_exposure, channel_id=channel_id)
 
         return resp.recommends
