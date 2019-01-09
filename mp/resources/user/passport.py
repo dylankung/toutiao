@@ -131,7 +131,7 @@ class AuthorizationResource(Resource):
                 'refresh_token': refresh_token,
                 'id': user.id,
                 'name': user.name,
-                'photo': user.profile_photo}, 201
+                'photo': current_app.config['QINIU_DOMAIN'] + user.profile_photo}, 201
 
     def put(self):
         """
