@@ -142,10 +142,7 @@ class ArticleListResource(Resource):
 
         # 曝光埋点参数
         trace_exposure = resp.exposure
-        current_app.logger.info('trace_exposure')
-        current_app.logger.info(trace_exposure)
-        if len(trace_exposure) > 0:
-            write_trace_log(trace_exposure, channel_id=channel_id)
+        write_trace_log(trace_exposure, channel_id=channel_id)
 
         return resp.recommends
 
@@ -255,8 +252,8 @@ class ArticleListResourceV1D1(Resource):
         resp = stub.user_recommend(req)
 
         # 曝光埋点参数
-        if len(resp.recommends) > 0:
-            trace_exposure = resp.exposure
+        trace_exposure = resp.exposure
+        if len(resp.recommends) > 0 and trace_exposure:
             write_trace_log(trace_exposure, channel_id=channel_id)
 
         return resp.recommends, resp.time_stamp
