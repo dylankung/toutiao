@@ -72,7 +72,7 @@ class SMSVerificationCodeResource(Resource):
 
         if success:
             code = '{:0>6d}'.format(random.randint(0, 999999))
-            r.setex('code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+            r.setex('mp:code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
             send_verification_code.delay(mobile, code)
             return {'mobile': mobile}
         else:
@@ -113,7 +113,7 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = current_app.redis_cli['sms_code'].get('code:{}'.format(mobile))
+        real_code = current_app.redis_cli['sms_code'].get('mp:code:{}'.format(mobile))
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 
