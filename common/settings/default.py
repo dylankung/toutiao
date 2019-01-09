@@ -51,6 +51,9 @@ class DefaultConfig(object):
 
     RABBITMQ = 'amqp://admin:rabbitmq@localhost:5672/delron'
 
+    GEETEST_ID = ''
+    GEETEST_KEY = ''
+
 
 class CeleryConfig(object):
     """
