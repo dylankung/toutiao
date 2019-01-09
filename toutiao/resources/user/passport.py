@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 
 from celery_tasks.sms.tasks import send_verification_code
-from .. import constants
+from . import constants
 from utils import parser
 from models import db
 from models.user import User, UserProfile

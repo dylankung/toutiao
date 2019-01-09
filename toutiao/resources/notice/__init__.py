@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import announcement, imtest
+from . import announcement, imtest
 from utils.output import output_json
 
 notice_bp = Blueprint('notice', __name__)

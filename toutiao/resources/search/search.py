@@ -3,7 +3,7 @@ from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
 from flask import g, current_app
 
-from .. import constants
+from . import constants
 from cache import article as cache_article
 from models.user import Search
 from models import db

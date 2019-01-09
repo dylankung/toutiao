@@ -12,7 +12,7 @@ from models.news import Comment, Article
 from cache import comment as cache_comment
 from cache import article as cache_article
 from cache import user as cache_user
-from .. import constants
+from . import constants
 
 
 class CommentListResource(Resource):

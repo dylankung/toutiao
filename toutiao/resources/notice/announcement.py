@@ -3,7 +3,7 @@ from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
 
 from cache import notice as cache_notice
-from .. import constants
+from . import constants
 
 
 class AnnouncementListResource(Resource):

@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from .views import article, collection, liking, dislike, report, comment, channel, reading
+from . import article, collection, liking, dislike, report, comment, channel, reading
 from utils.output import output_json
 
 
