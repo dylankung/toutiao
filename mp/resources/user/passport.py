@@ -118,16 +118,20 @@ class AuthorizationResource(Resource):
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = User.query.options(load_only(User.id)).filter_by(mobile=mobile, is_verified=True).first()
+        user = User.query.options(load_only(User.id, User.name, User.profile_photo)).filter_by(mobile=mobile, is_verified=True).first()
         if user is None:
             return {'message': 'Please verify your real information in app.'}, 403
 
         token, refresh_token = self._generate_tokens(user.id)
 
         # 缓存用户信息
-        save_user_data_cache(user.id, user)
+        save_user_data_cache(user.id)
 
-        return {'token': token, 'refresh_token': refresh_token}, 201
+        return {'token': token,
+                'refresh_token': refresh_token,
+                'id': user.id,
+                'name': user.name,
+                'photo': user.profile_photo}, 201
 
     def put(self):
         """
