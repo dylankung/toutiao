@@ -20,7 +20,7 @@ def save_reading_history_to_mysql():
     sql = ''
     for user in users:
         # 取出该用户的浏览历史
-        user_id = user.decode()
+        user_id = int(user)
         history = r_his.hgetall('his:{}'.format(user_id))
 
         # 清除本次处理的浏览历史
