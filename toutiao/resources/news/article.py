@@ -249,7 +249,11 @@ class ArticleListResourceV1D1(Resource):
         req.time_stamp = timestamp
 
         stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
-        resp = stub.user_recommend(req)
+        try:
+            resp = stub.user_recommend(req, timeout=3)
+        except Exception as e:
+            current_app.logger.error(e)
+            return [], timestamp
 
         # 曝光埋点参数
         trace_exposure = resp.exposure
