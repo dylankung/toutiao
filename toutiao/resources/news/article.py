@@ -250,7 +250,7 @@ class ArticleListResourceV1D1(Resource):
 
         stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
         try:
-            resp = stub.user_recommend(req, timeout=3)
+            resp = stub.user_recommend(req, timeout=5)
         except Exception as e:
             current_app.logger.error(e)
             return [], timestamp
