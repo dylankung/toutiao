@@ -71,7 +71,8 @@ CREATE TABLE `user_material` (
   `is_collected` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否收藏，0-未收藏，1-已收藏',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`material_id`),
-  KEY `user_id` (`user_id`)
+  KEY `user_id` (`user_id`),
+  UNIQUE KEY `user_material` (`user_id`, `hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户素材表';
 
 CREATE TABLE `global_announcement` (
