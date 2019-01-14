@@ -54,6 +54,10 @@ class DefaultConfig(object):
     GEETEST_ID = ''
     GEETEST_KEY = ''
 
+    # CORS
+    # TODO 调试后要修改
+    CORS_ORIGINS = '*'
+
 
 class CeleryConfig(object):
     """

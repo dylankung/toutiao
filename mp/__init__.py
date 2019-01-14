@@ -4,6 +4,7 @@ from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 from elasticsearch5 import Elasticsearch
+from flask_cors import CORS
 
 
 # 限流器
@@ -37,6 +38,9 @@ def create_app(config, enable_config_file=False):
 
     # 限流器
     limiter.init_app(app)
+
+    # CORS
+    CORS(app)
 
     # 配置日志
     from utils.logging import create_logger
@@ -77,6 +81,10 @@ def create_app(config, enable_config_file=False):
     # 注册用户模块蓝图
     from .resources.user import user_bp
     app.register_blueprint(user_bp)
+
+    # 注册用户模块蓝图
+    from .resources.news import news_bp
+    app.register_blueprint(news_bp)
 
     return app
 
