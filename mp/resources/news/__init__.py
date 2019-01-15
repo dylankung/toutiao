@@ -11,3 +11,6 @@ news_api.representation('application/json')(output_json)
 
 news_api.add_resource(material.ImageListResource, '/v1_0/user/images',
                       endpoint='UserImages')
+
+news_api.add_resource(material.ImageResource, '/v1_0/user/images/<int(min=1):target>',
+                      endpoint='UserImage')
