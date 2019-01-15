@@ -11,7 +11,6 @@ from utils import parser
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
 from cache.user import save_user_data_cache
-from toutiao import limiter
 from utils.gt3.geetest import GeetestLib
 from . import constants
 
