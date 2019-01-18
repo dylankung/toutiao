@@ -13,7 +13,7 @@ from models import db
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
 from cache.user import save_user_data_cache
-from toutiao import limiter
+from utils.limiter import limiter as lmt
 
 
 class SMSVerificationCodeResource(Resource):
@@ -23,12 +23,12 @@ class SMSVerificationCodeResource(Resource):
     error_message = 'Too many requests.'
 
     decorators = [
-        limiter.limit(constants.LIMIT_SMS_VERIFICATION_CODE_BY_MOBILE,
-                      key_func=lambda: request.view_args['mobile'],
-                      error_message=error_message),
-        limiter.limit(constants.LIMIT_SMS_VERIFICATION_CODE_BY_IP,
-                      key_func=get_remote_address,
-                      error_message=error_message)
+        lmt.limit(constants.LIMIT_SMS_VERIFICATION_CODE_BY_MOBILE,
+                  key_func=lambda: request.view_args['mobile'],
+                  error_message=error_message),
+        lmt.limit(constants.LIMIT_SMS_VERIFICATION_CODE_BY_IP,
+                  key_func=get_remote_address,
+                  error_message=error_message)
     ]
 
     def get(self, mobile):

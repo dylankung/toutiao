@@ -1,15 +1,9 @@
 from flask import Flask
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 import grpc
 from elasticsearch5 import Elasticsearch
 import socketio
-
-
-# 限流器
-limiter = Limiter(key_func=get_remote_address)
 
 
 def create_flask_app(config, enable_config_file=False):
@@ -38,7 +32,8 @@ def create_app(config, enable_config_file=False):
     app = create_flask_app(config, enable_config_file)
 
     # 限流器
-    limiter.init_app(app)
+    from utils.limiter import limiter as lmt
+    lmt.init_app(app)
 
     # 配置日志
     from utils.logging import create_logger
