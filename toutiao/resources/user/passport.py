@@ -99,7 +99,7 @@ class AuthorizationResource(Resource):
         刷新token
         """
         user_id = g.user_id
-        if user_id and g.refresh_token:
+        if user_id and g.is_refresh_token:
 
             token, refresh_token = self._generate_tokens(user_id, with_refresh_token=False)
 

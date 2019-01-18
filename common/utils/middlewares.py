@@ -10,6 +10,7 @@ def jwt_authentication():
     g.user_id = None
     g.use_token = False
     g.anonymous_id = None
+    g.is_verified = False
     authorization = request.headers.get('Authorization')
     if authorization and authorization.startswith('Bearer '):
         g.use_token = True
@@ -17,6 +18,7 @@ def jwt_authentication():
         payload = verify_jwt(token)
         if payload:
             g.user_id = payload.get('user_id')
-            g.refresh_token = payload.get('refresh')
+            g.is_refresh_token = payload.get('refresh')
+            g.is_verified = payload.get('verified', False)
     elif authorization and authorization.startswith('Anony '):
         g.anonymous_id = authorization.strip()[6:]
