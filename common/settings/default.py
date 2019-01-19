@@ -72,3 +72,7 @@ class CeleryConfig(object):
     # 阿里短信服务
     DYSMS_ACCESS_KEY_ID = ''
     DYSMS_ACCESS_KEY_SECRET = ''
+
+
+class MisDefaultConfig(DefaultConfig):
+    pass
