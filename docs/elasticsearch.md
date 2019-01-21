@@ -175,7 +175,7 @@ curl 172.17.0.135:9200/articles/article/_search?pretty -d '
 
 
 ```http
-curl 
+curl 172.17.0.135:9200/articles/_count?pretty
 ```
 
 
