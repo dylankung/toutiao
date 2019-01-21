@@ -47,7 +47,7 @@ class DefaultConfig(object):
     QINIU_ACCESS_KEY = ''
     QINIU_SECRET_KEY = ''
     QINIU_BUCKET_NAME = ''
-    QINIU_DOMAIN = 'http://pk1bdaj9n.bkt.clouddn.com/'
+    QINIU_DOMAIN = 'http://toutiao.meiduo.site/'
 
     RABBITMQ = 'amqp://admin:rabbitmq@localhost:5672/delron'
 
