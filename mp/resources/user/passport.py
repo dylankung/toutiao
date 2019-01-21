@@ -93,11 +93,11 @@ class AuthorizationResource(Resource):
         now = datetime.utcnow()
         expiry = now + timedelta(hours=current_app.config['JWT_EXPIRY_HOURS'])
         # expiry = now + timedelta(minutes=current_app.config['JWT_EXPIRY_HOURS'])
-        token = generate_jwt({'user_id': user_id, 'refresh': False}, expiry)
+        token = generate_jwt({'user_id': user_id, 'refresh': False, 'verified': True}, expiry)
         refresh_token = None
         if with_refresh_token:
             refresh_expiry = now + timedelta(days=current_app.config['JWT_REFRESH_DAYS'])
-            refresh_token = generate_jwt({'user_id': user_id, 'refresh': True}, refresh_expiry)
+            refresh_token = generate_jwt({'user_id': user_id, 'refresh': True, 'verified': True}, refresh_expiry)
         return token, refresh_token
 
     def post(self):
@@ -117,7 +117,8 @@ class AuthorizationResource(Resource):
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = User.query.options(load_only(User.id, User.name, User.profile_photo)).filter_by(mobile=mobile, is_verified=True).first()
+        user = User.query.options(load_only(User.id, User.name, User.profile_photo))\
+            .filter_by(mobile=mobile, is_verified=True).first()
         if user is None:
             return {'message': 'Please verify your real information in app.'}, 403
 
@@ -137,7 +138,7 @@ class AuthorizationResource(Resource):
         刷新token
         """
         user_id = g.user_id
-        if user_id and g.refresh_token:
+        if user_id and g.is_refresh_token and g.is_verified:
 
             token, refresh_token = self._generate_tokens(user_id, with_refresh_token=False)
 

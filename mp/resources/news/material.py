@@ -7,7 +7,7 @@ from flask_restful import inputs
 from sqlalchemy import func
 import math
 
-from utils.decorators import login_required
+from utils.decorators import verify_required
 from utils import parser
 from utils.storage import upload_image
 from models.user import Material
@@ -19,7 +19,7 @@ class ImageListResource(Resource):
     """
     图片资源
     """
-    method_decorators = [login_required]
+    method_decorators = [verify_required]
 
     def post(self):
         """
@@ -105,7 +105,7 @@ class ImageResource(Resource):
     """
     图片资源
     """
-    method_decorators = [login_required]
+    method_decorators = [verify_required]
 
     def put(self, target):
         """
