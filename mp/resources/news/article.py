@@ -4,6 +4,7 @@ from flask_restful import inputs
 from flask import current_app, g
 import re
 import random
+from sqlalchemy import func
 
 from utils.decorators import verify_required
 from utils import parser
@@ -41,7 +42,7 @@ class ArticleListResource(Resource):
         生成文章封面
         :param content: 文章内容
         """
-        results = re.findall(r'src=\"(' + current_app.config['QINIU_DOMAIN'] + r'[^"]+)\"', content.content)
+        results = re.findall(r'src=\"(' + current_app.config['QINIU_DOMAIN'] + r'[^"]+)\"', content)
         length = len(results)
         if length <= 0:
             return {'type': 0, 'images': []}
@@ -58,7 +59,7 @@ class ArticleListResource(Resource):
         发表文章
         """
         req_parser = RequestParser()
-        req_parser.add_argument('draft', type=inputs.boolean, requried=False, location='args')
+        req_parser.add_argument('draft', type=inputs.boolean, required=False, location='args')
         req_parser.add_argument('title', type=inputs.regex(r'.{5,30}'), required=True, location='json')
         req_parser.add_argument('content', type=inputs.regex(r'.+'), required=True, location='json')
         req_parser.add_argument('cover', type=self._cover, required=True, location='json')
@@ -82,11 +83,12 @@ class ArticleListResource(Resource):
         )
         db.session.add(article)
         db.session.flush()
+        article_id = article.id
 
-        article_content = ArticleContent(id=article.id, content=content)
+        article_content = ArticleContent(id=article_id, content=content)
         db.session.add(article_content)
 
-        article_statistic = ArticleStatistic(id=article.id)
+        article_statistic = ArticleStatistic(id=article_id)
         db.session.add(article_statistic)
 
         try:
@@ -100,7 +102,7 @@ class ArticleListResource(Resource):
             # TODO 机器审核
             # TODO 新文章消息推送
 
-        return {'id': article.id}, 201
+        return {'id': article_id}, 201
 
 
 class ArticleResource(ArticleListResource):
@@ -112,7 +114,7 @@ class ArticleResource(ArticleListResource):
         发表文章
         """
         req_parser = RequestParser()
-        req_parser.add_argument('draft', type=inputs.boolean, requried=False, location='args')
+        req_parser.add_argument('draft', type=inputs.boolean, required=False, location='args')
         req_parser.add_argument('title', type=inputs.regex(r'.{5,30}'), required=True, location='json')
         req_parser.add_argument('content', type=inputs.regex(r'.+'), required=True, location='json')
         req_parser.add_argument('cover', type=self._cover, required=True, location='json')
@@ -122,19 +124,23 @@ class ArticleResource(ArticleListResource):
         cover = args['cover']
         draft = args['draft']
 
+        ret = db.session.query(func.count(Article.id)).filter(Article.id == target, Article.user_id == g.user_id).first()
+        if ret[0] == 0:
+            return {'message': 'Invalid article.'}, 400
+
         # 对于自动封面，生成封面
         cover_type = cover['type']
         if cover_type == -1:
             cover = self._generate_article_cover(content)
 
-        Article.query.filter_by(id=target, user_id=g.user_id).update(dict(
+        Article.query.filter_by(id=target).update(dict(
             channel_id=args['channel_id'],
             title=args['title'],
             cover=cover,
             status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
         ))
 
-        ArticleContent.query.filter_by(id=target, user_id=g.user_id).update(dict(content=content))
+        ArticleContent.query.filter_by(id=target).update(dict(content=content))
 
         try:
             db.session.commit()
