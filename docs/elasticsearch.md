@@ -27,6 +27,11 @@ curl -X PUT 172.17.0.135:9200/articles/_mapping/article -H 'Content-Type: applic
                     "store": "false",
                     "include_in_all": "false"
                 },
+                "user_id": {
+                  	"type": "long",
+                    "store": "false",
+                    "include_in_all": "false"
+                },
                 "title": {
                     "type": "text",
                     "store": "false",
@@ -166,4 +171,19 @@ curl 172.17.0.135:9200/articles/article/_search?pretty -d '
 }
 '
 ```
+
+
+
+```http
+curl 
+```
+
+
+
+```shell
+cd /usr/share/logstash/bin/
+./logstash -f /root/logstash_mysql_es_completion.conf
+```
+
+
 
