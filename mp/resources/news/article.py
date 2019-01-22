@@ -5,11 +5,14 @@ from flask import current_app, g
 import re
 import random
 from sqlalchemy import func
+from sqlalchemy.orm import load_only
+from datetime import timedelta
 
 from utils.decorators import verify_required
 from utils import parser
 from models.news import Article, ArticleContent, ArticleStatistic
 from models import db
+from . import constants
 
 
 class ArticleListResource(Resource):
@@ -54,6 +57,12 @@ class ArticleListResource(Resource):
             img_urls = results[:3]
             return {'type': 3, 'images': img_urls}
 
+    def _channel_id(self, value):
+        value = parser.channel_id(value)
+        if value == 0:
+            raise ValueError('Invalid channel id param.')
+        return value
+
     def post(self):
         """
         发表文章
@@ -63,7 +72,7 @@ class ArticleListResource(Resource):
         req_parser.add_argument('title', type=inputs.regex(r'.{5,30}'), required=True, location='json')
         req_parser.add_argument('content', type=inputs.regex(r'.+'), required=True, location='json')
         req_parser.add_argument('cover', type=self._cover, required=True, location='json')
-        req_parser.add_argument('channel_id', type=parser.channel_id, required=True, location='json')
+        req_parser.add_argument('channel_id', type=self._channel_id, required=True, location='json')
         args = req_parser.parse_args()
         content = args['content']
         cover = args['cover']
@@ -103,6 +112,81 @@ class ArticleListResource(Resource):
             # TODO 新文章消息推送
 
         return {'id': article_id}, 201
+
+    def _status(self, value):
+        err_msg = 'Invalid status param.'
+        try:
+            status = int(value)
+        except Exception:
+            raise ValueError(err_msg)
+        if status not in Article.STATUS_ENUM:
+            raise ValueError(err_msg)
+        return status
+
+    def get(self):
+        """
+        查询文章列表
+        """
+        req_parser = RequestParser()
+        req_parser.add_argument('status', type=self._status, required=False, location='args', action='append')
+        req_parser.add_argument('channel_id', type=self._channel_id, required=False, location='args', action='append')
+        req_parser.add_argument('begin_pubdate', type=parser.date, required=False, location='args')
+        req_parser.add_argument('end_pubdate', type=parser.date, required=False, location='args')
+        req_parser.add_argument('page', type=inputs.positive, required=False, location='args')
+        req_parser.add_argument('per_page', type=inputs.int_range(constants.DEFAULT_ARTICLE_PER_PAGE_MIN,
+                                                                  constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
+                                                                  'per_page'),
+                                required=False, location='args')
+        args = req_parser.parse_args()
+        page = 1 if args.page is None else args.page
+        per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
+
+        begin_pubdate = args['begin_pubdate']
+        end_pubdate = args['end_pubdate']
+        if begin_pubdate and end_pubdate and begin_pubdate > end_pubdate:
+            return {'message': 'Invalid pubdate param.'}, 400
+
+        total_count_query = db.session.query(func.count(Article.id)).filter(Article.user_id == g.user_id)
+        article_query = Article.query.options(load_only(Article.id, Article.title, Article.status, Article.cover, Article.ctime)) \
+            .filter(Article.user_id == g.user_id)
+
+        status = args['status']
+        if status:
+            total_count_query = total_count_query.filter(Article.status.in_(status))
+            article_query = article_query.filter(Article.status.in_(status))
+
+        channel_id = args['channel_id']
+        if channel_id:
+            total_count_query = total_count_query.filter(Article.channel_id.in_(channel_id))
+            article_query = article_query.filter(Article.channel_id.in_(channel_id))
+
+        if begin_pubdate:
+            total_count_query = total_count_query.filter(Article.ctime >= begin_pubdate)
+            article_query = article_query.filter(Article.ctime >= begin_pubdate)
+
+        if end_pubdate:
+            end_pubdate = end_pubdate + timedelta(hours=23, minutes=59, seconds=59)
+            total_count_query = total_count_query.filter(Article.ctime <= end_pubdate)
+            article_query = article_query.filter(Article.ctime <= end_pubdate)
+
+        # 查询总数
+        ret = total_count_query.first()
+        total_count = ret[0]
+        results = []
+
+        if total_count > 0 and total_count > (page-1)*per_page:
+            articles = article_query.order_by(Article.id.desc()).offset((page-1)*per_page).limit(per_page).all()
+
+            for article in articles:
+                results.append({
+                    'id': article.id,
+                    'title': article.title,
+                    'status': article.status,
+                    'cover': article.cover,
+                    'pubdate': article.ctime.strftime('%Y-%m-%d %H:%M:%S')
+                })
+
+        return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
 
 class ArticleResource(ArticleListResource):
