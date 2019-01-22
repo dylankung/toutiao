@@ -187,3 +187,20 @@ cd /usr/share/logstash/bin/
 
 
 
+```http
+curl -X GET 172.17.0.135:9200/articles/article/_search?pretty -d '
+{
+	"_source": ["title", "user_id"],
+    "query":{
+        "bool": {
+            "must": [
+                {"match": {"_all": "python flask"}}
+            ],
+            "filter": [
+                {"term": {"user_id": {"value": 1}}}
+            ]
+        }
+    }
+}'
+```
+
