@@ -198,6 +198,9 @@ curl -X GET 172.17.0.135:9200/articles/article/_search?pretty -d '
             ],
             "filter": [
                 {"term": {"user_id": {"value": 1}}}
+            ],
+            "must_not": [
+                {"term": {"status": {"value": 4}}}
             ]
         }
     }

@@ -43,6 +43,9 @@ class SearchResource(Resource):
                     ],
                     'filter': [
                         {'term': {'user_id': {'value': g.user_id}}}
+                    ],
+                    'must_not': [
+                        {'term': {'status': {'value': Article.STATUS.DELETED}}}
                     ]
                 }
             }
