@@ -5,7 +5,7 @@ from flask import current_app, g
 import re
 import random
 from sqlalchemy import func
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, contains_eager
 from datetime import timedelta
 
 from utils.decorators import verify_required
@@ -15,12 +15,10 @@ from models import db
 from . import constants
 
 
-class ArticleListResource(Resource):
+class ArticleResourceBase(Resource):
     """
-    文章
+    文章基类
     """
-    method_decorators = [verify_required]
-
     def _cover(self, value):
         error_msg = 'Invalid cover param.'
         if not isinstance(value, dict):
@@ -62,6 +60,13 @@ class ArticleListResource(Resource):
         if value == 0:
             raise ValueError('Invalid channel id param.')
         return value
+
+
+class ArticleListResource(ArticleResourceBase):
+    """
+    文章
+    """
+    method_decorators = [verify_required]
 
     def post(self):
         """
@@ -110,6 +115,8 @@ class ArticleListResource(Resource):
         # if not draft:
             # TODO 机器审核
             # TODO 新文章消息推送
+
+        # TODO 维护Elasticsearch索引
 
         return {'id': article_id}, 201
 
@@ -189,7 +196,7 @@ class ArticleListResource(Resource):
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
 
-class ArticleResource(ArticleListResource):
+class ArticleResource(ArticleResourceBase):
     """
     文章
     """
@@ -202,7 +209,7 @@ class ArticleResource(ArticleListResource):
         req_parser.add_argument('title', type=inputs.regex(r'.{5,30}'), required=True, location='json')
         req_parser.add_argument('content', type=inputs.regex(r'.+'), required=True, location='json')
         req_parser.add_argument('cover', type=self._cover, required=True, location='json')
-        req_parser.add_argument('channel_id', type=parser.channel_id, required=True, location='json')
+        req_parser.add_argument('channel_id', type=self._channel_id, required=True, location='json')
         args = req_parser.parse_args()
         content = args['content']
         cover = args['cover']
@@ -237,4 +244,44 @@ class ArticleResource(ArticleListResource):
             # TODO 机器审核
             # TODO 新文章消息推送
 
+        # TODO 维护Elasticsearch索引
+
         return {'id': target}, 201
+
+    def get(self, target):
+        """
+        获取指定文章
+        """
+        article = Article.query.join(Article.content)\
+            .options(load_only(Article.title, Article.cover, Article.channel_id),
+                     contains_eager(Article.content).load_only(ArticleContent.content))\
+            .filter(Article.id == target, Article.user_id == g.user_id, Article.status != Article.STATUS.DELETED)\
+            .first()
+
+        if article:
+            return {
+                'id': target,
+                'title': article.title,
+                'cover': article.cover,
+                'channel_id': article.channel_id,
+                'content': article.content.content
+            }
+        else:
+            return {}
+
+    def delete(self, target):
+        """
+        删除文章
+        """
+        ret = Article.query.filter(Article.id == target,
+                                   Article.user_id == g.user_id,
+                                   Article.status.in_([Article.STATUS.DRAFT, Article.STATUS.UNREVIEWED,
+                                                       Article.STATUS.FAILED]))\
+            .update({'status': Article.STATUS.DELETED}, synchronize_session=False)
+        db.session.commit()
+        if ret == 0:
+            return {'message': 'Invalid article.'}, 400
+
+        # TODO 维护缓存
+        # TODO 维护ES
+        return {'message': 'ok'}, 204
