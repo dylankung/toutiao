@@ -13,6 +13,7 @@ from utils.jwt_util import generate_jwt
 from cache.user import save_user_data_cache
 from utils.gt3.geetest import GeetestLib
 from . import constants
+from cache import constants as cache_constants
 
 
 class CaptchaResource(Resource):
@@ -131,7 +132,9 @@ class AuthorizationResource(Resource):
                 'refresh_token': refresh_token,
                 'id': user.id,
                 'name': user.name,
-                'photo': (current_app.config['QINIU_DOMAIN'] + user.profile_photo) if user.profile_photo else ''}, 201
+                'photo': current_app.config['QINIU_DOMAIN'] + (user.profile_photo if user.profile_photo
+                                                               else cache_constants.DEFAULT_USER_PROFILE_PHOTO)
+                }, 201
 
     def put(self):
         """
