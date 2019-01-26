@@ -62,6 +62,7 @@ class Article(db.Model):
     review_time = db.Column(db.DateTime, doc='审核时间')
     delete_time = db.Column(db.DateTime, doc='删除时间')
     comment_count = db.Column(db.Integer, default=0, doc='评论数')
+    allow_comment = db.Column(db.Boolean, default=True, doc='是否允许评论')
 
     content = db.relationship('ArticleContent', uselist=False)
     user = db.relationship('User', uselist=False)
@@ -90,6 +91,7 @@ class ArticleStatistic(db.Model):
     dislike_count = db.Column(db.Integer, default=0, doc='不喜欢数')
     repost_count = db.Column(db.Integer, default=0, doc='转发数')
     collect_count = db.Column(db.Integer, default=0, doc='收藏数')
+    fans_comment_count = db.Column(db.Integer, default=0, doc='粉丝评论数')
 
 
 class Collection(db.Model):
