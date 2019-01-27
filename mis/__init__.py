@@ -3,13 +3,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
-import grpc
-from elasticsearch5 import Elasticsearch
-# import socketio
-
-
-# 限流器
-limiter = Limiter(key_func=get_remote_address)
+from flask_cors import *
 
 
 def create_flask_app(config, enable_config_file=False):
@@ -36,8 +30,10 @@ def create_app(config, enable_config_file=False):
     :return: 应用
     """
     app = create_flask_app(config, enable_config_file)
-
+    # 允许跨域
+    CORS(app, supports_credentials=True)
     # 限流器
+    from utils.limiter import limiter
     limiter.init_app(app)
 
     # 配置日志
@@ -80,8 +76,8 @@ def create_app(config, enable_config_file=False):
     app.register_error_handler(SQLAlchemyError, handler_mysql_error)
 
     # 添加请求钩子
-    from utils.middlewares import jwt_authentication
-    app.before_request(jwt_authentication)
+    from utils.middlewares import mis_jwt_authentication
+    app.before_request(mis_jwt_authentication)
 
     # 注册用户管理模块蓝图
     from .resources.user import user_bp

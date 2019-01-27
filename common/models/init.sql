@@ -214,14 +214,65 @@ CREATE TABLE `news_comment_liking` (
   UNIQUE KEY `user_comment` (`user_id`, `comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='评论点赞';
 
+# Mis系统
+CREATE TABLE `mis_administrator` (
+  `administrator_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
+  `account` varchar(20)  NOT NULL COMMENT '用户ID',
+  `password` varchar(93)  NOT NULL COMMENT '密码，密文',
+  `name` varchar(20) NOT NULL COMMENT '管理员名称',
+  `email` varchar(30) COMMENT '电子邮箱',
+  `mobile` varchar(20) COMMENT '手机号',
+  `group_id` bigint(20) unsigned NOT NULL COMMENT '管理员角色/组ID',
+  `access_count` bigint(20) NOT NULL DEFAULT '0' COMMENT '访问次数',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态',
+  `last_login` datetime COMMENT '最后登录时间',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`administrator_id`),
+  UNIQUE KEY `account` (`account`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员基本信息';
 
+CREATE TABLE `mis_administrator_group` (
+  `group_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '管理员角色/组ID',
+  `name` varchar(20)  NOT NULL COMMENT '角色/组',
+  `status` tinyint(1)  NOT NULL DEFAULT '1' COMMENT '状态',
+  `remark` varchar(100) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`group_id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员角色/组';
 
+CREATE TABLE `mis_permission` (
+  `permission_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '权限ID',
+  `name` varchar(20)  NOT NULL COMMENT '权限',
+  `type` tinyint(1) NOT NULL DEFAULT '1' COMMENT '权限类型',
+  `parent_id` bigint(20) NOT NULL DEFAULT '0' COMMENT '父权限的ID',
+  `code` varchar(30) COMMENT '权限点代码',
+  `sequence` int(11) DEFAULT '0' COMMENT '序列',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`permission_id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限表';
 
+CREATE TABLE `mis_group_permission` (
+  `group_permission_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '组权限ID',
+  `group_id` bigint(20)  NOT NULL COMMENT '角色/组ID',
+  `permission_id` bigint(20) NOT NULL COMMENT '权限ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`group_permission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='组权限表';
 
-
-
-
-
+CREATE TABLE `mis_operation_log` (
+  `operation_log_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `administrator_id` bigint(20)  NOT NULL COMMENT '管理员ID',
+  `ip` varchar(16) NOT NULL COMMENT 'ip地址',
+  `operation` varchar(50)  COMMENT '操作',
+  `description` varchar(200) NOT NULL COMMENT '描述',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`operation_log_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运营日志';
 
 
 
