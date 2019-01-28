@@ -277,7 +277,7 @@ class ArticleListResourceV1D1(Resource):
         with_top = args.with_top
         per_page = constants.DEFAULT_ARTICLE_PER_PAGE_MIN
         try:
-            feed_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(timestamp))
+            feed_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(timestamp/1000))
         except Exception:
             return {'message': 'timestamp param error'}, 400
 
