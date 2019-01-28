@@ -144,6 +144,7 @@ class ArticleListResource(ArticleResourceBase):
                                                                   constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
                                                                   'per_page'),
                                 required=False, location='args')
+        req_parser.add_argument('response', )
         args = req_parser.parse_args()
         page = 1 if args.page is None else args.page
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
