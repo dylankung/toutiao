@@ -1,7 +1,7 @@
-from flask_restful import Resource
+from flask_restful import Resource, original_flask_make_response
 from werkzeug.security import check_password_hash
 from flask_limiter.util import get_remote_address
-from flask import request, current_app, g, session
+from flask import request, current_app, g, session, make_response
 from flask_restful.reqparse import RequestParser
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
@@ -29,6 +29,8 @@ class CaptchaResource(Resource):
         session[gt.GT_STATUS_SESSION_KEY] = status
         session['account'] = account
         response_str = gt.get_response_str()
+        # resp = original_flask_make_response(response_str)
+        # resp.set_cookie('account', account)
         return response_str
 
 
@@ -36,9 +38,6 @@ class AuthorizationResource(Resource):
     """
     认证
     """
-    method_decorators = {
-        'put':[mis_login_required]
-    }
 
     def _generate_tokens(self, administrator_id, with_refresh_token=True):
         """
@@ -99,7 +98,7 @@ class AuthorizationResource(Resource):
         # args.account = 'wangzq01'
         # args.password = 'cz123456'
 
-        status = session[gt.GT_STATUS_SESSION_KEY]
+        status = session.get(gt.GT_STATUS_SESSION_KEY)
         if status:
             success = gt.success_validate(args.challenge, args.validate, args.seccode, args.account, data='', userinfo='')
         else:

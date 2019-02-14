@@ -278,3 +278,19 @@ def mis_permission_id(value):
                 return permission_id
             else:
                 raise ValueError('Invalid target group id.')
+
+
+def statistics_type(value):
+    from models.statistics import StatisticsType
+    if value in StatisticsType.type_map:
+        return value
+    else:
+        raise ValueError('Invalid statistics type.')
+
+
+def statistics_size(value):
+    if value in ['day', 'hour', 'month']:
+        return value
+    else:
+        raise ValueError('Invalid statistics size. Choice in ("day", "hour")')
+

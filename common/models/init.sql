@@ -1,9 +1,59 @@
 SET @@auto_increment_increment=9;
 
+### add by wangzq
+ALTER TABLE news_article_basic ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
+ALTER TABLE news_article_basic ADD COLUMN reject_reason varchar(200) COMMENT '驳回原因';
+
+ALTER TABLE user_basic ADD COLUMN account varchar(20) COMMENT '账号';
+ALTER TABLE user_basic ADD COLUMN email varchar(20) COMMENT '邮箱';
+ALTER TABLE user_basic ADD COLUMN status tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态，是否冻结';
+ALTER TABLE user_basic modify COLUMN password varchar(93) COMMENT '密码';
+
+ALTER TABLE user_profile ADD COLUMN area varchar(20) COMMENT '地区';
+ALTER TABLE user_profile ADD COLUMN company varchar(20) COMMENT '公司';
+ALTER TABLE user_profile ADD COLUMN career varchar(20) COMMENT '职业';
+
+
+
+CREATE TABLE `user_legalize_log` (
+  `legalize_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '认证申请ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `type` tinyint(1)  NOT NULL COMMENT '认证类型',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '申请状态',
+  `reject_reason` varchar(200) COMMENT '驳回原因',
+  `qualification_id` bigint(20) unsigned NOT NULL COMMENT '资质认证材料ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`legalize_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户认证申请记录';
+
+CREATE TABLE `user_qualification` (
+  `qualification_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '资质认证材料ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `name` varchar(20)  NOT NULL COMMENT '姓名',
+  `id_number` varchar(20) NULL COMMENT '身份证号',
+  `industry` varchar(200) NOT NULL COMMENT '行业',
+  `company` varchar(200)  NOT NULL COMMENT '公司',
+  `position` varchar(200)  NOT NULL COMMENT '职位',
+  `add_info` varchar(200) COMMENT '补充信息',
+  `id_card_front` varchar(200) COMMENT '身份证正面',
+  `id_card_back` varchar(200) COMMENT '身份证背面',
+  `id_card_handheld` varchar(200) COMMENT '手持身份证',
+  `qualification_img` varchar(200) COMMENT '证明资料',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`qualification_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户资质认证材料';
+###
+
+
 CREATE TABLE `user_basic` (
   `user_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+  `account` varchar(20) COMMENT '账号',
+  `email` varchar(20) COMMENT '邮箱',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态，是否冻结',
   `mobile` char(11) NOT NULL COMMENT '手机号',
-  `password` varchar(20) NULL COMMENT '密码',
+  `password` varchar(93) NULL COMMENT '密码',
   `user_name` varchar(32) NOT NULL COMMENT '昵称',
   `profile_photo` varchar(128) NULL COMMENT '头像',
   `last_login` datetime NULL COMMENT '最后登录时间',
@@ -33,6 +83,9 @@ CREATE TABLE `user_profile` (
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `register_media_time` datetime NULL COMMENT '注册自媒体时间',
+  `area` varchar(20) COMMENT '地区',
+  `company` varchar(20) COMMENT '公司',
+  `career` varchar(20) COMMENT '职业',
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户资料表';
 
@@ -118,10 +171,12 @@ CREATE TABLE `news_article_basic` (
   `cover` json NOT NULL COMMENT '封面',
   `is_advertising` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否投放广告，0-不投放，1-投放',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '贴文状态，0-草稿，1-待审核，2-审核通过，3-审核失败，4-已删除',
   `reviewer_id` int(11) NULL COMMENT '审核人员ID',
   `review_time` datetime NULL COMMENT '审核时间',
   `delete_time` datetime NULL COMMENT '删除时间',
+  `reject_reason` varchar(200) COMMENT '驳回原因';
   `comment_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '累计评论数',
   PRIMARY KEY (`article_id`),
   KEY `user_id` (`user_id`),
@@ -274,8 +329,70 @@ CREATE TABLE `mis_operation_log` (
   PRIMARY KEY (`operation_log_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运营日志';
 
+### 数据统计
+
+CREATE TABLE `statistics_basic` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `year` bigint(20) unsigned NOT NULL COMMENT '年',
+  `month` bigint(20) unsigned NOT NULL COMMENT '月',
+  `day` bigint(20) unsigned NOT NULL COMMENT '天',
+  `hour` bigint(20) unsigned NOT NULL COMMENT '时',
+  `type` bigint(20) unsigned NOT NULL COMMENT '统计类型',
+  `count` bigint(20) unsigned NOT NULL COMMENT '数量',
+  `date_time` datetime NOT NULL COMMENT '跟年月日时匹配的时间',
+  UNIQUE KEY `year_month_day_hour_type` (`year`, `month`, `day`, `hour`, `type`),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='基本统计';
+
+CREATE TABLE `statistics_search` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `year` bigint(20) unsigned NOT NULL COMMENT '年',
+  `month` bigint(20) unsigned NOT NULL COMMENT '月',
+  `day` bigint(20) unsigned NOT NULL COMMENT '天',
+  `hour` bigint(20) unsigned NOT NULL COMMENT '时',
+  `keyword` varchar(100)  NOT NULL COMMENT '搜索关键字',
+  `user_count` bigint(20) unsigned NOT NULL COMMENT '搜索用户数',
+  `count` bigint(20) unsigned NOT NULL COMMENT '搜索次数',
+  `date_time` datetime NOT NULL COMMENT '跟年月日时匹配的时间',
+  UNIQUE KEY `year_month_day_hour_keyword` (`year`, `month`, `day`, `hour`, `keyword`),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='搜索统计';
+
+CREATE TABLE `statistics_search_total` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `keyword` varchar(100)  NOT NULL COMMENT '搜索关键字',
+  `user_count` bigint(20) unsigned NOT NULL COMMENT '搜索用户数',
+  `count` bigint(20) unsigned NOT NULL COMMENT '搜索次数',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='搜索统计-总数';
+
+CREATE TABLE `statistics_sales_total` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `area` bigint(20) unsigned NOT NULL COMMENT '地区',
+  `money` bigint(20) unsigned NOT NULL COMMENT '金额(单位:分)',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='销售额统计-总数';
+
+CREATE TABLE `statistics_read_source_total` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `source` bigint(20) unsigned NOT NULL COMMENT '阅读来源',
+  `count` bigint(20) unsigned NOT NULL COMMENT '阅读数量',
+  `count_20_down` bigint(20) unsigned NOT NULL COMMENT '完成度在20%以下的数量',
+  `count_20_80` bigint(20) unsigned NOT NULL COMMENT '完成度在20%-80%的数量',
+  `count_80_up` bigint(20) unsigned NOT NULL COMMENT '完成度在80%以上的数量',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='阅读来源统计-总数';
 
 
+### 推荐系统
 
-
+CREATE TABLE `recommend_sensitive_word` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '敏感词ID',
+  `word` varchar(50)  NOT NULL COMMENT '敏感词',
+  `weights` bigint(20) unsigned NOT NULL COMMENT '权重',
+  `hold_count` bigint(20)  unsigned NOT NULL DEFAULT '0' COMMENT '拦截次数',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='敏感词';
 

@@ -46,7 +46,7 @@ class AdministratorListResource(Resource):
         args = json_parser.parse_args()
         administrator = MisAdministrator.query.filter_by(account=args.account).first()
         if administrator:
-            return {'message': '{} already exists'.format(args.account)}
+            return {'message': '{} already exists'.format(args.account)}, 403
 
         administrator = MisAdministrator(account=args.account,
                                          password=generate_password_hash(args.password),
