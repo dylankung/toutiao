@@ -49,6 +49,8 @@ class Article(db.Model):
         DELETED = 4  # 已删除
         BANNED = 5 # 封禁
 
+    STATUS_ENUM = [0, 1, 2, 3]
+
     id = db.Column('article_id', db.Integer, primary_key=True,  doc='文章ID')
     user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='用户ID')
     channel_id = db.Column(db.Integer, db.ForeignKey('news_channel.channel_id'), doc='频道ID')

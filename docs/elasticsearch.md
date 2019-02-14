@@ -27,6 +27,11 @@ curl -X PUT 172.17.0.135:9200/articles/_mapping/article -H 'Content-Type: applic
                     "store": "false",
                     "include_in_all": "false"
                 },
+                "user_id": {
+                  	"type": "long",
+                    "store": "false",
+                    "include_in_all": "false"
+                },
                 "title": {
                     "type": "text",
                     "store": "false",
@@ -165,5 +170,40 @@ curl 172.17.0.135:9200/articles/article/_search?pretty -d '
     }
 }
 '
+```
+
+
+
+```http
+curl 172.17.0.135:9200/articles/_count?pretty
+```
+
+
+
+```shell
+cd /usr/share/logstash/bin/
+./logstash -f /root/logstash_mysql_es_completion.conf
+```
+
+
+
+```http
+curl -X GET 172.17.0.135:9200/articles/article/_search?pretty -d '
+{
+	"_source": ["title", "user_id"],
+    "query":{
+        "bool": {
+            "must": [
+                {"match": {"_all": "python flask"}}
+            ],
+            "filter": [
+                {"term": {"user_id": {"value": 1}}}
+            ],
+            "must_not": [
+                {"term": {"status": {"value": 4}}}
+            ]
+        }
+    }
+}'
 ```
 
