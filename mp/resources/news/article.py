@@ -144,7 +144,9 @@ class ArticleListResource(ArticleResourceBase):
                                                                   constants.DEFAULT_ARTICLE_PER_PAGE_MAX,
                                                                   'per_page'),
                                 required=False, location='args')
-        req_parser.add_argument('response', )
+
+        # 定制返回值字段，供评论文章接口使用
+        req_parser.add_argument('response_type', required=False, location='args')
         args = req_parser.parse_args()
         page = 1 if args.page is None else args.page
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
@@ -155,8 +157,14 @@ class ArticleListResource(ArticleResourceBase):
             return {'message': 'Invalid pubdate param.'}, 400
 
         total_count_query = db.session.query(func.count(Article.id)).filter(Article.user_id == g.user_id)
-        article_query = Article.query.options(load_only(Article.id, Article.title, Article.status, Article.cover, Article.ctime)) \
-            .filter(Article.user_id == g.user_id)
+        if args['response_type'] == 'comment':
+            article_query = Article.query.join(Article.statistic).options(
+                load_only(Article.id, Article.title, Article.allow_comment, Article.comment_count),
+                contains_eager(Article.statistic).load_only(ArticleStatistic.fans_comment_count)
+            ).filter(Article.user_id == g.user_id)
+        else:
+            article_query = Article.query.options(load_only(Article.id, Article.title, Article.status, Article.cover,
+                                                            Article.ctime)).filter(Article.user_id == g.user_id)
 
         status = args['status']
         if status:
@@ -185,14 +193,24 @@ class ArticleListResource(ArticleResourceBase):
         if total_count > 0 and total_count > (page-1)*per_page:
             articles = article_query.order_by(Article.id.desc()).offset((page-1)*per_page).limit(per_page).all()
 
-            for article in articles:
-                results.append({
-                    'id': article.id,
-                    'title': article.title,
-                    'status': article.status,
-                    'cover': article.cover,
-                    'pubdate': article.ctime.strftime('%Y-%m-%d %H:%M:%S')
-                })
+            if args['response_type'] == 'comment':
+                for article in articles:
+                    results.append({
+                        'id': article.id,
+                        'title': article.title,
+                        'comment_status': article.allow_comment,
+                        'total_comment_count': article.comment_count,
+                        'fans_comment_count': article.statistic.fans_comment_count
+                    })
+            else:
+                for article in articles:
+                    results.append({
+                        'id': article.id,
+                        'title': article.title,
+                        'status': article.status,
+                        'cover': article.cover,
+                        'pubdate': article.ctime.strftime('%Y-%m-%d %H:%M:%S')
+                    })
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
