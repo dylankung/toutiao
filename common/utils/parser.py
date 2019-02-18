@@ -9,6 +9,18 @@ from cache import article as cache_article
 from cache import user as cache_user
 
 
+def email(email_str):
+    """
+    检验邮箱格式
+    :param email_str: str 被检验字符串
+    :return: email_str
+    """
+    if re.match(r'^([A-Za-z0-9_\-\.\u4e00-\u9fa5])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,8})$', email_str):
+        return email_str
+    else:
+        raise ValueError('{} is not a valid email'.format(email_str))
+
+
 def mobile(mobile_str):
     """
     检验手机号格式
@@ -142,6 +154,20 @@ def date(value):
         return _date
 
 
+def date_time(value):
+    """
+    检查是否是合法日期时间
+    :param value: 被检验的值
+    :return: _date_time
+    """
+    try:
+        _date_time = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        raise ValueError('Invalid date param.')
+    else:
+        return _date_time
+
+
 def image_base64(value):
     """
     检查是否是base64图片文件
@@ -184,3 +210,87 @@ def id_number(value):
         return value.upper()
     else:
         raise ValueError('Invalid id number.')
+
+
+def mis_account(account):
+    """
+    检验mis账号格式 规则: 字母、数字、下划线组成，字母开头，4-16位
+    :param account: str 被检验字符串
+    :return: account
+    """
+    if re.match(r'^[a-zA-z]\w{3,15}$', account):
+        return account
+    else:
+        raise ValueError('{} is not a valid account'.format(account))
+
+
+def mis_password(password):
+    """
+    检验mis密码格式 规则: 至少八个字符，至少一个字母和一个数字
+    :param password: str 被检验字符串
+    :return: password
+    """
+    if re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$', password):
+        return password
+    else:
+        raise ValueError('{} is not a valid password'.format(password))
+
+
+def mis_group_id(value):
+    """
+    检查是否是group_id
+    :param value: 被检验的值
+    :return: group_id
+    """
+    try:
+        _group_id = int(value)
+    except Exception:
+        raise ValueError('Invalid target group id.')
+    else:
+        if _group_id <= 0:
+            raise ValueError('Invalid target group id.')
+        else:
+            from models.system import MisAdministratorGroup
+            ret = MisAdministratorGroup.query.filter_by(id=_group_id).first()
+            if ret:
+                return _group_id
+            else:
+                raise ValueError('Invalid target group id.')
+
+
+def mis_permission_id(value):
+    """
+    检查是否是permission_id
+    :param value: 被检验的值
+    :return: permission_id
+    """
+    try:
+        permission_id = int(value)
+    except Exception:
+        raise ValueError('Invalid target group id.')
+    else:
+        if permission_id < 0:
+            raise ValueError('Invalid target group id.')
+        else:
+            from models.system import MisPermission
+            ret = MisPermission.query.filter_by(id=permission_id).first()
+            if ret:
+                return permission_id
+            else:
+                raise ValueError('Invalid target group id.')
+
+
+def statistics_type(value):
+    from models.statistics import StatisticsType
+    if value in StatisticsType.type_map:
+        return value
+    else:
+        raise ValueError('Invalid statistics type.')
+
+
+def statistics_size(value):
+    if value in ['day', 'hour', 'month']:
+        return value
+    else:
+        raise ValueError('Invalid statistics size. Choice in ("day", "hour")')
+

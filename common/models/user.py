@@ -3,11 +3,62 @@ from datetime import datetime
 from . import db
 
 
+class LegalizeLog(db.Model):
+    """
+    用户认证申请记录
+    """
+    __tablename__ = 'user_legalize_log'
+    class TYPE:
+        REAL_NAME = 1  # 实名认证
+        QUALIFICATION = 2  # 资质认证
+
+    class STATUS:
+        PROCESSING = 1  # 处理中
+        APPROVED = 2 # 通过审核
+        REJECT = 3 # 驳回
+
+    id = db.Column('legalize_id', db.Integer, primary_key=True, doc='认证申请ID')
+    user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='用户ID')
+    user = db.relationship('User', uselist=False)
+    type = db.Column(db.Integer, doc='认证类型')
+    status = db.Column(db.Integer, doc='申请状态')
+    reject_reason = db.Column(db.String, doc='驳回原因')
+    qualification_id = db.Column(db.Integer, db.ForeignKey('user_qualification.qualification_id'), doc='资质认证材料ID')
+    qualification = db.relationship('Qualification', uselist=False)
+    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, doc='更新时间')
+
+
+class Qualification(db.Model):
+    """
+    用户资质认证材料
+    """
+    __tablename__ = 'user_qualification'
+
+    id = db.Column('qualification_id', db.Integer, primary_key=True, doc='资质认证材料ID')
+    user_id = db.Column(db.Integer, doc='用户ID')
+    name = db.Column(db.String, doc='姓名')
+    id_number = db.Column(db.String, doc='身份证号')
+    industry = db.Column(db.String, doc='行业')
+    company = db.Column(db.String, doc='公司')
+    position = db.Column(db.String, doc='职位')
+    add_info = db.Column(db.String, doc='补充信息')
+    id_card_front = db.Column(db.String, doc='身份证正面')
+    id_card_back = db.Column(db.String, doc='身份证背面')
+    id_card_handheld = db.Column(db.String, doc='手持身份证')
+    qualification_img = db.Column(db.String, doc='证明资料')
+    ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, doc='更新时间')
+
+
 class User(db.Model):
     """
     用户基本信息
     """
     __tablename__ = 'user_basic'
+    class STATUS:
+        ENABLE = 1
+        DISABLE = 0
 
     id = db.Column('user_id', db.Integer, primary_key=True, doc='用户ID')
     mobile = db.Column(db.String, doc='手机号')
@@ -24,6 +75,10 @@ class User(db.Model):
     fans_count = db.Column(db.Integer, default=0, doc='被关注的人数（粉丝数）')
     like_count = db.Column(db.Integer, default=0, doc='累计点赞人数')
     read_count = db.Column(db.Integer, default=0, doc='累计阅读人数')
+
+    account = db.Column(db.String, doc='账号')
+    email = db.Column(db.String, doc='邮箱')
+    status = db.Column(db.Integer, doc='状态，是否冻结')
 
 
 class UserProfile(db.Model):
@@ -47,6 +102,11 @@ class UserProfile(db.Model):
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
     register_media_time = db.Column(db.DateTime, doc='注册自媒体时间')
+
+    area = db.Column(db.String, doc='地区')
+    company = db.Column(db.String, doc='公司')
+    career = db.Column(db.String, doc='职业')
+
 
 
 class Relation(db.Model):
@@ -109,7 +169,7 @@ class Material(db.Model):
     reviewer_id = db.Column(db.Integer, doc='审核人员ID')
     review_time = db.Column(db.DateTime, doc='审核时间')
     is_collected = db.Column(db.Boolean, default=False, doc='是否收藏')
-    uime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 
 
 
