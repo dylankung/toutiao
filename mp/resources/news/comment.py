@@ -151,6 +151,9 @@ class CommentResource(Resource):
         """
         删除评论
         """
+
+        # TODO 缓存处理
+
         comment = Comment.query.options(load_only(Comment.user_id), joinedload(Comment.article, innerjoin=True)
                                         .load_only(Article.user_id)).filter_by(id=target).first()
 
@@ -172,6 +175,9 @@ class CommentStickyResource(Resource):
         """
         评论置顶
         """
+
+        # TODO 缓存处理
+
         req_parser = RequestParser()
         req_parser.add_argument('sticky', type=inputs.boolean, required=True, location='json')
         args = req_parser.parse_args()
