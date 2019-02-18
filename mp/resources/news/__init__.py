@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from . import material, channel, article, search
+from . import material, channel, article, search, comment
 from utils.output import output_json
 
 news_bp = Blueprint('news', __name__)
@@ -26,3 +26,6 @@ news_api.add_resource(article.ArticleResource, '/v1_0/articles/<int(min=1):targe
 
 news_api.add_resource(search.SearchResource, '/v1_0/search',
                       endpoint='Search')
+
+news_api.add_resource(comment.CommentStatusResource, '/v1_0/comments/status',
+                      endpoint='CommentsStatus')
