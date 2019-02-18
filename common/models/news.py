@@ -176,7 +176,7 @@ class Comment(db.Model):
 
     id = db.Column('comment_id', db.Integer, primary_key=True, doc='评论ID')
     user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='用户ID')
-    article_id = db.Column(db.Integer, doc='文章ID')
+    article_id = db.Column(db.Integer, db.ForeignKey('news_article_basic.article_id'), doc='文章ID')
     parent_id = db.Column(db.Integer, doc='被评论的评论id')
     like_count = db.Column(db.Integer, default=0, doc='点赞数')
     reply_count = db.Column(db.Integer, default=0, doc='回复数')
@@ -186,6 +186,7 @@ class Comment(db.Model):
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
 
     user = db.relationship('User', uselist=False)
+    article = db.relationship('Article', uselist=False)
 
 
 class CommentLiking(db.Model):

@@ -29,3 +29,18 @@ news_api.add_resource(search.SearchResource, '/v1_0/search',
 
 news_api.add_resource(comment.CommentStatusResource, '/v1_0/comments/status',
                       endpoint='CommentsStatus')
+
+news_api.add_resource(comment.CommentListResource, '/v1_0/comments',
+                      endpoint='Comments')
+
+news_api.add_resource(comment.CommentResource, '/v1_0/comments/<int(min=1):target>',
+                      endpoint='Comment')
+
+news_api.add_resource(comment.CommentStickyResource, '/v1_0/comments/<int(min=1):target>/sticky',
+                      endpoint='StickComment')
+
+news_api.add_resource(comment.CommentLikingListResource, '/v1_0/comment/likings',
+                      endpoint='CommentLikings')
+
+news_api.add_resource(comment.CommentLikingResource, '/v1_0/comment/likings/<int(min=1):target>',
+                      endpoint='CommentLiking')
