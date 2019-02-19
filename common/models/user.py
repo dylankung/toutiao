@@ -113,6 +113,8 @@ class UserProfile(db.Model):
     company = db.Column(db.String, doc='公司')
     career = db.Column(db.String, doc='职业')
 
+    followings = db.relationship('Relation', foreign_keys='Relation.user_id')
+
 
 class Relation(db.Model):
     """
@@ -126,7 +128,7 @@ class Relation(db.Model):
         BLACKLIST = 2
 
     id = db.Column('relation_id', db.Integer, primary_key=True, doc='主键ID')
-    user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='用户ID')
+    user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), db.ForeignKey('user_profile.user_id'), doc='用户ID')
     target_user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='目标用户ID')
     relation = db.Column(db.Integer, doc='关系')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
