@@ -30,3 +30,15 @@ class FollowerGenderStatisticResource(Resource):
                 female = count
 
         return {'male': male, 'female': female}
+
+
+class FollowerAgeStatisticResource(Resource):
+    """
+    粉丝年龄统计
+    """
+    method_decorators = [verify_required]
+
+    def get(self):
+
+        # ret = db.session.query(UserProfile.)
+        pass
