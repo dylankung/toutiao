@@ -158,10 +158,19 @@ class ArticleListResource(ArticleResourceBase):
 
         total_count_query = db.session.query(func.count(Article.id)).filter(Article.user_id == g.user_id)
         if args['response_type'] == 'comment':
+            # 用于获取评论文章数据
             article_query = Article.query.join(Article.statistic).options(
                 load_only(Article.id, Article.title, Article.allow_comment, Article.comment_count),
                 contains_eager(Article.statistic).load_only(ArticleStatistic.fans_comment_count)
             ).filter(Article.user_id == g.user_id)
+
+        elif args['response_type'] == 'statistic':
+            # 用于获取统计文章数据
+            article_query = Article.query.join(Article.statistic).options(
+                load_only(Article.id, Article.title, Article.comment_count),
+                contains_eager(Article.statistic)
+            ).filter(Article.user_id == g.user_id)
+
         else:
             article_query = Article.query.options(load_only(Article.id, Article.title, Article.status, Article.cover,
                                                             Article.ctime)).filter(Article.user_id == g.user_id)
@@ -201,6 +210,17 @@ class ArticleListResource(ArticleResourceBase):
                         'comment_status': article.allow_comment,
                         'total_comment_count': article.comment_count,
                         'fans_comment_count': article.statistic.fans_comment_count
+                    })
+            elif args['response_type'] == 'statistic':
+                for article in articles:
+                    results.append({
+                        'id': article.id,
+                        'title': article.title,
+                        'comment_count': article.comment_count,
+                        'read_count': article.statistic.read_count,
+                        'like_count': article.statistic.like_count,
+                        'repost_count': article.statistic.repost_count,
+                        'collect_count': article.statistic.collect_count
                     })
             else:
                 for article in articles:
