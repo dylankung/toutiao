@@ -8,6 +8,7 @@ class LegalizeLog(db.Model):
     用户认证申请记录
     """
     __tablename__ = 'user_legalize_log'
+
     class TYPE:
         REAL_NAME = 1  # 实名认证
         QUALIFICATION = 2  # 资质认证
@@ -56,6 +57,7 @@ class User(db.Model):
     用户基本信息
     """
     __tablename__ = 'user_basic'
+
     class STATUS:
         ENABLE = 1
         DISABLE = 0
@@ -79,6 +81,10 @@ class User(db.Model):
     account = db.Column(db.String, doc='账号')
     email = db.Column(db.String, doc='邮箱')
     status = db.Column(db.Integer, doc='状态，是否冻结')
+
+    # 两种方法都可以
+    # followings = db.relationship('Relation', primaryjoin='User.id==Relation.user_id')
+    followings = db.relationship('Relation', foreign_keys='Relation.user_id')
 
 
 class UserProfile(db.Model):
@@ -107,6 +113,7 @@ class UserProfile(db.Model):
     company = db.Column(db.String, doc='公司')
     career = db.Column(db.String, doc='职业')
 
+    followings = db.relationship('Relation', foreign_keys='Relation.user_id')
 
 
 class Relation(db.Model):
@@ -121,8 +128,8 @@ class Relation(db.Model):
         BLACKLIST = 2
 
     id = db.Column('relation_id', db.Integer, primary_key=True, doc='主键ID')
-    user_id = db.Column(db.Integer, doc='用户ID')
-    target_user_id = db.Column(db.Integer, doc='目标用户ID')
+    user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), db.ForeignKey('user_profile.user_id'), doc='用户ID')
+    target_user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='目标用户ID')
     relation = db.Column(db.Integer, doc='关系')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')

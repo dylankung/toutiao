@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from . import passport, profile
+from . import passport, profile, follower
 from utils.output import output_json
 
 user_bp = Blueprint('user', __name__)
@@ -23,3 +23,7 @@ user_api.add_resource(profile.ProfileResource, '/v1_0/user/profile',
 
 user_api.add_resource(profile.PhotoResource, '/v1_0/user/photo',
                       endpoint='UserPhoto')
+
+user_api.add_resource(follower.FollowerListResource, '/v1_0/followers',
+                      endpoint='Followers')
+
