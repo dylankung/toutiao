@@ -47,7 +47,7 @@ class Article(db.Model):
         APPROVED = 2  # 审核通过
         FAILED = 3  # 审核失败
         DELETED = 4  # 已删除
-        BANNED = 5 # 封禁
+        BANNED = 5  # 封禁
 
     STATUS_ENUM = [0, 1, 2, 3]
 
