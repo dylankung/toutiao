@@ -176,8 +176,9 @@ CREATE TABLE `news_article_basic` (
   `reviewer_id` int(11) NULL COMMENT '审核人员ID',
   `review_time` datetime NULL COMMENT '审核时间',
   `delete_time` datetime NULL COMMENT '删除时间',
-  `reject_reason` varchar(200) COMMENT '驳回原因';
+  `reject_reason` varchar(200) COMMENT '驳回原因',
   `comment_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '累计评论数',
+  `allow_comment` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否允许评论，0-不允许，1-允许',
   PRIMARY KEY (`article_id`),
   KEY `user_id` (`user_id`),
   KEY `article_status` (`status`)
@@ -196,6 +197,7 @@ CREATE TABLE `news_article_statistic` (
   `dislike_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '不喜欢数',
   `repost_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '转发数',
   `collect_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '收藏数',
+  `fans_comment_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '粉丝评论数',
   PRIMARY KEY (`article_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='文章统计表';
 

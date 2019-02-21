@@ -47,7 +47,7 @@ class Article(db.Model):
         APPROVED = 2  # 审核通过
         FAILED = 3  # 审核失败
         DELETED = 4  # 已删除
-        BANNED = 5 # 封禁
+        BANNED = 5  # 封禁
 
     STATUS_ENUM = [0, 1, 2, 3]
 
@@ -63,6 +63,7 @@ class Article(db.Model):
     review_time = db.Column(db.DateTime, doc='审核时间')
     delete_time = db.Column(db.DateTime, doc='删除时间')
     comment_count = db.Column(db.Integer, default=0, doc='评论数')
+    allow_comment = db.Column(db.Boolean, default=True, doc='是否允许评论')
     reject_reason = db.Column(db.String, doc='驳回原因')
     utime = db.Column('update_time', db.DateTime, default=datetime.now, doc='更新时间')
 
@@ -94,6 +95,7 @@ class ArticleStatistic(db.Model):
     dislike_count = db.Column(db.Integer, default=0, doc='不喜欢数')
     repost_count = db.Column(db.Integer, default=0, doc='转发数')
     collect_count = db.Column(db.Integer, default=0, doc='收藏数')
+    fans_comment_count = db.Column(db.Integer, default=0, doc='粉丝评论数')
 
 
 class Collection(db.Model):
@@ -174,7 +176,7 @@ class Comment(db.Model):
 
     id = db.Column('comment_id', db.Integer, primary_key=True, doc='评论ID')
     user_id = db.Column(db.Integer, db.ForeignKey('user_basic.user_id'), doc='用户ID')
-    article_id = db.Column(db.Integer, doc='文章ID')
+    article_id = db.Column(db.Integer, db.ForeignKey('news_article_basic.article_id'), doc='文章ID')
     parent_id = db.Column(db.Integer, doc='被评论的评论id')
     like_count = db.Column(db.Integer, default=0, doc='点赞数')
     reply_count = db.Column(db.Integer, default=0, doc='回复数')
@@ -184,6 +186,7 @@ class Comment(db.Model):
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
 
     user = db.relationship('User', uselist=False)
+    article = db.relationship('Article', uselist=False)
 
 
 class CommentLiking(db.Model):

@@ -38,6 +38,11 @@ class CommentListResource(Resource):
         if not content:
             return {'message': 'Empty content.'}, 400
 
+        # TODO 缓存中增加是否允许评论
+        article = Article.query.options(Article.allow_comment).filter_by(id=article_id).get()
+        if not article.allow_comment:
+            return {'message': 'Article denied comment.'}, 403
+
         if not article_id:
             # 对文章评论
             article_id = target

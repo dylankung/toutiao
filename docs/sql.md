@@ -25,6 +25,12 @@ alter table user_profile add `id_card_back` varchar(128) NULL COMMENT '身份证
 alter table user_profile add `id_card_handheld` varchar(128) NULL COMMENT '手持身份证';
 
 alter table user_basic add `is_verified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否实名认证，0-不是，1-是';
+
+
+alter table news_article_statistic add `fans_comment_count` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '粉丝评论数';
+
+alter table news_article_basic add `allow_comment` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否允许评论，0-不允许，1-允许';
+
 ```
 
 db.session.commit 与 update_cache 的重叠。。

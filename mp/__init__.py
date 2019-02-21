@@ -81,5 +81,9 @@ def create_app(config, enable_config_file=False):
     from .resources.news import news_bp
     app.register_blueprint(news_bp)
 
+    # 注册统计模块
+    from .resources.statistic import statistic_bp
+    app.register_blueprint(statistic_bp)
+
     return app
 
