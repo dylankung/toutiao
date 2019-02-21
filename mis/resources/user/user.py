@@ -56,7 +56,8 @@ class UserListResource(Resource):
         args_parser.add_argument('keyword', location='args')
         args_parser.add_argument('begin', type=parser.date_time, location='args')
         args_parser.add_argument('end', type=parser.date_time, location='args')
-        args_parser.add_argument('status', location='args')
+        args_parser.add_argument('status', type=inputs.int_range(0, 1), location='args')
+        args_parser.add_argument('order_by', location='args')
 
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
@@ -64,13 +65,24 @@ class UserListResource(Resource):
 
         users = User.query
         if args.keyword:
-            users = users.filter(User.mobile.like('%' + args.keyword + '%'))
+            users = users.filter(or_(User.mobile.like('%' + args.keyword + '%'),
+                                     User.account.like('%' + args.keyword + '%'))
+                                 )
+        if args.status is not None:
+            users = users.filter(User.status == args.status)
         if args.begin and args.end and args.end > args.begin:
             users = users.filter(User.last_login.between(args.begin, args.end))
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                users = users.order_by(User.id.asc())
+            else:
+                users = users.order_by(User.last_login.desc())
+        else:
+            users = users.order_by(User.last_login.asc())
         total_count = users.count()
-        logs = users.order_by(User.last_login.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
-        ret = marshal(logs, UserListResource.user_fields, envelope='users')
+        users = users.offset(per_page * (page - 1)).limit(per_page).all()
+
+        ret = marshal(users, UserListResource.user_fields, envelope='users')
         ret['total_count'] = total_count
 
         return ret

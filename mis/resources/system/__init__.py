@@ -17,6 +17,10 @@ system_api.add_resource(passport.CaptchaResource, '/v1_0/captchas/<string:accoun
 system_api.add_resource(passport.AuthorizationResource, '/v1_0/authorizations',
                       endpoint='Authorization')
 
+# 密码
+system_api.add_resource(passport.PasswordResource, '/v1_0/password',
+                      endpoint='Password')
+
 # 管理员(增加，查询，批量删除)
 system_api.add_resource(administrator.AdministratorListResource, '/v1_0/administrators',
                       endpoint='AdministratorList')
@@ -44,3 +48,7 @@ system_api.add_resource(permission.PermissionResource, '/v1_0/permissions/<int(m
 # 运营日志
 system_api.add_resource(operationlog.OperationLogListResource, '/v1_0/operationlogs',
                       endpoint='OperationLogList')
+
+# 初始化mis系统
+system_api.add_resource(administrator.AdministratorInitResource, '/v1_0/administrators/init',
+                        endpoint='AdministratorInit')

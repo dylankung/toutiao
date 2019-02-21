@@ -80,3 +80,5 @@ class MisDefaultConfig(DefaultConfig):
     GEETEST_KEY = 'da108e040c540f52233bf47e0e07baa8'
     SECRET_KEY = 'iM9F3lK8N6MYqkfsG4BSjVY55VxHyP'
     # SQLALCHEMY_DATABASE_URI = 'mysql://toutiao:Toutiao123456@127.0.0.1/toutiao'  # 数据库
+    DEBUG = True
+    IS_INIT = True

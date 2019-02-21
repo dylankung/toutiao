@@ -147,6 +147,8 @@ def date(value):
     :return: date
     """
     try:
+        if not value:
+            return None
         _date = datetime.strptime(value, '%Y-%m-%d')
     except Exception:
         raise ValueError('Invalid date param.')
@@ -161,6 +163,8 @@ def date_time(value):
     :return: _date_time
     """
     try:
+        if not value:
+            return None
         _date_time = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
     except Exception:
         raise ValueError('Invalid date param.')
@@ -271,6 +275,8 @@ def mis_permission_id(value):
     else:
         if permission_id < 0:
             raise ValueError('Invalid target group id.')
+        elif permission_id == 0:
+            return permission_id
         else:
             from models.system import MisPermission
             ret = MisPermission.query.filter_by(id=permission_id).first()

@@ -41,6 +41,7 @@ class ChannelListResource(Resource):
         args_parser.add_argument('channel_id', location='args')
         args_parser.add_argument('keyword', location='args')
         args_parser.add_argument('is_visible', location='args')
+        args_parser.add_argument('order_by', location='args')
 
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
@@ -53,10 +54,15 @@ class ChannelListResource(Resource):
             channels = channels.filter_by(is_visible=args.is_visible)
         if args.keyword is not None:
             channels = channels.filter(Channel.name.like('%' + args.keyword + '%'))
-            
+
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                channels = channels.order_by(Channel.id.asc())
+        else:
+            channels = channels.order_by(Channel.utime.desc())
         total_count = channels.count()
-        channels = channels.order_by(Channel.utime.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
+        channels = channels.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(channels, ChannelListResource.channel_fields, envelope='channels')
         for channel in ret['channels']:
             channel['article_count'] = Article.query.filter_by(channel_id=channel['channel_id']).count()

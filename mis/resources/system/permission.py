@@ -42,6 +42,7 @@ class PermissionListResource(Resource):
                                                                    'per_page'),
                                  required=False, location='args')
         args_parser.add_argument('keyword', location='args')
+        args_parser.add_argument('order_by', location='args')
         args_parser.add_argument('parent_id', type=parser.mis_permission_id, required=False, location='args')
         args_parser.add_argument('type', type=inputs.int_range(0, 1), location='args')
         args = args_parser.parse_args()
@@ -56,9 +57,16 @@ class PermissionListResource(Resource):
         if args.keyword:
             permissions = permissions.filter(or_(MisPermission.name.like('%' + args.keyword + '%'),
                                                  MisPermission.code.like('%' + args.keyword + '%')))
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                permissions = permissions.order_by(MisPermission.id.asc())
+            else:
+                permissions = permissions.order_by(MisPermission.sequence.asc())
+        else:
+            permissions = permissions.order_by(MisPermission.sequence.asc())
         total_count = permissions.count()
-        permissions = permissions.order_by(MisPermission.sequence.asc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
+        permissions = permissions.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(permissions, PermissionListResource.permission_fields, envelope='permissions')
         ret['total_count'] = total_count
         return ret
@@ -78,7 +86,7 @@ class PermissionListResource(Resource):
             return {'message': '{} already exists'.format(args.name)}
 
         parent_id = args.parent_id if args.parent_id else 0
-        if parent_id and not MisPermission.query.filter_by(id=parent_id).first():
+        if parent_id and not MisPermission.query.filter_by(id=parent_id, type=MisPermission.TYPE.MENU).first():
             return {'message': 'Parent({}) permission does not exist'.format(args.parent_id)}
 
         permission = MisPermission(name=args.name,

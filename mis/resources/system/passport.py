@@ -1,5 +1,5 @@
 from flask_restful import Resource, original_flask_make_response
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from flask_limiter.util import get_remote_address
 from flask import request, current_app, g, session, make_response
 from flask_restful.reqparse import RequestParser
@@ -136,5 +136,31 @@ class AuthorizationResource(Resource):
             return {'message': 'Wrong refresh token.'}, 403
 
 
+class PasswordResource(Resource):
+    """
+    密码
+    """
+    method_decorators = {
+        'put': [mis_login_required],
+    }
 
+    def put(self):
+        """
+        修改密码
+        :return:
+        """
+        json_parser = RequestParser()
+        json_parser.add_argument('old_password', type=parser.mis_password, required=True, location='json')
+        json_parser.add_argument('password', type=parser.mis_password, required=True, location='json')
+
+        args = json_parser.parse_args()
+        administrator = MisAdministrator.query.get(g.administrator_id)
+
+        if not check_password_hash(administrator.password, args.old_password):
+            return {'message': 'Old password wrong.'}, 403
+
+        administrator.password = generate_password_hash(args.password)
+        db.session.add(administrator)
+        db.session.commit()
+        return {'message': 'ok'}, 201
 

@@ -40,6 +40,7 @@ class GroupListResource(Resource):
                                                                  'per_page'),
                                required=False, location='args')
         args_parser.add_argument('keyword', location='args')
+        args_parser.add_argument('order_by', location='args')
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
         per_page = constants.DEFAULT_PER_PAGE if args.per_page is None else args.per_page
@@ -47,9 +48,14 @@ class GroupListResource(Resource):
         groups = MisAdministratorGroup.query
         if args.keyword:
             groups = groups.filter(MisAdministratorGroup.name.like('%' + args.keyword + '%'))
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                groups = groups.order_by(MisAdministratorGroup.id.asc())
+        else:
+            groups = groups.order_by(MisAdministratorGroup.utime.desc())
         total_count = groups.count()
-        groups = groups.order_by(MisAdministratorGroup.utime.desc())\
-                .offset(per_page * (page - 1)).limit(per_page).all()
+        groups = groups.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(groups, GroupListResource.group_fields, envelope='groups')
         ret['total_count'] = total_count
         return ret
@@ -61,13 +67,16 @@ class GroupListResource(Resource):
         json_parser = RequestParser()
         json_parser.add_argument('name', required=True, location='json')
         json_parser.add_argument('remark', location='json')
+        json_parser.add_argument('status', type=inputs.int_range(0, 1), location='json')
         json_parser.add_argument('permission_ids', action='append', type=inputs.positive,
                                  location='json')
         args = json_parser.parse_args()
         if MisAdministratorGroup.query.filter_by(name=args.name).first():
             return {'message': 'Group {} already exists.'.format(args.name)}, 403
         group = MisAdministratorGroup(name=args.name,
-                                      remark=args.remark if args.remark else '')
+                                      remark=args.remark if args.remark else '',
+                                      status=args.status if args.status is not None else 1)
+
         try:
             db.session.add(group)
             db.session.commit()
