@@ -51,6 +51,7 @@ class LegalizeListResource(Resource):
                                                                    'per_page'),
                                  required=False, location='args')
         args_parser.add_argument('status', type=inputs.positive, location='args')
+        args_parser.add_argument('order_by', location='args')
 
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
@@ -59,10 +60,17 @@ class LegalizeListResource(Resource):
         legalizes = LegalizeLog.query
         if args.status is not None:
             legalizes = legalizes.filter_by(status=args.status)
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                legalizes = legalizes.order_by(LegalizeLog.id.asc())
+            else:
+                legalizes = legalizes.order_by(LegalizeLog.utime.desc())
+        else:
+            legalizes = legalizes.order_by(LegalizeLog.utime.desc())
         total_count = legalizes.count()
-        logs = legalizes.order_by(LegalizeLog.utime.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
-        ret = marshal(logs, LegalizeListResource.legalize_fields, envelope='legalizes')
+        legalizes = legalizes.offset(per_page * (page - 1)).limit(per_page).all()
+
+        ret = marshal(legalizes, LegalizeListResource.legalize_fields, envelope='legalizes')
         ret['total_count'] = total_count
 
         return ret

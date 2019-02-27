@@ -47,6 +47,7 @@ class ArticleListResource(Resource):
         args_parser.add_argument('status_list', location='args')
         args_parser.add_argument('begin', type=parser.date_time, location='args')
         args_parser.add_argument('end', type=parser.date_time, location='args')
+        args_parser.add_argument('order_by', location='args')
 
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
@@ -56,7 +57,7 @@ class ArticleListResource(Resource):
         if args.title is not None:
             articles = articles.filter(Article.title.like('%' + args.title + '%'))
         if args.channel is not None:
-            channels = Channel.query.filter(Channel.name.like('%s' + args.channel + '%')).all()
+            channels = Channel.query.filter(Channel.name.like('%' + args.channel + '%')).all()
             channel_ids = [i.id for i in channels]
             articles = articles.filter(Article.channel_id.in_(channel_ids))
 
@@ -70,9 +71,14 @@ class ArticleListResource(Resource):
         if args.begin and args.end and args.end >= args.begin:
             articles = articles.filter(Article.ctime.between(args.begin, args.end))
 
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                articles = articles.order_by(Article.id.asc())
+        else:
+            articles = articles.order_by(Article.ctime.desc())
         total_count = articles.count()
-        articles = articles.order_by(Article.ctime.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
+        articles = articles.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(articles, ArticleListResource.article_fields, envelope='articles')
         ret['total_count'] = total_count
 
@@ -90,7 +96,6 @@ class ArticleListResource(Resource):
                                  required=True, location='json')
         args = json_parser.parse_args()
         articles = Article.query.filter(Article.id.in_(args.article_ids)).all()
-
         for article in articles:
             if args.status == Article.STATUS.BANNED:
                 # 封禁

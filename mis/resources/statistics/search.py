@@ -10,6 +10,7 @@ from . import constants
 from utils import parser
 from models import db
 from models.statistics import *
+from models.user import User
 from utils.decorators import mis_permission_required
 
 
@@ -133,11 +134,15 @@ class StatisticsSearchTotalResource(Resource):
     def get(self):
         # 搜索总用户数
         query = db.session.query(func.sum(StatisticsSearchTotal.user_count))
-        user_count = int(query.scalar() or 0)
+        search_user_count = int(query.scalar() or 0)
+
+        # 总用户数
+        query = User.query
+        user_count = int(query.count() or 0)
 
         # 搜索总数
         query = db.session.query(func.sum(StatisticsSearchTotal.count))
         count = int(query.scalar() or 0)
-        return {'user_count': user_count, 'count': count}
+        return {'search_user_count': search_user_count, 'count': count, 'user_count': user_count}
 
 

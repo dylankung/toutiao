@@ -64,7 +64,6 @@ class StatisticsBasicResource(Resource):
                 end = datetime(now.year + 1, month=1, day=1)
             else:
                 end = datetime(now.year, month=month + 1, day=1)
-            print(begin, end)
             query = db.session.query(func.sum(StatisticsBasic.count)) \
                 .filter(StatisticsBasic.type == statistics_type,
                         and_(StatisticsBasic.date_time >= begin,

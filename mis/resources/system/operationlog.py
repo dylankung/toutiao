@@ -46,6 +46,7 @@ class OperationLogListResource(Resource):
                                                                    'per_page'),
                                  required=False, location='args')
         args_parser.add_argument('keyword', location='args')
+        args_parser.add_argument('order_by', location='args')
         args_parser.add_argument('begin', type=parser.date_time, location='args')
         args_parser.add_argument('end', type=parser.date_time, location='args')
         args = args_parser.parse_args()
@@ -57,12 +58,15 @@ class OperationLogListResource(Resource):
             logs = logs.filter(MisOperationLog.operation.like('%' + args.keyword + '%'),
                                MisOperationLog.description.like('%' + args.keyword + '%'))
         if args.begin and args.end and args.end > args.begin:
-            return {'begin': args.begin.strftime('%Y-%m-%d %H:%M:%S'),
-                    'end': args.end.strftime('%Y-%m-%d %H:%M:%S')}
             logs = logs.filter(MisOperationLog.ctime.between(args.begin, args.end))
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                logs = logs.order_by(MisOperationLog.id.desc())
+        else:
+            logs = logs.order_by(MisOperationLog.ctime.desc())
         total_count = logs.count()
-        logs = logs.order_by(MisOperationLog.ctime.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
+        logs = logs.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(logs, OperationLogListResource.logs_fields, envelope='operationlogs')
         ret['total_count'] = total_count
         add_log('查询', '查询: 运营日志')

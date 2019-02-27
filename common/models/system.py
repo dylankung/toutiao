@@ -64,7 +64,7 @@ class MisPermission(db.Model):
     code = db.Column(db.String, doc='权限点代码')
     sequence = db.Column(db.Integer, default=0, doc='序列')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
-    uime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
+    utime = db.Column('update_time', db.DateTime, default=datetime.now, onupdate=datetime.now, doc='更新时间')
 
 
 class MisGroupPermission(db.Model):

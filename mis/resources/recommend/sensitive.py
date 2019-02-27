@@ -42,6 +42,7 @@ class SensitiveWordListResource(Resource):
                                                                    'per_page'),
                                  required=False, location='args')
         args_parser.add_argument('word', location='args')
+        args_parser.add_argument('order_by', location='args')
 
         args = args_parser.parse_args()
         page = constants.DEFAULT_PAGE if args.page is None else args.page
@@ -51,9 +52,14 @@ class SensitiveWordListResource(Resource):
 
         if args.word is not None:
             words = words.filter(SensitiveWord.word.like('%' + args.word + '%'))
+        if args.order_by is not None:
+            if args.order_by == 'id':
+                words = words.order_by(SensitiveWord.id.asc())
+        else:
+            words = words.order_by(SensitiveWord.utime.desc())
         total_count = words.count()
-        words = words.order_by(SensitiveWord.utime.desc()) \
-            .offset(per_page * (page - 1)).limit(per_page).all()
+        words = words.offset(per_page * (page - 1)).limit(per_page).all()
+
         ret = marshal(words, SensitiveWordListResource.word_fields, envelope='words')
         ret['total_count'] = total_count
 
