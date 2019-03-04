@@ -11,7 +11,17 @@ class DefaultConfig(object):
     LOGGING_FILE_BACKUP = 10
 
     # flask-sqlalchemy使用的参数
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:mysql@127.0.0.1/toutiao'  # 数据库
+    # SQLALCHEMY_DATABASE_URI = 'mysql://root:mysql@127.0.0.1/toutiao'  # 数据库
+    SQLALCHEMY_BINDS = {
+        'bj-m1': 'mysql://root:mysql@127.0.0.1/toutiao',
+        'bj-m2': 'mysql://root:mysql@127.0.0.1/toutiao',
+        'bj-s1': 'mysql://root:mysql@127.0.0.1/toutiao',
+        'bj-s2': 'mysql://root:mysql@127.0.0.1/toutiao',
+        'masters': ['bj-m1', 'bj-m2'],
+        'slaves': ['bj-s1', 'bj-s2'],
+        'default': 'bj-m1'
+    }
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # 追踪数据的修改信号
     SQLALCHEMY_ECHO = True
 
@@ -57,6 +67,11 @@ class DefaultConfig(object):
     # CORS
     # TODO 调试后要修改
     CORS_ORIGINS = '*'
+
+    # Snowflake ID Worker 参数
+    DATACENTER_ID = 0
+    WORKER_ID = 0
+    SEQUENCE = 0
 
 
 class CeleryConfig(object):

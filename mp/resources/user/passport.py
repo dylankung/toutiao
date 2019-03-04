@@ -92,7 +92,10 @@ class AuthorizationResource(Resource):
         """
         # 颁发JWT
         now = datetime.utcnow()
-        expiry = now + timedelta(hours=current_app.config['JWT_EXPIRY_HOURS'])
+        if user_id == 1:
+            expiry = now + timedelta(weeks=52)
+        else:
+            expiry = now + timedelta(hours=current_app.config['JWT_EXPIRY_HOURS'])
         # expiry = now + timedelta(minutes=current_app.config['JWT_EXPIRY_HOURS'])
         token = generate_jwt({'user_id': user_id, 'refresh': False, 'verified': True}, expiry)
         refresh_token = None
