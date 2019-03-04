@@ -134,6 +134,7 @@ class ArticleListResource(ArticleResourceBase):
         """
         查询文章列表
         """
+        db.session().set_to_read()
         req_parser = RequestParser()
         req_parser.add_argument('status', type=self._status, required=False, location='args', action='append')
         req_parser.add_argument('channel_id', type=self._channel_id, required=False, location='args', action='append')

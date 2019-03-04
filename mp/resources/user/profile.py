@@ -24,6 +24,7 @@ class ProfileResource(Resource):
         """
         获取用户资料
         """
+        db.session().set_to_read()
         user = User.query.options(load_only(User.id, User.name, User.mobile, User.profile_photo,
                                             User.introduction, User.email)).filter_by(id=g.user_id).first()
         return {
@@ -40,6 +41,7 @@ class ProfileResource(Resource):
         """
         编辑用户的信息
         """
+        db.session().set_to_write()
         json_parser = RequestParser()
         json_parser.add_argument('name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
         json_parser.add_argument('intro', type=inputs.regex(r'^.{1, 60}$'), required=False, location='json')
