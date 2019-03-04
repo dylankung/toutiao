@@ -50,16 +50,15 @@ def create_app(config, enable_config_file=False):
     app.redis_cli = create_redis_clients(app)
 
     # Elasticsearch
-    # app.es = Elasticsearch(
-    #     app.config['ES'],
-    #     # sniff before doing anything
-    #     sniff_on_start=True,
-    #     # refresh nodes after a node fails to respond
-    #     sniff_on_connection_fail=True,
-    #     # and also every 60 seconds
-    #     sniffer_timeout=60
-    # )
-    app.es = None
+    app.es = Elasticsearch(
+        app.config['ES'],
+        # sniff before doing anything
+        sniff_on_start=True,
+        # refresh nodes after a node fails to respond
+        sniff_on_connection_fail=True,
+        # and also every 60 seconds
+        sniffer_timeout=60
+    )
 
     # MySQL数据库连接初始化
     from models import db
