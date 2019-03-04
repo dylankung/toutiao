@@ -51,7 +51,7 @@ CREATE TABLE `user_basic` (
   `user_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `account` varchar(20) COMMENT '账号',
   `email` varchar(20) COMMENT '邮箱',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态，是否冻结',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态，是否可用，0-不可用，1-可用',
   `mobile` char(11) NOT NULL COMMENT '手机号',
   `password` varchar(93) NULL COMMENT '密码',
   `user_name` varchar(32) NOT NULL COMMENT '昵称',
