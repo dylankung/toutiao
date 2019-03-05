@@ -163,7 +163,7 @@ class ArticleListResource(ArticleResourceBase):
             article_query = Article.query.join(Article.statistic).options(
                 load_only(Article.id, Article.title, Article.allow_comment, Article.comment_count),
                 contains_eager(Article.statistic).load_only(ArticleStatistic.fans_comment_count)
-            ).filter(Article.user_id == g.user_id)
+            ).filter(Article.user_id == g.user_id, Article.status == Article.STATUS.APPROVED)
 
         elif args['response_type'] == 'statistic':
             # 用于获取统计文章数据
