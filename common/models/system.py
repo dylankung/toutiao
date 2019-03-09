@@ -60,7 +60,7 @@ class MisPermission(db.Model):
     id = db.Column('permission_id', db.Integer, primary_key=True, doc='权限ID')
     name = db.Column(db.Integer, doc='权限名称')
     type = db.Column(db.Integer, default=1, doc='权限类型')
-    parent_id = db.Column(db.Integer, doc='父权限的ID')
+    parent_id = db.Column(db.Integer, default=0, doc='父权限的ID')
     code = db.Column(db.String, doc='权限点代码')
     sequence = db.Column(db.Integer, default=0, doc='序列')
     ctime = db.Column('create_time', db.DateTime, default=datetime.now, doc='创建时间')
