@@ -50,7 +50,7 @@ class PermissionListResource(Resource):
         per_page = constants.DEFAULT_PER_PAGE if args.per_page is None else args.per_page
 
         permissions = MisPermission.query
-        if args.parent_id:
+        if args.parent_id >= 0:
             permissions = permissions.filter_by(parent_id=args.parent_id)
         if args.type is not None:
             permissions = permissions.filter_by(type=args.type)
