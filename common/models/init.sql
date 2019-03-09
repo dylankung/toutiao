@@ -302,10 +302,10 @@ CREATE TABLE `mis_administrator_group` (
 
 CREATE TABLE `mis_permission` (
   `permission_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '权限ID',
-  `name` varchar(20)  NOT NULL COMMENT '权限',
+  `name` varchar(50)  NOT NULL COMMENT '权限',
   `type` tinyint(1) NOT NULL DEFAULT '1' COMMENT '权限类型',
   `parent_id` bigint(20) NOT NULL DEFAULT '0' COMMENT '父权限的ID',
-  `code` varchar(30) COMMENT '权限点代码',
+  `code` varchar(50) COMMENT '权限点代码',
   `sequence` int(11) DEFAULT '0' COMMENT '序列',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
