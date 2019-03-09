@@ -197,185 +197,319 @@ class AdministratorInitResource(Resource):
     """
     def _get_init_permissions(self):
         permissions = [
+            # 菜单
             {
-                "name": "数据统计",
-                "code": "/data_statistics_manager",
-                'type': 0
+                'id': 1,
+                'name': '首页',
+                'code': '/home',
+                'type': 0,
+                'sequence': 1,
             },
             {
-                "name": "系统管理",
-                "code": "/system_manager",
-                'type': 0
+                'id': 2,
+                'name': '用户列表',
+                'code': '/home/user',
+                'type': 0,
+                'sequence': 2,
             },
             {
-                "name": "推荐系统",
-                "code": "/recommend_system_manager",
-                'type': 0
+                'id': 3,
+                'name': '用户审核',
+                'code': '/home/userAudit',
+                'type': 0,
+                'sequence': 3,
             },
             {
-                "name": "permission-list-get",
-                "code": "permission-list-get"
+                'id': 4,
+                'name': '频道管理',
+                'code': '/home/channels',
+                'type': 0,
+                'sequence': 4,
             },
             {
-                "name": "administrator-list-get",
-                "code": "administrator-list-get"
+                'id': 5,
+                'name': '内容管理',
+                'code': '/home/contents',
+                'type': 0,
+                'sequence': 5,
             },
             {
-                "name": "permission-get",
-                "code": "permission-get"
+                'id': 6,
+                'name': '内容审核',
+                'code': '/home/contentAudit',
+                'type': 0,
+                'sequence': 6,
             },
             {
-                "name": "group-list-get",
-                "code": "group-list-get"
+                'id': 7,
+                'name': '网站统计',
+                'code': '/home/websiteStatistics',
+                'type': 0,
+                'sequence': 7,
             },
             {
-                "name": "permission-list-post",
-                "code": "permission-list-post"
+                'id': 8,
+                'name': '内容统计',
+                'code': '/home/contentStatistics',
+                'type': 0,
+                'sequence': 8,
             },
             {
-                "name": "group-put-hahah",
-                "code": "group-put"
+                'id': 9,
+                'name': '管理员管理',
+                'code': '/home/admins',
+                'type': 0,
+                'sequence': 9,
             },
             {
-                "name": "operationlog-get",
-                "code": "operationlog-get"
+                'id': 10,
+                'name': '角色管理',
+                'code': '/home/role',
+                'type': 0,
+                'sequence': 10,
             },
             {
-                "name": "userlist-get",
-                "code": "userlist-get"
+                'id': 11,
+                'name': '权限管理',
+                'code': '/home/power',
+                'type': 0,
+                'sequence': 11,
             },
             {
-                "name": "userlist-post",
-                "code": "userlist-post"
+                'id': 12,
+                'name': '运营日志',
+                'code': '/home/operationLog',
+                'type': 0,
+                'sequence': 12,
             },
             {
-                "name": "user-get",
-                "code": "user-get"
+                'id':13,
+                'name': '个人信息',
+                'code': '/home/perInfo',
+                'type': 0,
+                'sequence': 13,
             },
             {
-                "name": "legalize-list-get",
-                "code": "legalize-list-get"
+                'id': 14,
+                'name': '修改密码',
+                'code': '/home/reSetPWD',
+                'type': 0,
+                'sequence': 14,
             },
             {
-                "name": "legalize-list-post",
-                "code": "legalize-list-post"
+                'id': 15,
+                'name': '敏感词设置',
+                'code': '/home/sensitiveSet',
+                'type': 0,
+                'sequence': 15,
+            },
+            # 权限点
+            {
+                "name": "用户列表查询",
+                "code": "userlist-get",
+                'parent_id': 2,
             },
             {
-                "name": "legalize-list-put",
-                "code": "legalize-list-put"
+                "name": "用户新增",
+                "code": "userlist-post",
+                'parent_id': 2,
             },
             {
-                "name": "legalize-get",
-                "code": "legalize-get"
+                'name': '用户编辑',
+                'code': 'userlist-put',
+                'parent_id': 2,
             },
             {
-                "name": "administrator-delete",
-                "code": "administrator-delete"
+                "name": "用户详情查询",
+                "code": "user-get",
+                'parent_id': 2,
             },
             {
-                "name": "administrator-list-post",
-                "code": "administrator-list-post"
+                "name": "用户认证记录查询",
+                "code": "legalize-list-get",
+                'parent_id': 3,
             },
             {
-                "name": "administrator-get",
-                "code": "administrator-get"
+                "name": "用户认证审核",
+                "code": "legalize-list-put",
+                'parent_id': 3,
             },
             {
-                "name": "userlist-put",
-                "code": "userlist-put"
+                "name": "用户认证记录详细查询",
+                "code": "legalize-get",
+                'parent_id': 3
             },
             {
-                "name": "administrator-put",
-                "code": "administrator-put"
+                "name": "MIS用户列表查询",
+                "code": "administrator-list-get",
+                'parent_id': 9
             },
             {
-                "name": "channel-list-get",
-                "code": "channel-list-get"
+                "name": "MIS用户删除",
+                "code": "administrator-delete",
+                'parent_id': 9
             },
             {
-                "name": "channel-list-post",
-                "code": "channel-list-post"
+                "name": "MIS用户批量编辑",
+                "code": "administrator-list-post",
+                'parent_id': 9
             },
             {
-                "name": "channel-list-put",
-                "code": "channel-list-put"
+                "name": "MIS用户详情查询",
+                "code": "administrator-get",
+                'parent_id': 9
             },
             {
-                "name": "channel-list-delete",
-                "code": "channel-list-delete"
+                "name": "MIS用户编辑",
+                "code": "administrator-put",
+                'parent_id': 9
+            },
+
+            {
+                "name": "角色列表查询",
+                "code": "group-list-get",
+                'parent_id': 10
             },
             {
-                "name": "permission-delete",
-                "code": "permission-delete"
+                "name": "角色编辑",
+                "code": "group-put",
+                'parent_id': 10,
             },
             {
-                "name": "permission-put",
-                "code": "permission-put"
+                "name": "角色新建",
+                "code": "group-list-post",
+                'parent_id': 10
             },
             {
-                "name": "sensitive-word-list-get",
-                "code": "sensitive-word-list-get"
+                "name": "角色删除",
+                "code": "group-delete",
+                'parent_id': 10
             },
             {
-                "name": "sensitive-word-list-post",
-                "code": "sensitive-word-list-post"
+                "name": "角色详情查询",
+                "code": "group-get",
+                'parent_id': 10
             },
             {
-                "name": "sensitive-word-get",
-                "code": "sensitive-word-get"
+                "name": "运营日志查询",
+                "code": "operationlog-get",
+                'parent_id': 12
+            },
+
+            {
+                "name": "权限列表查询",
+                "code": "permission-list-get",
+                'parent_id': 11
+            },
+
+            {
+                "name": "权限详情查询",
+                "code": "permission-get",
+                'parent_id': 11
+            },
+
+            {
+                "name": "权限新建",
+                "code": "permission-list-post",
+                'parent_id': 11
             },
             {
-                "name": "sensitive-word-post",
-                "code": "sensitive-word-post"
+                "name": "权限删除",
+                "code": "permission-delete",
+                'parent_id': 11
             },
             {
-                "name": "sensitive-word-delete",
-                "code": "sensitive-word-delete"
+                "name": "权限修改",
+                "code": "permission-put",
+                'parent_id': 11
+            },
+
+            {
+                "name": "敏感词列表查询",
+                "code": "sensitive-word-list-get",
+                'parent_id': 15
             },
             {
-                "name": "statistics-basic-get",
-                "code": "statistics-basic-get"
+                "name": "敏感词新建",
+                "code": "sensitive-word-list-post",
+                'parent_id': 15
             },
             {
-                "name": "statistics-search-get",
-                "code": "statistics-search-get"
+                "name": "敏感词查询",
+                "code": "sensitive-word-get",
+                'parent_id': 15
             },
             {
-                "name": "statistics-search-total-get",
-                "code": "statistics-search-total-get"
+                "name": "敏感词修改",
+                "code": "sensitive-word-put",
+                'parent_id': 15
             },
             {
-                "name": "statistics-sales-total-get",
-                "code": "statistics-sales-total-get"
+                "name": "敏感词删除",
+                "code": "sensitive-word-delete",
+                'parent_id': 15
             },
             {
-                "name": "statistics-read-source-total-get",
-                "code": "statistics-read-source-total-get"
+                "name": "基本统计查询",
+                "code": "statistics-basic-get",
+                'parent_id': 7
             },
             {
-                "name": "article-list-get",
-                "code": "article-list-get"
+                "name": "搜索统计查询",
+                "code": "statistics-search-get",
+                'parent_id': 7
             },
             {
-                "name": "article-list-put",
-                "code": "article-list-put"
+                "name": "搜索统计总数查询",
+                "code": "statistics-search-total-get",
+                'parent_id': 7
             },
             {
-                "name": "article-get",
-                "code": "article-get"
+                "name": "销售额统计查询",
+                "code": "statistics-sales-total-get",
+                'parent_id': 7
             },
             {
-                "name": "group-list-post",
-                "code": "group-list-post"
+                "name": "阅读来源统计查询",
+                "code": "statistics-read-source-total-get",
+                'parent_id': 7
             },
             {
-                "name": "group-delete",
-                "code": "group-delete"
+                "name": "文章列表查询",
+                "code": "article-list-get",
+                'parent_id': 5
             },
             {
-                "name": "group-get",
-                "code": "group-get"
-            }
+                "name": "文章设置",
+                "code": "article-list-put",
+                'parent_id': 6
+            },
+            {
+                "name": "文章详情查询",
+                "code": "article-get",
+                'parent_id': 5
+            },
+
+            {
+                "name": "频道列表查询",
+                "code": "channel-list-get",
+                'parent_id': 4
+            },
+            {
+                "name": "频道新建",
+                "code": "channel-list-post",
+                'parent_id': 4
+            },
+            {
+                "name": "频道修改",
+                "code": "channel-list-put",
+                'parent_id': 4
+            },
+            {
+                "name": "频道删除",
+                "code": "channel-list-delete",
+                'parent_id': 4
+            },
         ]
         return permissions
 
@@ -385,7 +519,8 @@ class AdministratorInitResource(Resource):
         for p in permissions:
             obj = MisPermission.query.filter_by(name=p['name']).first()
             if not obj:
-                obj = MisPermission(name=p['name'], code=p['code'], type=p.get('type', 1))
+                # obj = MisPermission(name=p['name'], code=p['code'], type=p.get('type', 1))
+                obj = MisPermission(**p)
                 db.session.add(obj)
                 db.session.commit()
             permissions_ids.append(obj.id)

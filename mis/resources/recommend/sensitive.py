@@ -87,7 +87,7 @@ class SensitiveWordListResource(Resource):
 class SensitiveWordResource(Resource):
     method_decorators = {
         'get': [mis_permission_required('sensitive-word-get')],
-        'put': [mis_permission_required('sensitive-word-post')],
+        'put': [mis_permission_required('sensitive-word-put')],
         'delete': [mis_permission_required('sensitive-word-delete')],
     }
 
