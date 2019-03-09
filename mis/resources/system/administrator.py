@@ -392,7 +392,7 @@ class AdministratorInitResource(Resource):
         return permissions_ids
 
     def _get_group_id(self):
-        name = '管理员'
+        name = '超级管理员'
         group = MisAdministratorGroup.query.filter_by(name=name).first()
         if not group:
             group = MisAdministratorGroup(name=name)
@@ -408,8 +408,8 @@ class AdministratorInitResource(Resource):
         return group.id
 
     def _create_init_administrator(self):
-        account = 'cz_admin'
-        password = 'cz123456'
+        account = 'admin'
+        password = 'cs_itcast'
         name = '初始化管理员'
         group_id = self._get_group_id()
         admin = MisAdministrator.query.filter_by(account=account).first()
