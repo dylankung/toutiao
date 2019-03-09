@@ -118,7 +118,7 @@ class CommentListResource(Resource):
             return {'message': 'Empty content.'}, 400
 
         # TODO 缓存中增加是否允许评论
-        article = Article.query.options(Article.allow_comment).filter_by(id=article_id).get()
+        article = Article.query.options(load_only(Article.allow_comment)).filter_by(id=(article_id or target)).first()
         if not article.allow_comment:
             return {'message': 'Article denied comment.'}, 403
 
