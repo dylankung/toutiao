@@ -408,8 +408,8 @@ class AdministratorInitResource(Resource):
         return group.id
 
     def _create_init_administrator(self):
-        account = 'cz_admin'
-        password = 'cz123456'
+        account = 'admin'
+        password = 'Aa123456'
         name = '初始化管理员'
         group_id = self._get_group_id()
         admin = MisAdministrator.query.filter_by(account=account).first()
