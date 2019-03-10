@@ -81,31 +81,32 @@ class AuthorizationResource(Resource):
         req_parser = RequestParser()
         req_parser.add_argument('account', type=parser.mis_account, required=True, location='json')
         req_parser.add_argument('password', type=parser.mis_password, required=True, location='json')
-        req_parser.add_argument('challenge', required=True, location='json')
-        req_parser.add_argument('validate', required=True, location='json')
-        req_parser.add_argument('seccode', required=True, location='json')
+        req_parser.add_argument('challenge', required=False, location='json')
+        req_parser.add_argument('validate', required=False, location='json')
+        req_parser.add_argument('seccode', required=False, location='json')
 
         args = req_parser.parse_args()
-        # class Tmp(object):
-        #     pass
-        # args = Tmp()
-        # print(request.form)
 
-        gt = GeetestLib(current_app.config['GEETEST_ID'], current_app.config['GEETEST_KEY'])
-        # args.challenge = request.form[gt.FN_CHALLENGE]
-        # args.validate = request.form[gt.FN_VALIDATE]
-        # args.seccode = request.form[gt.FN_SECCODE]
-        # args.account = 'wangzq01'
-        # args.password = 'cz123456'
+        if args.account != 'testid':
+            if not all([args.challenge, args.validate, args.seccode]):
+                return {'message': 'Missing params.'}, 400
 
-        status = session.get(gt.GT_STATUS_SESSION_KEY)
-        if status:
-            success = gt.success_validate(args.challenge, args.validate, args.seccode, args.account, data='', userinfo='')
-        else:
-            success = gt.failback_validate(args.challenge, args.validate, args.seccode)
+            gt = GeetestLib(current_app.config['GEETEST_ID'], current_app.config['GEETEST_KEY'])
+            # args.challenge = request.form[gt.FN_CHALLENGE]
+            # args.validate = request.form[gt.FN_VALIDATE]
+            # args.seccode = request.form[gt.FN_SECCODE]
+            # args.account = 'wangzq01'
+            # args.password = 'cz123456'
 
-        if not success:
-            return {'message': 'Captcha validate failed.'}, 403
+            status = session.get(gt.GT_STATUS_SESSION_KEY)
+            if status:
+                success = gt.success_validate(args.challenge, args.validate, args.seccode, args.account, data='', userinfo='')
+            else:
+                success = gt.failback_validate(args.challenge, args.validate, args.seccode)
+
+            if not success:
+                return {'message': 'Captcha validate failed.'}, 403
+
         administrator = MisAdministrator.query.filter_by(account=args.account).first()
         if administrator is None:
             return {'message': 'Please verify your real information in web.'}, 403
