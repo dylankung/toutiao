@@ -21,8 +21,9 @@ scheduler = BlockingScheduler(executors=executors)
 create_logger()
 
 # 添加离线任务
-from reading_history import save_reading_history_to_mysql
-scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=10)
+# 阅读历史已废弃定时同步到mysql数据库方案
+# from reading_history import save_reading_history_to_mysql
+# scheduler.add_job(save_reading_history_to_mysql, trigger='interval', minutes=10)
 
 from clear_cache import clear_user_cache, clear_comment_cache, clear_article_cache
 from clear_cache import clear_user_following_cache, clear_user_fans_cache, clear_user_article_cache

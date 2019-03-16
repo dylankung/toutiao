@@ -347,33 +347,34 @@ def get_user_articles_by_page(user_id, page, per_page):
         return total_count, page_articles
 
 
-def synchronize_reading_history_to_db(user_id):
-    """
-    同步用户的阅读历史到数据库
-    :param user_id:
-    :return:
-    """
-    r = current_app.redis_cli['read_his']
-    history = r.hgetall('his:{}'.format(user_id))
-    if not history:
-        return
-
-    pl = r.pipeline()
-    pl.srem('users', user_id)
-    pl.delete('his:{}'.format(user_id))
-    pl.execute()
-
-    sql = ''
-    for article_id, timestamp in history.items():
-        read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(timestamp)))
-        sql += "INSERT INTO news_read (user_id, article_id, create_time, update_time) VALUES({}, {}, '{}', '{}')" \
-               " ON DUPLICATE KEY UPDATE update_time ='{}';".format(
-                    user_id, article_id, read_time, read_time, read_time
-               )
-
-    if sql:
-        db.session.execute(sql)
-        db.session.commit()
+# 已废弃
+# def synchronize_reading_history_to_db(user_id):
+#     """
+#     同步用户的阅读历史到数据库
+#     :param user_id:
+#     :return:
+#     """
+#     r = current_app.redis_cli['read_his']
+#     history = r.hgetall('his:{}'.format(user_id))
+#     if not history:
+#         return
+#
+#     pl = r.pipeline()
+#     pl.srem('users', user_id)
+#     pl.delete('his:{}'.format(user_id))
+#     pl.execute()
+#
+#     sql = ''
+#     for article_id, timestamp in history.items():
+#         read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(timestamp)))
+#         sql += "INSERT INTO news_read (user_id, article_id, create_time, update_time) VALUES({}, {}, '{}', '{}')" \
+#                " ON DUPLICATE KEY UPDATE update_time ='{}';".format(
+#                     user_id, article_id, read_time, read_time, read_time
+#                )
+#
+#     if sql:
+#         db.session.execute(sql)
+#         db.session.commit()
 
 
 def update_user_article_read_count(user_id):
@@ -417,8 +418,8 @@ def save_user_read_history(user_id, article_id):
     :return:
     """
     if user_id:
-        r = current_app.redis_cli['read_his']
-        pl = r.pipeline()
-        pl.sadd('users', user_id)
-        pl.hset('his:{}'.format(user_id), article_id, int(time.time()))
+        pl = current_app.redis_master.pipeline()
+        key = 'user:{}:his'.format(user_id)
+        pl.zadd(key, time.time(), article_id)
+        pl.zremrangebyrank(key, 0, -1*(constants.READING_HISTORY_COUNT_PER_USER+1))
         pl.execute()
