@@ -73,7 +73,7 @@ def save_user_data_cache(user_id, user=None):
     """
     r = current_app.redis_cli['user_cache']
     timestamp = time.time()
-    ret = r.zadd('user', {user_id: timestamp})
+    ret = r.zadd('user', timestamp, user_id)
     if ret > 0:
         # This user cache data did not exist previously.
         user_data = _generate_user_cache_data(user_id, user)
@@ -107,12 +107,12 @@ def get_user(user_id):
     ret = r.hgetall('user:{}'.format(user_id))
     if ret:
         # hit cache
-        r.zadd('user', {user_id: timestamp})
+        r.zadd('user', timestamp, user_id)
         user_data = marshal(ret, user_fields_cache)
     else:
         user_data = _generate_user_cache_data(user_id)
         pl = r.pipeline()
-        pl.zadd('user', {user_id: timestamp})
+        pl.zadd('user', timestamp, user_id)
         pl.hmset('user:{}'.format(user_id), user_data)
         pl.execute()
 
@@ -150,7 +150,7 @@ def update_user_following(user_id, target_user_id, increment=1):
     exist = r.exists(key)
     if exist:
         if increment > 0:
-            pl.zadd(key, {target_user_id: timestamp})
+            pl.zadd(key, timestamp, target_user_id)
         else:
             pl.zrem(key, target_user_id)
 
@@ -165,7 +165,7 @@ def update_user_following(user_id, target_user_id, increment=1):
     exist = r.exists(key)
     if exist:
         if increment > 0:
-            pl.zadd(key, {user_id: timestamp})
+            pl.zadd(key, timestamp, user_id)
         else:
             pl.zrem(key, user_id)
 
@@ -183,7 +183,7 @@ def get_user_followings(user_id):
 
     ret = r.zrevrange('user:{}:following'.format(user_id), 0, -1)
     if ret:
-        r.zadd('user:following', {user_id: timestamp})
+        r.zadd('user:following', timestamp, user_id)
         # In order to be consistent with db data type.
         return [int(uid) for uid in ret]
 
@@ -203,8 +203,8 @@ def get_user_followings(user_id):
 
     if cache:
         pl = r.pipeline()
-        pl.zadd('user:following', {user_id: timestamp})
-        pl.zadd('user:{}:following'.format(user_id), cache)
+        pl.zadd('user:following', timestamp, user_id)
+        pl.zadd('user:{}:following'.format(user_id), **cache)
         pl.execute()
 
     return followings
@@ -233,7 +233,7 @@ def get_user_followers(user_id):
 
     ret = r.zrevrange('user:{}:fans'.format(user_id), 0, -1)
     if ret:
-        r.zadd('user:fans', {user_id: timestamp})
+        r.zadd('user:fans', timestamp, user_id)
         # In order to be consistent with db data type.
         return [int(uid) for uid in ret]
 
@@ -253,8 +253,8 @@ def get_user_followers(user_id):
 
     if cache:
         pl = r.pipeline()
-        pl.zadd('user:fans', {user_id: timestamp})
-        pl.zadd('user:{}:fans'.format(user_id), cache)
+        pl.zadd('user:fans', timestamp, user_id)
+        pl.zadd('user:{}:fans'.format(user_id), **cache)
         pl.execute()
 
     return followers
@@ -271,7 +271,7 @@ def get_user_articles(user_id):
 
     ret = r.zrevrange('user:{}:art'.format(user_id), 0, -1)
     if ret:
-        r.zadd('user:art', {user_id: timestamp})
+        r.zadd('user:art', timestamp, user_id)
         return [int(aid) for aid in ret]
 
     ret = r.hget('user:{}'.format(user_id), 'art_count')
@@ -290,8 +290,8 @@ def get_user_articles(user_id):
 
     if cache:
         pl = r.pipeline()
-        pl.zadd('user:art', {user_id: timestamp})
-        pl.zadd('user:{}:art'.format(user_id), cache)
+        pl.zadd('user:art', timestamp, user_id)
+        pl.zadd('user:{}:art'.format(user_id), **cache)
         pl.execute()
 
     return articles
@@ -312,7 +312,7 @@ def get_user_articles_by_page(user_id, page, per_page):
     exist = r.exists(key)
     if exist:
         # Cache exists.
-        r.zadd('user:art', {user_id: timestamp})
+        r.zadd('user:art', timestamp, user_id)
         total_count = r.zcard(key)
         ret = r.zrevrange(key, (page - 1) * per_page, page * per_page)
         if ret:
@@ -337,8 +337,8 @@ def get_user_articles_by_page(user_id, page, per_page):
 
         if cache:
             pl = r.pipeline()
-            pl.zadd('user:art', {user_id: timestamp})
-            pl.zadd(key, cache)
+            pl.zadd('user:art', timestamp, user_id)
+            pl.zadd(key, **cache)
             pl.execute()
 
         total_count = len(articles)

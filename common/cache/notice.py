@@ -49,7 +49,7 @@ def get_announcements_by_page(page, per_page):
             results.append(_announcement)
 
         if cache:
-            r.zadd(key, cache)
+            r.zadd(key, **cache)
 
         total_count = len(results)
         page_results = results[(page - 1) * per_page:page * per_page]

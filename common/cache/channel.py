@@ -44,7 +44,7 @@ def get_all_channels():
     # 设置缓存
     pl = r.pipeline()
     pl.set('channel', pickle.dumps(results))
-    pl.zadd('channel:id', cache)
+    pl.zadd('channel:id', **cache)
     pl.execute()
 
     return results

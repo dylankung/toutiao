@@ -76,7 +76,7 @@ def get_article_info(article_id):
     article = r.hgetall('art:{}:info'.format(article_id))
     if article:
         # 更新文章最新使用时间
-        r.zadd('art', {article_id: timestamp})
+        r.zadd('art', timestamp, article_id)
         # 不能处理bytes类型
         # article_formatted = marshal(article, article_info_fields_redis)
         article_formatted = dict(
@@ -114,7 +114,7 @@ def get_article_info(article_id):
         article_formatted['cover'] = pickle.dumps(article.cover)
 
         pl = r.pipeline()
-        pl.zadd('art', {article_id: timestamp})
+        pl.zadd('art', timestamp, article_id)
         pl.hmset('art:{}:info'.format(article_id), article_formatted)
         pl.execute()
 
