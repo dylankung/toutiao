@@ -51,7 +51,8 @@ class DefaultConfig(object):
     ]
 
     # 限流服务redis
-    RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'
+    # RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'
+    RATELIMIT_STORAGE_URL = 'redis+sentinel://172.17.0.133:26380,172.17.0.135:26380,172.17.0.136:26380/mymaster'
     RATELIMIT_STRATEGY = 'moving-window'
     # RATELIMIT_DEFAULT = ['200/hour;1000/day']
 
