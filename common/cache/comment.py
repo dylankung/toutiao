@@ -58,7 +58,7 @@ def _get_comm_from_cache(article_id, offset, limit):
     if ret:
         # 更新缓存最新使用时间
         timestamp = time.time()
-        r_comm_cache.zadd('art:comm', {article_id: timestamp})
+        r_comm_cache.zadd('art:comm', timestamp, article_id)
 
         for comment_id in ret:
             comment = r_comm_cache.hgetall('comm:{}'.format(comment_id))
@@ -134,7 +134,7 @@ def _get_comm_from_db(article_id, offset, limit):
                 results.append(comment_format)
 
         if new_cache:
-            pl.zadd('art:{}:comm'.format(article_id), new_cache)
+            pl.zadd('art:{}:comm'.format(article_id), **new_cache)
         pl.execute()
 
     return results
@@ -190,7 +190,7 @@ def get_comments_by_article(article_id, offset, limit):
         if end_comment is None:
             # 没有评论数据
             # 设置缓存
-            pl.zadd('art:comm', {article_id: timestamp})
+            pl.zadd('art:comm', timestamp, article_id)
             pl.hset('art:{}:comm:figure'.format(article_id), 'count', 0)
             pl.execute()
             return result
@@ -205,7 +205,7 @@ def get_comments_by_article(article_id, offset, limit):
             result['total_count'] = total_count
             result['end_id'] = end_id
 
-            pl.zadd('art:comm', {article_id: timestamp})
+            pl.zadd('art:comm', timestamp, article_id)
             pl.hmset('art:{}:comm:figure'.format(article_id), {'count': total_count, 'end_id': end_id})
             pl.execute()
 
@@ -285,7 +285,7 @@ def _get_reply_from_cache(comment_id, offset, limit):
     if ret:
         # 更新缓存最新使用时间
         timestamp = time.time()
-        r_comm_cache.zadd('comm:reply', {comment_id: timestamp})
+        r_comm_cache.zadd('comm:reply', timestamp, comment_id)
 
         for comment_id in ret:
             comment = r_comm_cache.hgetall('comm:{}'.format(comment_id))
@@ -359,7 +359,7 @@ def _get_reply_from_db(comment_id, offset, limit):
                 results.append(comment_format)
 
         if new_cache:
-            pl.zadd('comm:{}:reply'.format(comment_id), new_cache)
+            pl.zadd('comm:{}:reply'.format(comment_id), **new_cache)
         pl.execute()
 
     return results
@@ -414,7 +414,7 @@ def get_reply_by_comment(comment_id, offset, limit):
         if end_comment is None:
             # 没有评论数据
             # 设置缓存
-            pl.zadd('comm:reply', {comment_id: timestamp})
+            pl.zadd('comm:reply', timestamp, comment_id)
             pl.hset('comm:{}:reply:figure'.format(comment_id), 'count', 0)
             pl.execute()
             return result
@@ -428,7 +428,7 @@ def get_reply_by_comment(comment_id, offset, limit):
             result['total_count'] = total_count
             result['end_id'] = end_id
 
-            pl.zadd('comm:reply', {comment_id: timestamp})
+            pl.zadd('comm:reply', timestamp, comment_id)
             pl.hmset('comm:{}:reply:figure'.format(comment_id), {'count': total_count, 'end_id': end_id})
             pl.execute()
 
@@ -547,7 +547,7 @@ def update_comment_by_article(article_id, comment):
 
     pl = r_comm_cache.pipeline()
     pl.hmset('comm:{}'.format(comment.id), comment_format)
-    pl.zadd('art:{}:comm'.format(article_id), {comment.id: comment.id})
+    pl.zadd('art:{}:comm'.format(article_id), comment.id, comment.id)
     pl.execute()
 
     ret = r_comm_cache.hincrby('art:{}:comm:figure'.format(article_id), 'count')
@@ -572,7 +572,7 @@ def update_reply_by_comment(comment_id, reply):
 
     pl = r_comm_cache.pipeline()
     pl.hmset('comm:{}'.format(reply.id), reply_format)
-    pl.zadd('comm:{}:reply'.format(comment_id), {reply.id: reply.id})
+    pl.zadd('comm:{}:reply'.format(comment_id), reply.id, reply.id)
     pl.execute()
 
     ret = r_comm_cache.hincrby('comm:{}:reply:figure'.format(comment_id), 'count')

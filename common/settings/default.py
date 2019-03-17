@@ -26,6 +26,7 @@ class DefaultConfig(object):
     SQLALCHEMY_ECHO = True
 
     # redis
+    # 原有redis配置
     class REDIS:
         SMS_CODE = 'redis://127.0.0.1:6379/0'
         READING_HISTORY = 'redis://127.0.0.1:6379/1'
@@ -33,6 +34,21 @@ class DefaultConfig(object):
         USER_CACHE = 'redis://127.0.0.1:6379/3'
         COMMENT_CACHE = 'redis://127.0.0.1:6379/4'
         NOTICE_CACHE = 'redis://127.0.0.1:6379/5'
+
+    # redis 哨兵
+    REDIS_SENTINELS = [
+        ('172.17.0.133', '26380'),
+        ('172.17.0.135', '26380'),
+        ('172.17.0.136', '26380'),
+    ]
+    REDIS_SENTINEL_SERVICE_NAME = 'mymaster'
+
+    # redis 集群
+    REDIS_CLUSTER = [
+        {'host': '172.17.0.133', 'port': '7000'},
+        {'host': '172.17.0.133', 'port': '7001'},
+        {'host': '172.17.0.133', 'port': '7002'},
+    ]
 
     # 限流服务redis
     RATELIMIT_STORAGE_URL = 'redis://127.0.0.1:6379/0'

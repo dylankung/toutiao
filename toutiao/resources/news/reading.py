@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from flask import g
+from flask import g, current_app
 from flask_restful import inputs
 from flask_restful.reqparse import RequestParser
 from sqlalchemy import func
@@ -36,18 +36,14 @@ class ReadingHistoryListResource(Resource):
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
         user_id = g.user_id
-        cache_user.synchronize_reading_history_to_db(user_id)
 
-        # TODO 未做缓存
-        ret = db.session.query(func.count(Read.id)).filter_by(user_id=g.user_id).first()
-        total_count = ret[0]
+        r = current_app.redis_master
+        key = 'user:{}:his'.format(user_id)
+        total_count = r.zcard(key)
         results = []
         if total_count > 0 and (page - 1) * per_page < total_count:
-            reads = Read.query.options(load_only(Read.article_id)) \
-                .filter_by(user_id=g.user_id) \
-                .order_by(Read.utime.desc()).offset((page - 1) * per_page).limit(per_page).all()
-            for read in reads:
-                article = cache_article.get_article_info(read.article_id)
+            for article_id in r.zrevrange(key, (page-1)*per_page, page*per_page-1):
+                article = cache_article.get_article_info(article_id)
                 results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}

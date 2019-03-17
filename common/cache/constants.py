@@ -6,3 +6,6 @@ DEFAULT_USER_PROFILE_PHOTO = 'Fkj6tQi3xJwVXi1u2swCElotfdCi'  # 程序猿
 
 # 文章数据缓存时间
 CACHE_ARTICLE_EXPIRE = 60 * 60
+
+# 阅读历史每人保存数目
+READING_HISTORY_COUNT_PER_USER = 100
