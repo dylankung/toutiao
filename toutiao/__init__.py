@@ -50,8 +50,10 @@ def create_app(config, enable_config_file=False):
     register_converters(app)
 
     # redis
-    # from utils.redis_client import create_redis_clients
-    # app.redis_cli = create_redis_clients(app)
+    # 暂时保留旧redis接口
+    from utils.redis_client import create_redis_clients
+    app.redis_cli = create_redis_clients(app)
+
     from redis.sentinel import Sentinel
     _sentinel = Sentinel(app.config['REDIS_SENTINELS'])
     app.redis_master = _sentinel.master_for(app.config['REDIS_SENTINEL_SERVICE_NAME'])
