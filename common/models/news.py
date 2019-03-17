@@ -115,6 +115,7 @@ class Collection(db.Model):
 class Read(db.Model):
     """
     用户阅读历史表
+    ******************已废弃****************
     """
     __tablename__ = 'news_read'
 
