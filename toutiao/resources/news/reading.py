@@ -4,6 +4,7 @@ from flask_restful import inputs
 from flask_restful.reqparse import RequestParser
 from sqlalchemy import func
 from sqlalchemy.orm import load_only
+from redis.exceptions import ConnectionError
 
 from utils.decorators import login_required
 from . import constants
@@ -42,7 +43,13 @@ class ReadingHistoryListResource(Resource):
         total_count = r.zcard(key)
         results = []
         if total_count > 0 and (page - 1) * per_page < total_count:
-            for article_id in r.zrevrange(key, (page-1)*per_page, page*per_page-1):
+            try:
+                article_ids = r.zrevrange(key, (page-1)*per_page, page*per_page-1)
+            except ConnectionError as e:
+                current_app.logger.error(e)
+                article_ids = current_app.redis_slave.zrevrange(key, (page-1)*per_page, page*per_page-1)
+
+            for article_id in article_ids:
                 article = cache_article.get_article_info(int(article_id))
                 results.append(article)
 

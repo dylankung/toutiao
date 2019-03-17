@@ -7,6 +7,7 @@ import re
 import random
 from datetime import datetime
 import time
+from redis.exceptions import ConnectionError
 
 from models.news import Article, ArticleContent, Attitude
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
@@ -68,7 +69,10 @@ class ArticleResource(Resource):
 
         if user_id:
             # 非匿名用户添加用户的阅读历史
-            cache_user.save_user_read_history(user_id, article_id)
+            try:
+                cache_user.save_user_read_history(user_id, article_id)
+            except ConnectionError as e:
+                current_app.logger.error(e)
 
             # 查询关注
             article['is_followed'] = cache_user.determine_user_follows_target(user_id, article['aut_id'])
