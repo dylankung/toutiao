@@ -43,7 +43,7 @@ class ReadingHistoryListResource(Resource):
         results = []
         if total_count > 0 and (page - 1) * per_page < total_count:
             for article_id in r.zrevrange(key, (page-1)*per_page, page*per_page-1):
-                article = cache_article.get_article_info(article_id)
+                article = cache_article.get_article_info(int(article_id))
                 results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
