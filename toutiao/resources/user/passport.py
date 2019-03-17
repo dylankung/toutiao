@@ -5,6 +5,7 @@ from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
+from redis.exceptions import ConnectionError
 
 from celery_tasks.sms.tasks import send_verification_code
 from . import constants
@@ -33,7 +34,7 @@ class SMSVerificationCodeResource(Resource):
 
     def get(self, mobile):
         code = '{:0>6d}'.format(random.randint(0, 999999))
-        current_app.redis_cli['sms_code'].setex('app:code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+        current_app.redis_master.setex('app:code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
         send_verification_code.delay(mobile, code)
         return {'mobile': mobile}
 
@@ -72,7 +73,11 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = current_app.redis_cli['sms_code'].get('app:code:{}'.format(mobile))
+        try:
+            real_code = current_app.redis_master.get('app:code:{}'.format(mobile))
+        except ConnectionError as e:
+            current_app.logger.error(e)
+            real_code = current_app.redis_slave.get('app:code:{}'.format(mobile))
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 

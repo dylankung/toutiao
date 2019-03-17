@@ -5,6 +5,7 @@ from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
+from redis.exceptions import ConnectionError
 
 from celery_tasks.sms.tasks import send_verification_code
 from utils import parser
@@ -24,10 +25,9 @@ class CaptchaResource(Resource):
         """
         获取验证码
         """
-        r = current_app.redis_cli['sms_code']
         gt = GeetestLib(current_app.config['GEETEST_ID'], current_app.config['GEETEST_KEY'])
         status = gt.pre_process(mobile)
-        r.setex('capt:{}'.format(mobile), constants.GEETEST_EXPIRES, status)
+        current_app.redis_master.setex('capt:{}'.format(mobile), constants.GEETEST_EXPIRES, status)
         response_str = gt.get_response_str()
         return response_str
 
@@ -57,8 +57,11 @@ class SMSVerificationCodeResource(Resource):
         validate = args['validate']
         seccode = args['seccode']
 
-        r = current_app.redis_cli['sms_code']
-        status = r.get('capt:{}'.format(mobile))
+        try:
+            status = current_app.redis_master.get('capt:{}'.format(mobile))
+        except ConnectionError as e:
+            current_app.logger.error(e)
+            status = current_app.redis_slave.get('capt:{}'.format(mobile))
         if status is None:
             return {'message': 'Captcha expired.'}, 400
         status = int(status)
@@ -72,7 +75,7 @@ class SMSVerificationCodeResource(Resource):
 
         if success:
             code = '{:0>6d}'.format(random.randint(0, 999999))
-            r.setex('mp:code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
+            current_app.redis_master.setex('mp:code:{}'.format(mobile), constants.SMS_VERIFICATION_CODE_EXPIRES, code)
             send_verification_code.delay(mobile, code)
             return {'mobile': mobile}
         else:
@@ -116,7 +119,12 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
-        real_code = current_app.redis_cli['sms_code'].get('mp:code:{}'.format(mobile))
+        try:
+            real_code = current_app.redis_master.get('mp:code:{}'.format(mobile))
+        except ConnectionError as e:
+            current_app.logger.error(e)
+            real_code = current_app.redis_slave.get('mp:code:{}'.format(mobile))
+
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 
