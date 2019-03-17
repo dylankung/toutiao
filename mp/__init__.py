@@ -46,8 +46,17 @@ def create_app(config, enable_config_file=False):
     register_converters(app)
 
     # redis
+    # 暂时保留旧redis接口
     from utils.redis_client import create_redis_clients
     app.redis_cli = create_redis_clients(app)
+
+    from redis.sentinel import Sentinel
+    _sentinel = Sentinel(app.config['REDIS_SENTINELS'])
+    app.redis_master = _sentinel.master_for(app.config['REDIS_SENTINEL_SERVICE_NAME'])
+    app.redis_slave = _sentinel.slave_for(app.config['REDIS_SENTINEL_SERVICE_NAME'])
+
+    from rediscluster import StrictRedisCluster
+    app.redis_cluster = StrictRedisCluster(startup_nodes=app.config['REDIS_CLUSTER'])
 
     # Elasticsearch
     app.es = Elasticsearch(
