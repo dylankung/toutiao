@@ -6,6 +6,7 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 from redis.exceptions import ConnectionError
+from sqlalchemy.exc import ArgumentError
 
 from celery_tasks.sms.tasks import send_verification_code
 from . import constants
@@ -83,12 +84,12 @@ class AuthorizationResource(Resource):
 
         # 查询或保存用户
         user = User.query.options(load_only(User.id)).filter_by(mobile=mobile).first()
+
         if user is None:
             # 用户不存在，注册用户
             user_id = current_app.id_worker.get_id()
             user = User(id=user_id, mobile=mobile, name=mobile, last_login=datetime.now())
             db.session.add(user)
-            db.session.commit()
             profile = UserProfile(id=user.id)
             db.session.add(profile)
             db.session.commit()
