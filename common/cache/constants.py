@@ -9,3 +9,9 @@ CACHE_ARTICLE_EXPIRE = 60 * 60
 
 # 阅读历史每人保存数目
 READING_HISTORY_COUNT_PER_USER = 100
+
+# 用户数据缓存时间, 秒
+USER_PROFILE_CACHE_TTL = 30 * 60
+
+# 用户状态缓存时间，秒
+USER_STATUS_CACHE_TTL = 60 * 60

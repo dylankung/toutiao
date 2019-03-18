@@ -3,6 +3,7 @@ import time
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
 from flask_restful import marshal, fields
+import random
 
 from models.user import User, Relation
 from models.news import Article
@@ -67,17 +68,55 @@ def _generate_user_cache_data(user_id, user=None):
     return user_data
 
 
-def save_user_data_cache(user_id, user=None):
+def save_user_profile(user_id, user=None):
     """
     设置用户数据缓存
     """
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
-    ret = r.zadd('user', timestamp, user_id)
-    if ret > 0:
+    rc = current_app.redis_cluster
+    key = 'user:{}:profile'.format(user_id)
+
+    exists = rc.exists(key)
+    if not exists:
         # This user cache data did not exist previously.
         user_data = _generate_user_cache_data(user_id, user)
-        r.hmset('user:{}'.format(user_id), user_data)
+        pl = rc.pipeline()
+        pl.hmset(key, user_data)
+        pl.expire(key, constants.USER_PROFILE_CACHE_TTL + random.randint(0, 300))
+        results = pl.execute()
+        # 有效期设置失败
+        if results[0] and not results[1]:
+            rc.delete(key)
+
+
+def save_user_status(user_id, status):
+    """
+    设置用户状态缓存
+    :param user_id:
+    :param status:
+    """
+    key = 'user:{}:status'.format(user_id)
+    current_app.redis_cluster.setex(key, constants.USER_STATUS_CACHE_TTL + random.randint(0, 300), status)
+
+
+def get_user_status(user_id):
+    """
+    获取用户状态
+    :param user_id:
+    :return:
+    """
+    key = 'user:{}:status'.format(user_id)
+    rc = current_app.redis_cluster
+
+    status = rc.get(key)
+    if status is not None:
+        return status
+    else:
+        user = User.query.options(load_only(User.status)).filter_by(id=user_id).first()
+        if user:
+            save_user_status(user_id, user.status)
+            return user.status
+        else:
+            return False
 
 
 def determine_user_exists(user_id):

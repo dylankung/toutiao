@@ -6,7 +6,6 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 from redis.exceptions import ConnectionError
-from sqlalchemy.exc import ArgumentError
 
 from celery_tasks.sms.tasks import send_verification_code
 from . import constants
@@ -14,7 +13,7 @@ from utils import parser
 from models import db
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
-from cache.user import save_user_data_cache
+from cache import user as cache_user
 from utils.limiter import limiter as lmt
 
 
@@ -74,16 +73,24 @@ class AuthorizationResource(Resource):
         code = args.code
 
         # 从redis中获取验证码
+        key = 'app:code:{}'.format(mobile)
         try:
-            real_code = current_app.redis_master.get('app:code:{}'.format(mobile))
+            real_code = current_app.redis_master.get(key)
         except ConnectionError as e:
             current_app.logger.error(e)
-            real_code = current_app.redis_slave.get('app:code:{}'.format(mobile))
+            real_code = current_app.redis_slave.get(key)
+
+        if mobile != '18516952650':
+            try:
+                current_app.redis_master.delete(key)
+            except ConnectionError as e:
+                current_app.logger.error(e)
+
         if not real_code or real_code.decode() != code:
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = User.query.options(load_only(User.id)).filter_by(mobile=mobile).first()
+        user = User.query.options(load_only(User.id, User.status)).filter_by(mobile=mobile).first()
 
         if user is None:
             # 用户不存在，注册用户
@@ -93,12 +100,16 @@ class AuthorizationResource(Resource):
             profile = UserProfile(id=user.id)
             db.session.add(profile)
             db.session.commit()
+        else:
+            if user.status == User.STATUS.DISABLE:
+                cache_user.save_user_status(user.id, user.status)
+                return {'message': 'Invalid user.'}, 403
 
         token, refresh_token = self._generate_tokens(user.id)
 
         # 缓存用户信息
-        save_user_data_cache(user.id, user)
-
+        cache_user.save_user_profile(user.id, user)
+        cache_user.save_user_status(user.id, User.STATUS.ENABLE)
         return {'token': token, 'refresh_token': refresh_token}, 201
 
     def put(self):
@@ -107,6 +118,11 @@ class AuthorizationResource(Resource):
         """
         user_id = g.user_id
         if user_id and g.is_refresh_token:
+
+            # 判断用户状态
+            user_enable = cache_user.get_user_status(g.user_id)
+            if not user_enable:
+                return {'message': 'User denied.'}, 403
 
             token, refresh_token = self._generate_tokens(user_id, with_refresh_token=False)
 
