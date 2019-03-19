@@ -6,12 +6,13 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 from redis.exceptions import ConnectionError
+from sqlalchemy.exc import  SQLAlchemyError
 
 from celery_tasks.sms.tasks import send_verification_code
 from utils import parser
 from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
-from cache.user import save_user_profile
+from cache import user as cache_user
 from utils.gt3.geetest import GeetestLib
 from . import constants
 from cache import constants as cache_constants
@@ -137,7 +138,10 @@ class AuthorizationResource(Resource):
         token, refresh_token = self._generate_tokens(user.id)
 
         # 缓存用户信息
-        save_user_profile(user.id)
+        try:
+            cache_user.UserProfileCache(user.id).save()
+        except SQLAlchemyError as e:
+            current_app.logger.error(e)
 
         return {'token': token,
                 'refresh_token': refresh_token,
