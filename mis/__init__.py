@@ -70,10 +70,10 @@ def create_app(config, enable_config_file=False):
 
     db.init_app(app)
 
-    # 添加异常处理
-    from utils.errors import handle_redis_error, handler_mysql_error
-    app.register_error_handler(RedisError, handle_redis_error)
-    app.register_error_handler(SQLAlchemyError, handler_mysql_error)
+    # 已废弃 添加异常处理
+    # from utils.error_handlers import handle_redis_error, handler_mysql_error
+    # app.register_error_handler(RedisError, handle_redis_error)
+    # app.register_error_handler(SQLAlchemyError, handler_mysql_error)
 
     # 添加请求钩子
     from utils.middlewares import mis_jwt_authentication

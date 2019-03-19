@@ -15,6 +15,6 @@ class FigureResource(Resource):
         """
         获取用户统计数据
         """
-        user = cache_user.get_user(g.user_id)
+        user = cache_user.UserProfileCache(g.user_id).get()
 
         return {'fans_count': user['fans_count'], 'read_count': user['read_count']}

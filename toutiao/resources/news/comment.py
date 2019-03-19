@@ -55,7 +55,7 @@ class CommentListResource(Resource):
             cache_comment.update_comment_by_article(article_id, comment)
 
             # 发送评论通知
-            _user = cache_user.get_user(g.user_id)
+            _user = cache_user.get_user_profile(g.user_id)
             _article = cache_article.get_article_info(article_id)
             _data = {
                 'user_id': g.user_id,

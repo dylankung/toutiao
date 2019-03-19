@@ -4,7 +4,6 @@ from flask import request, g, current_app
 from sqlalchemy.orm import load_only, contains_eager
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import insert
-from flask_restful import fields, marshal
 from flask_restful import inputs
 
 from utils.decorators import login_required, validate_token_if_using
@@ -47,13 +46,8 @@ class ChannelListResource(Resource):
         if len(channel_id_li) > len(channel_id_set):
             raise ValueError('Repeated channels occurred.')
 
-        r = current_app.redis_cli['art_cache']
-        all_channel_id = r.zrange('channel:id', 0, -1)
-        if all_channel_id:
-            all_channel_id = [int(channel_id) for channel_id in all_channel_id]
-        else:
-            all_channel = Channel.query.options(load_only(Channel.id)).filter_by(is_visible=True).all()
-            all_channel_id = [channel.id for channel in all_channel]
+        all_channels = cache_channel.AllChannelsCache.get()
+        all_channel_id = [channel['id'] for channel in all_channels]
 
         diff = channel_id_set - set(all_channel_id)
         if len(diff) > 0:
@@ -86,6 +80,9 @@ class ChannelListResource(Resource):
             db.session.rollback()
             return {'message': 'Some conflict user channels occurred.'}, 409
 
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'channels': channel_list}, 201
 
     def put(self):
@@ -111,6 +108,9 @@ class ChannelListResource(Resource):
 
         db.session.commit()
 
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'channels': channel_list}, 201
 
     def patch(self):
@@ -133,15 +133,12 @@ class ChannelListResource(Resource):
 
         db.session.commit()
 
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'channels': channel_list}, 201
 
-    # For response format.
-    channel_fields = {
-        'id': fields.Integer(attribute='channel_id'),
-        'name': fields.String(attribute='channel.name')
-    }
-
-    def _get_recommendation_channel(self):
+    def _get_reco_channel(self):
         """
         获取0号「推荐」频道
         """
@@ -154,34 +151,20 @@ class ChannelListResource(Resource):
         """
         user_id = g.user_id
         if user_id:
-            # error
-            # user_channels = UserChannel.query.options(load_only(UserChannel.channel_id),
-            #                                           joinedload(UserChannel.channel, innerjoin=True)
-            #                                           .load_only(Channel.name))\
-            #     .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
-            #     .order_by(UserChannel.sequence).all()
+            channels = cache_channel.UserChannelsCache(user_id).get()
 
-            user_channels = UserChannel.query.join(UserChannel.channel).options(load_only(UserChannel.channel_id),
-                                                                                contains_eager(UserChannel.channel)
-                                                                                .load_only(Channel.name))\
-                .filter(UserChannel.user_id == user_id, UserChannel.is_deleted == False, Channel.is_visible == True)\
-                .order_by(UserChannel.sequence).all()
-
-            ret = marshal(user_channels, ChannelListResource.channel_fields, envelope='channels')
-
-            recommendation_channel = self._get_recommendation_channel()
-            if recommendation_channel:
-                ret['channels'].insert(0, recommendation_channel)
-
-            return ret
+            reco_channel = self._get_reco_channel()
+            if reco_channel:
+                channels.insert(0, reco_channel)
+            return {'channels': channels}
 
         else:
             # Return default channels
-            default_channels = cache_channel.get_default_channels()
+            default_channels = cache_channel.UserDefaultChannelsCache.get()
 
-            recommendation_channel = self._get_recommendation_channel()
-            if recommendation_channel:
-                default_channels.insert(0, recommendation_channel)
+            reco_channel = self._get_reco_channel()
+            if reco_channel:
+                default_channels.insert(0, reco_channel)
 
             return {'channels': default_channels}
 
@@ -194,11 +177,16 @@ class ChannelListResource(Resource):
         args = json_parser.parse_args()
         channel_id_li = args.channels
         user_id = g.user_id
+
         # Using synchronize_session=False when update many objects to
         # indicate that Sqlalchemy does not need to trace new data.
         UserChannel.query.filter(UserChannel.user_id == user_id, UserChannel.channel_id.in_(channel_id_li))\
             .update({'is_deleted': True}, synchronize_session=False)
         db.session.commit()
+
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'message': 'OK'}, 204
 
 
@@ -217,7 +205,7 @@ class ChannelResource(Resource):
         json_parser.add_argument('seq', type=inputs.positive, required=True, location='json')
         args = json_parser.parse_args()
 
-        exist = cache_channel.determine_channel_exists(target)
+        exist = cache_channel.AllChannelsCache.exists(target)
         if not exist:
             return {'message': 'Invalid channel id.'}, 400
 
@@ -229,6 +217,9 @@ class ChannelResource(Resource):
 
         db.session.commit()
 
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'id': target, 'seq': args.seq}, 201
 
     def delete(self, target):
@@ -238,4 +229,8 @@ class ChannelResource(Resource):
         user_id = g.user_id
         UserChannel.query.filter_by(user_id=user_id, channel_id=target).update({'is_deleted': True})
         db.session.commit()
+
+        # 清除缓存
+        cache_channel.UserChannelsCache(user_id).clear()
+
         return {'message': 'OK'}, 204

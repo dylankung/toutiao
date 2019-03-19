@@ -78,7 +78,7 @@ def _get_comm_from_cache(article_id, offset, limit):
             comment_format = marshal(comment, comment_cache_fields)
 
             # 获取用户信息
-            _user = cache_user.get_user(comment_format['aut_id'])
+            _user = cache_user.get_user_profile(comment_format['aut_id'])
             comment_format['aut_name'] = _user['name']
             comment_format['aut_photo'] = _user['photo']
             results.append(comment_format)
@@ -128,7 +128,7 @@ def _get_comm_from_db(article_id, offset, limit):
 
             if not (offset is not None and comment.is_top):
                 # 获取用户信息
-                _user = cache_user.get_user(comment_format['aut_id'])
+                _user = cache_user.UserProfileCache(comment_format['aut_id']).get()
                 comment_format['aut_name'] = _user['name']
                 comment_format['aut_photo'] = _user['photo']
                 results.append(comment_format)
@@ -305,7 +305,7 @@ def _get_reply_from_cache(comment_id, offset, limit):
             comment_format = marshal(comment, comment_cache_fields)
 
             # 获取用户信息
-            _user = cache_user.get_user(comment_format['aut_id'])
+            _user = cache_user.UserProfileCache(comment_format['aut_id']).get()
             comment_format['aut_name'] = _user['name']
             comment_format['aut_photo'] = _user['photo']
             results.append(comment_format)
@@ -353,7 +353,7 @@ def _get_reply_from_db(comment_id, offset, limit):
 
             if not (offset is not None and comment.is_top):
                 # 获取用户信息
-                _user = cache_user.get_user(comment_format['aut_id'])
+                _user = cache_user.UserProfileCache(comment_format['aut_id']).get()
                 comment_format['aut_name'] = _user['name']
                 comment_format['aut_photo'] = _user['photo']
                 results.append(comment_format)

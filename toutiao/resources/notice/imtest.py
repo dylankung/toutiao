@@ -18,7 +18,7 @@ class IMTestResource(Resource):
         if 'f' == event:
             target = 5
             # 发送关注通知
-            _user = cache_user.get_user(user_id)
+            _user = cache_user.get_user_profile(user_id)
             _data = {
                 'user_id': user_id,
                 'user_name': _user['name'],
@@ -32,7 +32,7 @@ class IMTestResource(Resource):
         elif 'l' == event:
             target = 141428
             # 发送点赞通知
-            _user = cache_user.get_user(user_id)
+            _user = cache_user.get_user_profile(user_id)
             _article = cache_article.get_article_info(target)
             _data = {
                 'user_id': user_id,
@@ -48,7 +48,7 @@ class IMTestResource(Resource):
         elif 'c' == event:
             article_id = 141428
             # 发送评论通知
-            _user = cache_user.get_user(user_id)
+            _user = cache_user.get_user_profile(user_id)
             _article = cache_article.get_article_info(article_id)
             _data = {
                 'user_id': user_id,

@@ -1,13 +1,11 @@
 from flask_restful import Resource
 from flask import g, current_app
-from sqlalchemy.orm import load_only
 from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
 from sqlalchemy.exc import IntegrityError
 
 from utils.decorators import login_required
 from cache import user as cache_user
-from models.user import Relation
 from models.user import User, UserProfile
 from utils import parser
 from models import db
@@ -23,18 +21,20 @@ class UserResource(Resource):
         获取target用户的数据
         :param target: 目标用户id
         """
-        exist = cache_user.determine_user_exists(target)
-        if not exist:
+        cache = cache_user.UserProfileCache(target)
+        exists = cache.exists()
+        if not exists:
             return {'message': 'Invalid target user.'}, 400
 
-        user_data = cache_user.get_user(target)
+        user_data = cache.get()
 
         user_data['is_following'] = False
         if g.user_id:
             # Check if user has followed target user.
             # ret = Relation.query.options(load_only(Relation.id))\
             #     .filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW).first()
-            user_data['is_following'] = cache_user.determine_user_follows_target(g.user_id, target)
+            # user_data['is_following'] = cache_user.determine_user_follows_target(g.user_id, target)
+            user_data['is_following'] = cache_user.UserFollowingCache(g.user_id).determine_follows_target(target)
 
         user_data['id'] = target
         del user_data['mobile']
@@ -51,7 +51,7 @@ class CurrentUserResource(Resource):
         """
         获取当前用户自己的数据
         """
-        user_data = cache_user.get_user(g.user_id)
+        user_data = cache_user.UserProfileCache(g.user_id).get()
         user_data['id'] = g.user_id
         del user_data['mobile']
         return user_data
@@ -68,17 +68,15 @@ class ProfileResource(Resource):
         获取用户资料
         """
         user_id = g.user_id
-        user = cache_user.get_user(user_id)
+        user = cache_user.UserProfileCache(user_id).get()
         result = {
             'id': user_id,
             'name': user['name'],
             'photo': user['photo'],
             'mobile': user['mobile']
         }
-        profile = UserProfile.query.options(load_only(UserProfile.gender, UserProfile.birthday))\
-            .filter_by(id=user_id).first()
-        result['gender'] = profile.gender
-        result['birthday'] = profile.birthday.strftime('%Y-%m-%d') if profile.birthday else ''
+        # 补充性别生日等信息
+        result.update(cache_user.UserAdditionalProfileCache(user_id).get())
         return result
 
     def _gender(self, value):
@@ -117,6 +115,7 @@ class ProfileResource(Resource):
         new_user_values = {}
         new_profile_values = {}
         return_values = {'id': user_id}
+        need_delete_profilex = False
 
         if args.name:
             new_cache_values['name'] = args.name
@@ -136,10 +135,12 @@ class ProfileResource(Resource):
         if args.gender:
             new_profile_values['gender'] = args.gender
             return_values['gender'] = args.gender
+            need_delete_profilex = True
 
         if args.birthday:
             new_profile_values['birthday'] = args.birthday
             return_values['birthday'] = args.birthday.strftime('%Y-%m-%d')
+            need_delete_profilex = True
 
         if args.intro:
             new_cache_values['intro'] = args.intro
@@ -192,7 +193,10 @@ class ProfileResource(Resource):
 
         db.session.commit()
         if new_cache_values:
-            cache_user.update_user_profile(user_id, new_cache_values)
+            cache_user.UserProfileCache(user_id).update(new_cache_values)
+
+        if need_delete_profilex:
+            cache_user.UserAdditionalProfileCache(user_id).clear()
 
         return return_values, 201
 
@@ -262,6 +266,6 @@ class PhotoResource(Resource):
         db.session.commit()
 
         if new_cache_values:
-            cache_user.update_user_profile(user_id, new_cache_values)
+            cache_user.UserProfileCache(user_id).update(new_cache_values)
 
         return return_values, 201
