@@ -11,5 +11,5 @@ class ChannelListResource(Resource):
         """
         获取所有频道信息
         """
-        ret = cache_channel.get_all_channels()
+        ret = cache_channel.AllChannelsCache.get()
         return {'channels': ret}

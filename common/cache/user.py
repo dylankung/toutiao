@@ -542,7 +542,7 @@ class UserReadingHistoryStorage(object):
                 current_app.logger.error(e)
                 article_ids = current_app.redis_slave.zrevrange(self.key, (page - 1) * per_page, page * per_page - 1)
 
-        return article_ids
+        return total_count, article_ids
 
 
 def get_user_articles(user_id):

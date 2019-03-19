@@ -59,7 +59,7 @@ class ArticleLikingListResource(Resource):
                 db.session.commit()
 
         # 发送点赞通知
-        _user = cache_user.get_user_profile(g.user_id)
+        _user = cache_user.UserProfileCache(g.user_id).get()
         _article = cache_article.get_article_info(target)
         _data = {
             'user_id': g.user_id,

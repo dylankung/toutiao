@@ -70,12 +70,12 @@ class ArticleResource(Resource):
         if user_id:
             # 非匿名用户添加用户的阅读历史
             try:
-                cache_user.save_user_read_history(user_id, article_id)
+                cache_user.UserReadingHistoryStorage(user_id).save(article_id)
             except ConnectionError as e:
                 current_app.logger.error(e)
 
             # 查询关注
-            article['is_followed'] = cache_user.determine_user_follows_target(user_id, article['aut_id'])
+            article['is_followed'] = cache_user.UserFollowingCache(user_id).determine_follows_target(article['aut_id'])
 
             # 查询登录用户对文章的态度（点赞or不喜欢）
             ret = Attitude.query.options(load_only(Attitude.attitude))\
@@ -324,7 +324,7 @@ class UserArticleListResource(Resource):
         """
         获取user_id 用户的文章数据
         """
-        exist = cache_user.determine_user_exists(user_id)
+        exist = cache_user.UserProfileCache(user_id).exists()
         if not exist:
             return {'message': 'Invalid request.'}, 400
         qs_parser = RequestParser()
