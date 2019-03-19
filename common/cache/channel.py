@@ -12,7 +12,7 @@ class AllChannelsCache(object):
     """
     全部频道缓存
     """
-    key = 'ch:all:json'
+    key = 'ch:all'
 
     @classmethod
     def get(cls):
