@@ -31,20 +31,6 @@ class UserProfileCache(object):
         'read_count': fields.Integer(attribute='read_count'),
     }
 
-    user_fields_for_cache = {
-        'mobile': fields.String(attribute='mobile'),
-        'name': fields.String(attribute='name'),
-        'photo': fields.String(attribute='photo'),
-        'is_media': fields.Integer(attribute='is_media'),
-        'intro': fields.String(attribute='intro'),
-        'certi': fields.String(attribute='certi'),
-        'art_count': fields.Integer(attribute='art_count'),
-        'follow_count': fields.Integer(attribute='follow_count'),
-        'fans_count': fields.Integer(attribute='fans_count'),
-        'like_count': fields.Integer(attribute='like_count'),
-        'read_count': fields.Integer(attribute='read_count'),
-    }
-
     def __init__(self, user_id):
         self.key = 'user:{}:profile'.format(user_id)
         self.user_id = user_id
@@ -125,7 +111,19 @@ class UserProfileCache(object):
             ret = None
         if ret:
             # hit cache
-            user_data = marshal(ret, self.user_fields_for_cache)
+            user_data = {
+                    'mobile': ret[b'mobile'].decode(),
+                    'name': ret[b'name'].decode(),
+                    'photo': ret[b'photo'].decode(),
+                    'is_media': int(ret[b'is_media']),
+                    'intro': ret[b'intro'].decode(),
+                    'certi': ret[b'certi'].decode(),
+                    'art_count': int(ret[b'art_count']),
+                    'follow_count': int(ret[b'follow_count']),
+                    'fans_count': int(ret[b'fans_count']),
+                    'like_count': int(ret[b'like_count']),
+                    'read_count': int(ret[b'read_count']),
+                }
         else:
             user_data = self.save(force=True)
 
