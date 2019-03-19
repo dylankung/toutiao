@@ -5,7 +5,7 @@ from flask import g, current_app
 from flask_restful import inputs
 import time
 
-from utils.decorators import login_required
+from utils.decorators import login_required, set_db_to_read, set_db_to_write
 from models.user import Relation, User
 from utils import parser
 from models import db
@@ -17,7 +17,10 @@ class FollowingListResource(Resource):
     """
     关注用户
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'post': [set_db_to_write, login_required],
+        'get': [set_db_to_read, login_required],
+    }
 
     def post(self):
         """
@@ -98,7 +101,7 @@ class FollowingResource(Resource):
     """
     关注用户
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def delete(self, target):
         """
@@ -122,7 +125,7 @@ class FollowerListResource(Resource):
     """
     跟随用户列表（粉丝列表）
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_read, login_required]
 
     def get(self):
         """

@@ -14,6 +14,7 @@ from models.user import User, UserProfile
 from utils.jwt_util import generate_jwt
 from cache import user as cache_user
 from utils.limiter import limiter as lmt
+from utils.decorators import set_db_to_read, set_db_to_write
 
 
 class SMSVerificationCodeResource(Resource):
@@ -42,6 +43,10 @@ class AuthorizationResource(Resource):
     """
     认证
     """
+    method_decorators = {
+        'post': [set_db_to_write],
+        'put': [set_db_to_read]
+    }
 
     def _generate_tokens(self, user_id, with_refresh_token=True):
         """

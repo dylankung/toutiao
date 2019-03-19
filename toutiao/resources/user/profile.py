@@ -10,12 +10,18 @@ from models.user import User, UserProfile
 from utils import parser
 from models import db
 from utils.storage import upload_image
+from utils.decorators import set_db_to_write, set_db_to_read
 
 
 class UserResource(Resource):
     """
     用户数据资源
     """
+
+    method_decorators = {
+        'get': [set_db_to_read],
+    }
+
     def get(self, target):
         """
         获取target用户的数据
@@ -45,7 +51,7 @@ class CurrentUserResource(Resource):
     """
     用户自己的数据
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_read, login_required]
 
     def get(self):
         """
@@ -61,7 +67,10 @@ class ProfileResource(Resource):
     """
     用户资料
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'get': [set_db_to_read, login_required],
+        'patch': [set_db_to_write, login_required],
+    }
 
     def get(self):
         """
@@ -205,7 +214,7 @@ class PhotoResource(Resource):
     """
     用户图像 （头像，身份证）
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def patch(self):
         file_parser = RequestParser()
