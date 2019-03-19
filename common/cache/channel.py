@@ -1,6 +1,5 @@
 import json
 from sqlalchemy.orm import load_only, contains_eager
-from flask_restful import marshal
 from flask import current_app
 from redis.exceptions import RedisError
 
@@ -99,8 +98,11 @@ class UserDefaultChannelsCache(object):
         if not channels:
             return results
 
-        for channel in channels:
-            results.append(marshal(channel, channel_fields))
+        for ch in channels:
+            results.append({
+                'id': ch.channel_id,
+                'name': ch.name
+            })
 
         # 设置缓存
         try:
