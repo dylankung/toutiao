@@ -26,11 +26,7 @@ def login_required(func):
             user_enable = cache_user.UserStatusCache(g.user_id).get()
             if not user_enable:
                 return {'message': 'User denied.'}, 403
-            # 设置或更新用户缓存
-            try:
-                cache_user.UserProfileCache(g.user_id).save()
-            except SQLAlchemyError as e:
-                current_app.logger.error(e)
+
             return func(*args, **kwargs)
 
     return wrapper
@@ -50,11 +46,7 @@ def validate_token_if_using(func):
                 user_enable = cache_user.UserStatusCache(g.user_id).get()
                 if not user_enable:
                     return {'message': 'User denied.'}, 403
-                # 设置或更新用户缓存
-                try:
-                    cache_user.UserProfileCache(g.user_id).save()
-                except SQLAlchemyError as e:
-                    current_app.logger.error(e)
+
             return func(*args, **kwargs)
 
     return wrapper
@@ -79,11 +71,6 @@ def verify_required(func):
             if not user_enable:
                 return {'message': 'User denied.'}, 403
 
-            # 设置或更新用户缓存
-            try:
-                cache_user.UserProfileCache(g.user_id).save()
-            except SQLAlchemyError as e:
-                current_app.logger.error(e)
             return func(*args, **kwargs)
 
     return wrapper

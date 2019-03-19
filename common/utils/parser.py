@@ -133,7 +133,7 @@ def channel_id(value):
             # Recommendation channel
             return _channel_id
         else:
-            ret = cache_channel.determine_channel_exists(_channel_id)
+            ret = cache_channel.AllChannelsCache.exists(_channel_id)
             if ret:
                 return _channel_id
             else:
