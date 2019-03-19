@@ -38,20 +38,12 @@ class ReadingHistoryListResource(Resource):
 
         user_id = g.user_id
 
-        r = current_app.redis_master
-        key = 'user:{}:his'.format(user_id)
-        total_count = r.zcard(key)
         results = []
-        if total_count > 0 and (page - 1) * per_page < total_count:
-            try:
-                article_ids = r.zrevrange(key, (page-1)*per_page, page*per_page-1)
-            except ConnectionError as e:
-                current_app.logger.error(e)
-                article_ids = current_app.redis_slave.zrevrange(key, (page-1)*per_page, page*per_page-1)
+        total_count, article_ids = cache_user.UserReadingHistoryStorage(user_id).get(page, per_page)
 
-            for article_id in article_ids:
-                article = cache_article.get_article_info(int(article_id))
-                results.append(article)
+        for article_id in article_ids:
+            article = cache_article.get_article_info(int(article_id))
+            results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
