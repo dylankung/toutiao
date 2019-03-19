@@ -58,7 +58,7 @@ class AllChannelsCache(object):
         :return: bool
         """
         chs = cls.get()
-        for ch in json.loads(chs):
+        for ch in chs:
             if channel_id == ch['id']:
                 return True
         return False
