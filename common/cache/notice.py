@@ -38,18 +38,19 @@ def get_announcements_by_page(page, per_page):
             .order_by(Announcement.pubtime.desc()).all()
 
         results = []
-        cache = {}
+        cache = []
         for announcement in ret:
             _announcement = dict(
                 pubdate=announcement.pubtime.strftime('%Y-%m-%dT%H:%M:%S'),
                 title=announcement.title
             )
-            cache[pickle.dumps(_announcement)] = announcement.id
+            cache.append(announcement.id)
+            cache.append(pickle.dumps(_announcement))
             _announcement['id'] = announcement.id
             results.append(_announcement)
 
         if cache:
-            r.zadd(key, **cache)
+            r.zadd(key, *cache)
 
         total_count = len(results)
         page_results = results[(page - 1) * per_page:page * per_page]
