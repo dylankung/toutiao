@@ -122,7 +122,7 @@ def get_article_info(article_id):
         article_formatted['cover'] = article.cover
 
     # 获取作者名
-    author = cache_user.get_user(article_formatted['aut_id'])
+    author = cache_user.UserProfileCache(article_formatted['aut_id']).get()
     article_formatted['aut_name'] = author['name']
 
     return article_formatted
@@ -168,7 +168,7 @@ def get_article_detail(article_id):
         except RedisError:
             pass
 
-    user = cache_user.get_user(article_dict['aut_id'])
+    user = cache_user.UserProfileCache(article_dict['aut_id']).get()
 
     article_dict['aut_name'] = user['name']
     article_dict['aut_photo'] = user['photo']

@@ -4,7 +4,6 @@ from flask import request, current_app, g
 from flask_restful.reqparse import RequestParser
 import random
 from datetime import datetime, timedelta
-from sqlalchemy.orm import load_only
 from redis.exceptions import ConnectionError
 
 from celery_tasks.sms.tasks import send_verification_code
@@ -90,7 +89,7 @@ class AuthorizationResource(Resource):
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
-        user = User.query.options(load_only(User.id, User.status)).filter_by(mobile=mobile).first()
+        user = User.query.filter_by(mobile=mobile).first()
 
         if user is None:
             # 用户不存在，注册用户
@@ -102,14 +101,14 @@ class AuthorizationResource(Resource):
             db.session.commit()
         else:
             if user.status == User.STATUS.DISABLE:
-                cache_user.save_user_status(user.id, user.status)
+                cache_user.UserStatusCache(user.id).save(user.status)
                 return {'message': 'Invalid user.'}, 403
 
         token, refresh_token = self._generate_tokens(user.id)
 
         # 缓存用户信息
-        cache_user.save_user_profile(user.id, user)
-        cache_user.save_user_status(user.id, User.STATUS.ENABLE)
+        cache_user.UserProfileCache(user.id).save()
+        cache_user.UserStatusCache(user.id).save(User.STATUS.ENABLE)
         return {'token': token, 'refresh_token': refresh_token}, 201
 
     def put(self):
@@ -120,7 +119,7 @@ class AuthorizationResource(Resource):
         if user_id and g.is_refresh_token:
 
             # 判断用户状态
-            user_enable = cache_user.get_user_status(g.user_id)
+            user_enable = cache_user.UserStatusCache(g.user_id).get()
             if not user_enable:
                 return {'message': 'User denied.'}, 403
 

@@ -67,7 +67,7 @@ def user_id(value):
         if _user_id <= 0:
             raise ValueError('Invalid target user id.')
         else:
-            ret = cache_user.determine_user_exists(_user_id)
+            ret = cache_user.UserProfileCache(_user_id).exists()
             if ret:
                 return _user_id
             else:

@@ -3,300 +3,546 @@ import time
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
 from flask_restful import marshal, fields
-import random
+import json
+from redis.exceptions import RedisError, ConnectionError
+from sqlalchemy.exc import SQLAlchemyError
 
-from models.user import User, Relation
+from models.user import User, Relation, UserProfile
 from models.news import Article
 from models import db
 from . import constants
 
 
-user_fields_db = {
-    'mobile': fields.String(attribute='mobile'),
-    'name': fields.String(attribute='name'),
-    'photo': fields.String(attribute='profile_photo'),
-    'is_media': fields.Integer(attribute='is_media'),
-    'intro': fields.String(attribute='introduction'),
-    'certi': fields.String(attribute='certificate'),
-    'art_count': fields.Integer(attribute='article_count'),
-    'follow_count': fields.Integer(attribute='following_count'),
-    'fans_count': fields.Integer(attribute='fans_count'),
-    'like_count': fields.Integer(attribute='like_count'),
-    'read_count': fields.Integer(attribute='read_count'),
-}
-
-
-user_fields_cache = {
-    'mobile': fields.String(attribute='mobile'),
-    'name': fields.String(attribute='name'),
-    'photo': fields.String(attribute='photo'),
-    'is_media': fields.Integer(attribute='is_media'),
-    'intro': fields.String(attribute='intro'),
-    'certi': fields.String(attribute='certi'),
-    'art_count': fields.Integer(attribute='art_count'),
-    'follow_count': fields.Integer(attribute='follow_count'),
-    'fans_count': fields.Integer(attribute='fans_count'),
-    'like_count': fields.Integer(attribute='like_count'),
-    'read_count': fields.Integer(attribute='read_count'),
-}
-
-
-def _generate_user_cache_data(user_id, user=None):
+class UserProfileCache(object):
     """
-    从数据库查询用户数据
-    :param user_id: 用户id
-    :param user: 已存在的用户数据
-    :return:
+    用户信息缓存
     """
-    if user is None:
-        user = User.query.options(load_only(User.name,
-                                            User.mobile,
-                                            User.profile_photo,
-                                            User.is_media,
-                                            User.introduction,
-                                            User.certificate,
-                                            User.article_count,
-                                            User.following_count,
-                                            User.fans_count,
-                                            User.like_count,
-                                            User.read_count)) \
-            .filter_by(id=user_id).first()
-    user.profile_photo = user.profile_photo or ''
-    user.introduction = user.introduction or ''
-    user.certificate = user.certificate or ''
-    user_data = marshal(user, user_fields_db)
-    return user_data
+    user_fields_for_db = {
+        'mobile': fields.String(attribute='mobile'),
+        'name': fields.String(attribute='name'),
+        'photo': fields.String(attribute='profile_photo'),
+        'is_media': fields.Integer(attribute='is_media'),
+        'intro': fields.String(attribute='introduction'),
+        'certi': fields.String(attribute='certificate'),
+        'art_count': fields.Integer(attribute='article_count'),
+        'follow_count': fields.Integer(attribute='following_count'),
+        'fans_count': fields.Integer(attribute='fans_count'),
+        'like_count': fields.Integer(attribute='like_count'),
+        'read_count': fields.Integer(attribute='read_count'),
+    }
 
+    user_fields_for_cache = {
+        'mobile': fields.String(attribute='mobile'),
+        'name': fields.String(attribute='name'),
+        'photo': fields.String(attribute='photo'),
+        'is_media': fields.Integer(attribute='is_media'),
+        'intro': fields.String(attribute='intro'),
+        'certi': fields.String(attribute='certi'),
+        'art_count': fields.Integer(attribute='art_count'),
+        'follow_count': fields.Integer(attribute='follow_count'),
+        'fans_count': fields.Integer(attribute='fans_count'),
+        'like_count': fields.Integer(attribute='like_count'),
+        'read_count': fields.Integer(attribute='read_count'),
+    }
 
-def save_user_profile(user_id, user=None):
-    """
-    设置用户数据缓存
-    """
-    rc = current_app.redis_cluster
-    key = 'user:{}:profile'.format(user_id)
+    def __init__(self, user_id):
+        self.key = 'user:{}:profile'.format(user_id)
+        self.user_id = user_id
 
-    exists = rc.exists(key)
-    if not exists:
-        # This user cache data did not exist previously.
-        user_data = _generate_user_cache_data(user_id, user)
-        pl = rc.pipeline()
-        pl.hmset(key, user_data)
-        pl.expire(key, constants.USER_PROFILE_CACHE_TTL + random.randint(0, 300))
-        results = pl.execute()
-        # 有效期设置失败
-        if results[0] and not results[1]:
-            rc.delete(key)
+    def _generate_user_profile_cache(self, user=None):
+        """
+        从数据库查询用户数据
+        :param user: 已存在的用户数据
+        :return:
+        """
+        if user is None:
+            user = User.query.options(load_only(User.name,
+                                                User.mobile,
+                                                User.profile_photo,
+                                                User.is_media,
+                                                User.introduction,
+                                                User.certificate,
+                                                User.article_count,
+                                                User.following_count,
+                                                User.fans_count,
+                                                User.like_count,
+                                                User.read_count)) \
+                .filter_by(id=self.user_id).first()
+        user.profile_photo = user.profile_photo or ''
+        user.introduction = user.introduction or ''
+        user.certificate = user.certificate or ''
+        user_data = marshal(user, self.user_fields_for_db)
+        return user_data
 
+    def save(self, user=None, force=False):
+        """
+        设置用户数据缓存
+        """
+        rc = current_app.redis_cluster
 
-def save_user_status(user_id, status):
-    """
-    设置用户状态缓存
-    :param user_id:
-    :param status:
-    """
-    key = 'user:{}:status'.format(user_id)
-    current_app.redis_cluster.setex(key, constants.USER_STATUS_CACHE_TTL + random.randint(0, 300), status)
-
-
-def get_user_status(user_id):
-    """
-    获取用户状态
-    :param user_id:
-    :return:
-    """
-    key = 'user:{}:status'.format(user_id)
-    rc = current_app.redis_cluster
-
-    status = rc.get(key)
-    if status is not None:
-        return status
-    else:
-        user = User.query.options(load_only(User.status)).filter_by(id=user_id).first()
-        if user:
-            save_user_status(user_id, user.status)
-            return user.status
+        if force:
+            exists = False
         else:
+            try:
+                exists = rc.hexists(self.key, 'mobile')
+            except RedisError as e:
+                current_app.logger.error(e)
+                exists = False
+
+        if not exists:
+            # This user cache data did not exist previously.
+            user_data = self._generate_user_profile_cache(user)
+
+            # 补充exists字段，为防止缓存击穿使用
+            # 参考下面determine_user_exists方法说明
+            user_data['exists'] = 1
+
+            try:
+                pl = rc.pipeline()
+                pl.hmset(self.key, user_data)
+                pl.expire(self.key, constants.UserProfileCacheTTL.get_val())
+                results = pl.execute()
+            except RedisError as e:
+                current_app.logger.error(e)
+            else:
+                # 有效期设置失败
+                if results[0] and not results[1]:
+                    rc.delete(self.key)
+
+            return user_data
+
+    def get(self):
+        """
+        获取用户数据
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.hgetall(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+        if ret:
+            # hit cache
+            user_data = marshal(ret, self.user_fields_for_cache)
+        else:
+            user_data = self.save(force=True)
+
+        if not user_data['photo']:
+            user_data['photo'] = constants.DEFAULT_USER_PROFILE_PHOTO
+        user_data['photo'] = current_app.config['QINIU_DOMAIN'] + user_data['photo']
+        return user_data
+
+    def update(self, profile):
+        """
+        更新用户资料
+        :param profile: dict
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        # 此处使用ttl是看还有多长时间过期，如果有效期剩余过小，更新无意义
+        try:
+            ttl = rc.ttl(self.key)
+            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_CACHE_TTL_LIMIT:
+                rc.hmset(self.key, profile)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+    def exists(self):
+        """
+        判断用户是否存在
+        :return: bool
+        """
+        rc = current_app.redis_cluster
+
+        # 此处可使用的键有三种选择 user:{}:profile 或 user:{}:status 或 新建
+        # status主要为当前登录用户，而profile不仅仅是登录用户，覆盖范围更大，所以使用profile
+        try:
+            exists = rc.hget(self.key, 'exists')
+        except RedisError as e:
+            current_app.logger.error(e)
+            exists = None
+
+        if exists is not None:
+            exists = int(exists)
+
+        if exists == 1:
+            return True
+        elif exists == 0:
             return False
-
-
-def determine_user_exists(user_id):
-    """
-    判断用户是否存在
-    :param user_id: 用户id
-    :return: bool
-    """
-    r = current_app.redis_cli['user_cache']
-    ret = r.exists('user:{}'.format(user_id))
-    if ret > 0:
-        return True
-    else:
-        ret = db.session.query(func.count(User.id)).filter_by(id=user_id).first()
-        return True if ret[0] > 0 else False
-
-
-def get_user(user_id):
-    """
-    获取用户数据
-    :param user_id: 用户id
-    :return:
-    """
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
-
-    ret = r.hgetall('user:{}'.format(user_id))
-    if ret:
-        # hit cache
-        r.zadd('user', timestamp, user_id)
-        user_data = marshal(ret, user_fields_cache)
-    else:
-        user_data = _generate_user_cache_data(user_id)
-        pl = r.pipeline()
-        pl.zadd('user', timestamp, user_id)
-        pl.hmset('user:{}'.format(user_id), user_data)
-        pl.execute()
-
-    if not user_data['photo']:
-        user_data['photo'] = constants.DEFAULT_USER_PROFILE_PHOTO
-    user_data['photo'] = current_app.config['QINIU_DOMAIN'] + user_data['photo']
-    return user_data
-
-
-def update_user_following(user_id, target_user_id, increment=1):
-    """
-    更新用户的关注缓存数据
-    :param user_id: 操作用户
-    :param target_user_id: 被关注的目标用户
-    :param increment: 增量
-    :return:
-    """
-    User.query.filter_by(id=target_user_id).update({'fans_count': User.fans_count + increment})
-    User.query.filter_by(id=user_id).update({'following_count': User.following_count + increment})
-    db.session.commit()
-
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
-
-    pl = r.pipeline()
-
-    # Update user following count
-    key = 'user:{}'.format(user_id)
-    exist = r.exists(key)
-    if exist:
-        pl.hincrby(key, 'follow_count', increment)
-
-    # Update user following user id list
-    key = 'user:{}:following'.format(user_id)
-    exist = r.exists(key)
-    if exist:
-        if increment > 0:
-            pl.zadd(key, timestamp, target_user_id)
         else:
-            pl.zrem(key, target_user_id)
+            # 缓存中未查到
+            ret = db.session.query(func.count(User.id)).filter_by(id=self.user_id).first()
+            if ret[0] > 0:
+                try:
+                    self.save()
+                except SQLAlchemyError as e:
+                    current_app.logger.error(e)
+            else:
+                try:
+                    pl = rc.pipeline()
+                    pl.hset(self.key, 'exists', 0)
+                    pl.expire(self.key, constants.UserNotExistsCacheTTL.get_val())
+                    results = pl.execute()
+                    if results[0] and not results[1]:
+                        pl.delete(self.key)
+                except RedisError as e:
+                    current_app.logger.error(e)
+            return bool(ret[0])
 
-    # Update target user followers(fans) count
-    key = 'user:{}'.format(target_user_id)
-    exist = r.exists(key)
-    if exist:
-        pl.hincrby(key, 'fans_count', increment)
+    def update_follow_count(self, increment):
+        """
+        更新关注数
+        :param increment:
+        :return:
+        """
+        rc = current_app.redis_cluster
+        try:
+            ttl = rc.ttl(self.key)
+            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_STATISTIC_CACHE_TTL_LIMIT:
+                rc.hincrby(self.key, 'follow_count', increment)
+        except RedisError as e:
+            current_app.logger.error(e)
 
-    # Update target user followers(fans) user id list
-    key = 'user:{}:fans'.format(target_user_id)
-    exist = r.exists(key)
-    if exist:
-        if increment > 0:
-            pl.zadd(key, timestamp, user_id)
+    def get_follow_count(self):
+        """
+        获取关注数
+        :return:
+        """
+        rc = current_app.redis_cluster
+        try:
+            ret = rc.hget(self.key, 'follow_count')
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+        if ret is not None:
+            ret = int(ret)
+        return ret
+
+    def update_fans_count(self, increment):
+        """
+        更新粉丝数
+        :param increment:
+        :return:
+        """
+        rc = current_app.redis_cluster
+        try:
+            ttl = rc.ttl(self.key)
+            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_STATISTIC_CACHE_TTL_LIMIT:
+                rc.hincrby(self.key, 'fans_count', increment)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+    def get_fans_count(self):
+        """
+        获取粉丝数
+        """
+        rc = current_app.redis_cluster
+        try:
+            ret = rc.hget(self.key, 'fans_count')
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+        if ret is not None:
+            ret = int(ret)
+        return ret
+
+
+class UserStatusCache(object):
+    """
+    用户状态缓存
+    """
+    def __init__(self, user_id):
+        self.key = 'user:{}:status'.format(user_id)
+        self.user_id = user_id
+
+    def save(self, status):
+        """
+        设置用户状态缓存
+        :param status:
+        """
+        try:
+            current_app.redis_cluster.setex(self.key, constants.UserStatusCacheTTL.get_val(), status)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+    def get(self):
+        """
+        获取用户状态
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            status = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            status = None
+
+        if status is not None:
+            return status
         else:
-            pl.zrem(key, user_id)
+            user = User.query.options(load_only(User.status)).filter_by(id=self.user_id).first()
+            if user:
+                self.save(user.status)
+                return user.status
+            else:
+                return False
 
-    pl.execute()
 
-
-def get_user_followings(user_id):
+class UserAdditionalProfileCache(object):
     """
-    获取用户的关注列表
-    :param user_id:
-    :return:
+    用户附加资料缓存（如性别、生日等）
     """
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
+    def __init__(self, user_id):
+        self.key = 'user:{}:profilex'.format(user_id)
+        self.user_id = user_id
 
-    ret = r.zrevrange('user:{}:following'.format(user_id), 0, -1)
-    if ret:
-        r.zadd('user:following', timestamp, user_id)
-        # In order to be consistent with db data type.
-        return [int(uid) for uid in ret]
+    def get(self):
+        """
+        获取用户的附加资料（如性别、生日等）
+        :return:
+        """
+        rc = current_app.redis_cluster
 
-    ret = r.hget('user:{}'.format(user_id), 'follow_count')
-    if ret is not None and int(ret) == 0:
-        return []
+        try:
+            ret = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
 
-    ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime))\
-        .filter_by(user_id=user_id, relation=Relation.RELATION.FOLLOW)\
-        .order_by(Relation.utime.desc()).all()
+        if ret:
+            return json.loads(ret)
+        else:
+            profile = UserProfile.query.options(load_only(UserProfile.gender, UserProfile.birthday)) \
+                .filter_by(id=self.user_id).first()
+            profile_dict = {
+                'gender': profile.gender,
+                'birthday': profile.birthday.strftime('%Y-%m-%d') if profile.birthday else ''
+            }
+            try:
+                rc.setex(self.key, constants.UserAdditionalProfileCacheTTL.get_val(), json.dumps(profile_dict))
+            except RedisError as e:
+                current_app.logger.error(e)
+            return profile_dict
 
-    followings = []
-    cache = {}
-    for relation in ret:
-        followings.append(relation.target_user_id)
-        cache[relation.target_user_id] = relation.utime.timestamp()
-
-    if cache:
-        pl = r.pipeline()
-        pl.zadd('user:following', timestamp, user_id)
-        pl.zadd('user:{}:following'.format(user_id), **cache)
-        pl.execute()
-
-    return followings
+    def clear(self):
+        """
+        清除用户的附加资料
+        :return:
+        """
+        try:
+            current_app.redis_cluster.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
 
 
-def determine_user_follows_target(user_id, target_user_id):
+class UserFollowingCache(object):
     """
-    判断用户是否关注了目标用户
-    :param user_id:
-    :param target_user_id: 被关注的用户id
-    :return:
+    用户关注缓存数据
     """
-    followings = get_user_followings(user_id)
+    def __init__(self, user_id):
+        self.key = 'user:{}:following'.format(user_id)
+        self.user_id = user_id
 
-    return int(target_user_id) in followings
+    def get(self):
+        """
+        获取用户的关注列表
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.zrevrange(self.key, 0, -1)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret:
+            # In order to be consistent with db data type.
+            return [int(uid) for uid in ret]
+
+        # 为了防止缓存击穿，先尝试从缓存中判断关注数是否为0，若为0不再查询数据库
+        ret = UserProfileCache(self.user_id).get_follow_count()
+        if ret == 0:
+            return []
+
+        ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime)) \
+            .filter_by(user_id=self.user_id, relation=Relation.RELATION.FOLLOW) \
+            .order_by(Relation.utime.desc()).all()
+
+        followings = []
+        cache = {}
+        for relation in ret:
+            followings.append(relation.target_user_id)
+            cache[relation.target_user_id] = relation.utime.timestamp()
+
+        if cache:
+            try:
+                pl = rc.pipeline()
+                pl.zadd(self.key, **cache)
+                pl.expire(self.key, constants.UserFollowingsCacheTTL.get_val())
+                results = pl.execute()
+                if results[0] and not results[1]:
+                    rc.delete(self.key)
+            except RedisError as e:
+                current_app.logger.error(e)
+
+        return followings
+
+    def determine_follows_target(self, target_user_id):
+        """
+        判断用户是否关注了目标用户
+        :param target_user_id: 被关注的用户id
+        :return:
+        """
+        followings = self.get()
+
+        return int(target_user_id) in followings
+
+    def update(self, target_user_id, timestamp, increment=1):
+        """
+        更新用户的关注缓存数据
+        :param target_user_id: 被关注的目标用户
+        :param timestamp: 关注时间戳
+        :param increment: 增量
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        # Update user following count
+        UserProfileCache(self.user_id).update_follow_count(increment)
+
+        # Update user following user id list
+        try:
+            ttl = rc.ttl(self.key)
+            if ttl > constants.ALLOW_UPDATE_FOLLOW_CACHE_TTL_LIMIT:
+                if increment > 0:
+                    rc.zadd(self.key, timestamp, target_user_id)
+                else:
+                    rc.zrem(self.key, target_user_id)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+        # Update target user followers(fans) count
+        UserProfileCache(target_user_id).update_fans_count(increment)
+
+        # Update target user followers(fans) user id list
+        UserFollowersCache(target_user_id).update(self.user_id, timestamp, increment)
 
 
-def get_user_followers(user_id):
+class UserFollowersCache(object):
     """
-    获取用户的粉丝列表
-    :param user_id:
-    :return:
+    用户粉丝缓存
     """
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
+    def __init__(self, user_id):
+        self.key = 'user:{}:fans'.format(user_id)
+        self.user_id = user_id
 
-    ret = r.zrevrange('user:{}:fans'.format(user_id), 0, -1)
-    if ret:
-        r.zadd('user:fans', timestamp, user_id)
-        # In order to be consistent with db data type.
-        return [int(uid) for uid in ret]
+    def get(self):
+        """
+        获取用户的粉丝列表
+        :return:
+        """
+        rc = current_app.redis_cluster
 
-    ret = r.hget('user:{}'.format(user_id), 'fans_count')
-    if ret is not None and int(ret) == 0:
-        return []
+        try:
+            ret = rc.zrevrange(self.key, 0, -1)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
 
-    ret = Relation.query.options(load_only(Relation.user_id, Relation.utime))\
-        .filter_by(target_user_id=user_id, relation=Relation.RELATION.FOLLOW)\
-        .order_by(Relation.utime.desc()).all()
+        if ret:
+            # In order to be consistent with db data type.
+            return [int(uid) for uid in ret]
 
-    followers = []
-    cache = {}
-    for relation in ret:
-        followers.append(relation.user_id)
-        cache[relation.user_id] = relation.utime.timestamp()
+        ret = UserProfileCache(self.user_id).get_fans_count()
+        if ret == 0:
+            return []
 
-    if cache:
-        pl = r.pipeline()
-        pl.zadd('user:fans', timestamp, user_id)
-        pl.zadd('user:{}:fans'.format(user_id), **cache)
-        pl.execute()
+        ret = Relation.query.options(load_only(Relation.user_id, Relation.utime))\
+            .filter_by(target_user_id=self.user_id, relation=Relation.RELATION.FOLLOW)\
+            .order_by(Relation.utime.desc()).all()
 
-    return followers
+        followers = []
+        cache = {}
+        for relation in ret:
+            followers.append(relation.user_id)
+            cache[relation.user_id] = relation.utime.timestamp()
+
+        if cache:
+            try:
+                pl = rc.pipeline()
+                pl.zadd(self.key, **cache)
+                pl.expire(self.key, constants.UserFansCacheTTL.get_val())
+                results = pl.execute()
+                if results[0] and not results[1]:
+                    rc.delete(self.key)
+            except RedisError as e:
+                current_app.logger.error(e)
+
+        return followers
+
+    def update(self, target_user_id, timestamp, increment=1):
+        """
+        更新粉丝数缓存
+        """
+        rc = current_app.redis_cluster
+        try:
+            ttl = rc.ttl(self.key)
+            if ttl > constants.ALLOW_UPDATE_FOLLOW_CACHE_TTL_LIMIT:
+                if increment > 0:
+                    rc.zadd(self.key, timestamp, target_user_id)
+                else:
+                    rc.zrem(self.key, target_user_id)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+
+class UserReadingHistoryStorage(object):
+    """
+    用户阅读历史
+    """
+    def __init__(self, user_id):
+        self.key = 'user:{}:his'.format(user_id)
+        self.user_id = user_id
+
+    def save(self, article_id):
+        """
+        保存用户阅读历史
+        :param article_id: 文章id
+        :return:
+        """
+        try:
+            pl = current_app.redis_master.pipeline()
+            pl.zadd(self.key, time.time(), article_id)
+            pl.zremrangebyrank(self.key, 0, -1*(constants.READING_HISTORY_COUNT_PER_USER+1))
+            pl.execute()
+        except RedisError as e:
+            current_app.logger.error(e)
+
+    def get(self, page, per_page):
+        """
+        获取阅读历史
+        """
+        r = current_app.redis_master
+        try:
+            total_count = r.zcard(self.key)
+        except ConnectionError as e:
+            r = current_app.redis_slave
+            total_count = r.zcard(self.key)
+
+        article_ids = []
+        if total_count > 0 and (page - 1) * per_page < total_count:
+            try:
+                article_ids = r.zrevrange(self.key, (page - 1) * per_page, page * per_page - 1)
+            except ConnectionError as e:
+                current_app.logger.error(e)
+                article_ids = current_app.redis_slave.zrevrange(self.key, (page - 1) * per_page, page * per_page - 1)
+
+        return article_ids
 
 
 def get_user_articles(user_id):
@@ -433,32 +679,3 @@ def update_user_article_read_count(user_id):
         r.hincrby(key, 'read_count', 1)
 
 
-def update_user_profile(user_id, profile):
-    """
-    更新用户资料
-    :param user_id:
-    :param profile: dict
-    :return:
-    """
-    r = current_app.redis_cli['user_cache']
-
-    key = 'user:{}'.format(user_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hmset(key, profile)
-
-
-def save_user_read_history(user_id, article_id):
-    """
-    保存用户阅读历史
-    :param user_id:
-    :param article_id: 文章id
-    :return:
-    """
-    if user_id:
-        pl = current_app.redis_master.pipeline()
-        key = 'user:{}:his'.format(user_id)
-        pl.zadd(key, time.time(), article_id)
-        pl.zremrangebyrank(key, 0, -1*(constants.READING_HISTORY_COUNT_PER_USER+1))
-        pl.execute()

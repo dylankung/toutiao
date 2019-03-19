@@ -1,6 +1,7 @@
-from flask import g
+from flask import g, current_app
 from functools import wraps
 from sqlalchemy.orm import load_only
+from sqlalchemy.exc import SQLAlchemyError
 
 from cache import user as cache_user
 from cache.permission import get_group_permission_ids
@@ -22,11 +23,14 @@ def login_required(func):
             return {'message': 'Do not use refresh token.'}, 403
         else:
             # 判断用户状态
-            user_enable = cache_user.get_user_status(g.user_id)
+            user_enable = cache_user.UserStatusCache(g.user_id).get()
             if not user_enable:
                 return {'message': 'User denied.'}, 403
             # 设置或更新用户缓存
-            cache_user.save_user_profile(g.user_id)
+            try:
+                cache_user.UserProfileCache(g.user_id).save()
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
             return func(*args, **kwargs)
 
     return wrapper
@@ -43,11 +47,14 @@ def validate_token_if_using(func):
         else:
             if g.user_id:
                 # 判断用户状态
-                user_enable = cache_user.get_user_status(g.user_id)
+                user_enable = cache_user.UserStatusCache(g.user_id).get()
                 if not user_enable:
                     return {'message': 'User denied.'}, 403
                 # 设置或更新用户缓存
-                cache_user.save_user_profile(g.user_id)
+                try:
+                    cache_user.UserProfileCache(g.user_id).save()
+                except SQLAlchemyError as e:
+                    current_app.logger.error(e)
             return func(*args, **kwargs)
 
     return wrapper
@@ -68,12 +75,15 @@ def verify_required(func):
             return {'message': 'User must be real info verified.'}, 403
         else:
             # 判断用户状态
-            user_enable = cache_user.get_user_status(g.user_id)
+            user_enable = cache_user.UserStatusCache(g.user_id).get()
             if not user_enable:
                 return {'message': 'User denied.'}, 403
 
             # 设置或更新用户缓存
-            cache_user.save_user_profile(g.user_id)
+            try:
+                cache_user.UserProfileCache(g.user_id).save()
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
             return func(*args, **kwargs)
 
     return wrapper
