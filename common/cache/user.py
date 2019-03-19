@@ -372,15 +372,16 @@ class UserFollowingCache(object):
             .order_by(Relation.utime.desc()).all()
 
         followings = []
-        cache = {}
+        cache = []
         for relation in ret:
             followings.append(relation.target_user_id)
-            cache[relation.target_user_id] = relation.utime.timestamp()
+            cache.append(relation.utime.timestamp())
+            cache.append(relation.target_user_id)
 
         if cache:
             try:
                 pl = rc.pipeline()
-                pl.zadd(self.key, **cache)
+                pl.zadd(self.key, *cache)
                 pl.expire(self.key, constants.UserFollowingsCacheTTL.get_val())
                 results = pl.execute()
                 if results[0] and not results[1]:
@@ -465,15 +466,16 @@ class UserFollowersCache(object):
             .order_by(Relation.utime.desc()).all()
 
         followers = []
-        cache = {}
+        cache = []
         for relation in ret:
             followers.append(relation.user_id)
-            cache[relation.user_id] = relation.utime.timestamp()
+            cache.append(relation.utime.timestamp())
+            cache.append(relation.user_id)
 
         if cache:
             try:
                 pl = rc.pipeline()
-                pl.zadd(self.key, **cache)
+                pl.zadd(self.key, *cache)
                 pl.expire(self.key, constants.UserFansCacheTTL.get_val())
                 results = pl.execute()
                 if results[0] and not results[1]:
@@ -566,15 +568,16 @@ def get_user_articles(user_id):
         .order_by(Article.ctime.desc()).all()
 
     articles = []
-    cache = {}
+    cache = []
     for article in ret:
         articles.append(article.id)
-        cache[article.id] = article.ctime.timestamp()
+        cache.append(article.ctime.timestamp())
+        cache.append(article.id)
 
     if cache:
         pl = r.pipeline()
         pl.zadd('user:art', timestamp, user_id)
-        pl.zadd('user:{}:art'.format(user_id), **cache)
+        pl.zadd('user:{}:art'.format(user_id), *cache)
         pl.execute()
 
     return articles
@@ -613,15 +616,16 @@ def get_user_articles_by_page(user_id, page, per_page):
             .order_by(Article.ctime.desc()).all()
 
         articles = []
-        cache = {}
+        cache = []
         for article in ret:
             articles.append(article.id)
-            cache[article.id] = article.ctime.timestamp()
+            cache.append(article.ctime.timestamp())
+            cache.append(article.id)
 
         if cache:
             pl = r.pipeline()
             pl.zadd('user:art', timestamp, user_id)
-            pl.zadd(key, **cache)
+            pl.zadd(key, *cache)
             pl.execute()
 
         total_count = len(articles)
