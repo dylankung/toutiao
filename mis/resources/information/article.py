@@ -96,6 +96,7 @@ class ArticleListResource(Resource):
                                  required=True, location='json')
         args = json_parser.parse_args()
         articles = Article.query.filter(Article.id.in_(args.article_ids)).all()
+        need_kafka_send_msgs = []
         for article in articles:
             if args.status == Article.STATUS.BANNED:
                 # 封禁
@@ -112,6 +113,10 @@ class ArticleListResource(Resource):
                     return {'message': '"%s" 文章不是待审核状态, 不能通过审核' % article.title}, 403
                 article.review_time = datetime.now()
                 article.reviewer_id = g.administrator_id
+
+                # 记录需要kafka推送的消息
+                need_kafka_send_msgs.append('{},{}'.format(article.channel_id, article.id))
+
             elif args.status == Article.STATUS.FAILED:
                 # 审核失败(驳回)
                 if article.status != Article.STATUS.UNREVIEWED:
@@ -127,6 +132,10 @@ class ArticleListResource(Resource):
             article.status = args.status if args.status != 6 else Article.STATUS.APPROVED
             db.session.add(article)
         db.session.commit()
+
+        # 文章通过审核，kafka推送消息给推荐系统
+        for msg in need_kafka_send_msgs:
+            current_app.kafka_producer.send('new-article', msg.encode())
 
         return {'message': 'OK'}, 201
 
