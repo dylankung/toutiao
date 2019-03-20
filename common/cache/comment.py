@@ -78,7 +78,7 @@ def _get_comm_from_cache(article_id, offset, limit):
             comment_format = marshal(comment, comment_cache_fields)
 
             # 获取用户信息
-            _user = cache_user.get_user_profile(comment_format['aut_id'])
+            _user = cache_user.UserProfileCache(comment_format['aut_id']).get()
             comment_format['aut_name'] = _user['name']
             comment_format['aut_photo'] = _user['photo']
             results.append(comment_format)
