@@ -54,13 +54,13 @@ class ArticleResource(Resource):
         user_id = g.user_id
 
         # 查询文章数据
-        exist = cache_article.determine_article_exists(article_id)
+        exist = cache_article.ArticleInfoCache(article_id).exists()
         if not exist:
             abort(404, message='The article does not exist.')
 
-        article = cache_article.get_article_detail(article_id)
+        article = cache_article.ArticleDetailCache(article_id).get()
 
-        # 埋点
+        # 推荐系统所需埋点
         if args.Trace:
             write_trace_log(args.Trace, channel_id=article['ch_id'])
 
@@ -91,7 +91,7 @@ class ArticleResource(Resource):
         article['recomments'] = []
         similar_articles = self._feed_similar_articles(article_id)
         for _article_id in similar_articles:
-            _article = cache_article.get_article_info(_article_id)
+            _article = cache_article.ArticleInfoCache(_article_id).get()
             article['recomments'].append({
                 'art_id': _article['art_id'],
                 'title': _article['title']
@@ -198,9 +198,9 @@ class ArticleListResource(Resource):
 
         if page == 1:
             # 第一页
-            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            top_article_id_li = cache_article.ChannelTopArticlesStorage(channel_id).get()
             for article_id in top_article_id_li:
-                article = cache_article.get_article_info(article_id)
+                article = cache_article.ArticleInfoCache(article_id).get()
                 if article:
                     results.append(article)
 
@@ -212,7 +212,7 @@ class ArticleListResource(Resource):
         # 查询文章
         for feed in feeds:
             # self._generate_article_cover(article_id)
-            article = cache_article.get_article_info(feed.article_id)
+            article = cache_article.ArticleInfoCache(feed.article_id).get()
             if article:
                 article['trace'] = {
                     'click': feed.params.click,
@@ -290,9 +290,9 @@ class ArticleListResourceV1D1(Resource):
 
         if with_top:
             # 包含置顶
-            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            top_article_id_li = cache_article.ChannelTopArticlesStorage(channel_id).get()
             for article_id in top_article_id_li:
-                article = cache_article.get_article_info(article_id)
+                article = cache_article.ArticleInfoCache(article_id).get()
                 if article:
                     article['pubdate'] = now
                     results.append(article)
@@ -302,7 +302,7 @@ class ArticleListResourceV1D1(Resource):
 
         # 查询文章
         for feed in feeds:
-            article = cache_article.get_article_info(feed.article_id)
+            article = cache_article.ArticleInfoCache(feed.article_id).get()
             if article:
                 article['pubdate'] = feed_time
                 article['trace'] = {
@@ -344,7 +344,7 @@ class UserArticleListResource(Resource):
         total_count, page_articles = cache_user.get_user_articles_by_page(user_id, page, per_page)
 
         for article_id in page_articles:
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.ArticleInfoCache(article_id).get()
             if article:
                 results.append(article)
 
@@ -378,7 +378,7 @@ class CurrentUserArticleListResource(Resource):
         total_count, page_articles = cache_user.get_user_articles_by_page(g.user_id, page, per_page)
 
         for article_id in page_articles:
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.ArticleInfoCache(article_id).get()
             if article:
                 results.append(article)
 

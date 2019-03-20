@@ -80,7 +80,7 @@ class UserProfileCache(object):
             user_data = self._generate_user_profile_cache(user)
 
             # 补充exists字段，为防止缓存击穿使用
-            # 参考下面determine_user_exists方法说明
+            # 参考下面exists方法说明
             user_data['exists'] = 1
 
             try:

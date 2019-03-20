@@ -7,9 +7,6 @@ COMMENTS_CACHE_MAX_SCORE = 2e19
 # 默认用户头像
 DEFAULT_USER_PROFILE_PHOTO = 'Fkj6tQi3xJwVXi1u2swCElotfdCi'  # 程序猿
 
-# 文章数据缓存时间
-CACHE_ARTICLE_EXPIRE = 60 * 60
-
 # 阅读历史每人保存数目
 READING_HISTORY_COUNT_PER_USER = 100
 
@@ -101,3 +98,18 @@ class ArticleInfoCacheTTL(BaseCacheTTL):
     """
     TTL = 30 * 60
 
+
+class ArticleNotExistsCacheTTL(BaseCacheTTL):
+    """
+    文章不存在结果缓存
+    为解决缓存击穿，有效期不宜过长
+    """
+    TTL = 5 * 60
+    MAX_DELTA = 60
+
+
+class ArticleDetailCacheTTL(BaseCacheTTL):
+    """
+    文章详细内容缓存时间，秒
+    """
+    TTL = 60 * 60

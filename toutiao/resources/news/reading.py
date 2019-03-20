@@ -42,7 +42,7 @@ class ReadingHistoryListResource(Resource):
         total_count, article_ids = cache_user.UserReadingHistoryStorage(user_id).get(page, per_page)
 
         for article_id in article_ids:
-            article = cache_article.get_article_info(int(article_id))
+            article = cache_article.ArticleInfoCache(int(article_id)).get()
             results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
@@ -59,7 +59,7 @@ class ReadingDurationResource(Resource):
         req_parser.add_argument('art_id', type=parser.article_id, required=True, location='json')
         args = req_parser.parse_args()
 
-        article = cache_article.get_article_info(args.art_id)
+        article = cache_article.ArticleInfoCache(args.art_id).get()
         write_trace_log(args.Trace, args.duration, channel_id=article['ch_id'])
 
         return {'message': 'OK'}, 201

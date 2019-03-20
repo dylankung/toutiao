@@ -34,7 +34,7 @@ class CollectionListResource(Resource):
 
         # 记录埋点日志
         if args.Trace:
-            article = cache_article.get_article_info(target)
+            article = cache_article.ArticleInfoCache(target).get()
             write_trace_log(args.Trace, channel_id=article['ch_id'])
 
         ret = 1
@@ -75,7 +75,7 @@ class CollectionListResource(Resource):
                 .filter_by(user_id=g.user_id, is_deleted=False)\
                 .order_by(Collection.utime.desc()).offset((page-1)*per_page).limit(per_page).all()
             for collection in collections:
-                article = cache_article.get_article_info(collection.article_id)
+                article = cache_article.ArticleInfoCache(collection.article_id).get()
                 results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}

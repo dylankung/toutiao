@@ -88,7 +88,7 @@ def article_id(value):
         if _article_id <= 0:
             raise ValueError('Invalid target article id.')
         else:
-            ret = cache_article.determine_article_exists(_article_id)
+            ret = cache_article.ArticleInfoCache(_article_id).exists()
             if ret:
                 return _article_id
             else:

@@ -6,6 +6,7 @@ import time
 from sqlalchemy import func
 from flask import current_app
 from redis.exceptions import RedisError, ConnectionError
+from sqlalchemy.exc import SQLAlchemyError
 
 from models.news import Article, ArticleStatistic
 from models.user import User
@@ -14,7 +15,7 @@ from . import user as cache_user
 from . import constants
 
 
-# 无用
+# # 无用
 # article_info_fields_redis = {
 #     'title': fields.String(attribute=b'title'),
 #     'aut_id': fields.Integer(attribute=b'aut_id'),
@@ -26,10 +27,7 @@ from . import constants
 # }
 
 
-
-
-
-# 无用
+# # 无用
 # def get_channel_top_articles_count(channel_id):
 #     """
 #     获取指定频道的置顶文章的数量
@@ -40,56 +38,6 @@ from . import constants
 #
 #     ret = r.zcard('ch:{}:art:top'.format(channel_id))
 #     return ret
-
-
-
-
-def get_article_detail(article_id):
-    """
-    获取文章详情信息
-    :param article_id: 文章id
-    :return:
-    """
-    # 查询文章数据
-    r = current_app.redis_cli['art_cache']
-    article_bytes = r.get('art:{}:detail'.format(article_id))
-    if article_bytes:
-        # 使用缓存
-        article_dict = pickle.loads(article_bytes)
-    else:
-        # 查询数据库
-        article = Article.query.options(load_only(
-            Article.id,
-            Article.user_id,
-            Article.title,
-            Article.is_advertising,
-            Article.ctime,
-            Article.channel_id
-        )).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
-
-        article_fields = {
-            'art_id': fields.Integer(attribute='id'),
-            'title': fields.String(attribute='title'),
-            'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
-            'content': fields.String(attribute='content.content'),
-            'aut_id': fields.Integer(attribute='user_id'),
-            'ch_id': fields.Integer(attribute='channel_id'),
-        }
-        article_dict = marshal(article, article_fields)
-
-        # 缓存
-        article_cache = pickle.dumps(article_dict)
-        try:
-            r.setex('art:{}:detail'.format(article_id), constants.CACHE_ARTICLE_EXPIRE, article_cache)
-        except RedisError:
-            pass
-
-    user = cache_user.UserProfileCache(article_dict['aut_id']).get()
-
-    article_dict['aut_name'] = user['name']
-    article_dict['aut_photo'] = user['photo']
-
-    return article_dict
 
 
 def update_article_comment_count(article_id, increment=1):
@@ -129,13 +77,60 @@ class ArticleInfoCache(object):
         self.key = 'art:{}:info'.format(article_id)
         self.article_id = article_id
 
+    def save(self):
+        """
+        保存文章缓存
+        """
+        rc = current_app.redis_cluster
+
+        article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
+                                                  Article.cover, Article.ctime, Article.comment_count),
+                                        joinedload(Article.statistic, innerjoin=True).load_only(
+                                            ArticleStatistic.like_count,
+                                            ArticleStatistic.collect_count)) \
+            .filter_by(id=self.article_id, status=Article.STATUS.APPROVED).first()
+        if article is None:
+            return
+
+        article_formatted = marshal(article, self.article_info_fields_db)
+
+        # 判断是否置顶
+        try:
+            article_formatted['is_top'] = ChannelTopArticlesStorage(article.channel_id).exists(self.article_id)
+        except RedisError as e:
+            current_app.logger.error(e)
+            article_formatted['is_top'] = 0
+
+        # 设置缓存
+        article_formatted['cover'] = json.dumps(article.cover)
+
+        # 补充exists字段，为防止缓存击穿使用
+        # 参考下面exists方法说明
+        article_formatted['exists'] = 1
+
+        try:
+            pl = rc.pipeline()
+            pl.hmset(self.key, article_formatted)
+            pl.expire(self.key, constants.ArticleInfoCacheTTL.get_val())
+            results = pl.execute()
+            if results[0] and not results[1]:
+                rc.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+        finally:
+            del article_formatted['exists']
+
+        article_formatted['art_id'] = self.article_id
+        article_formatted['cover'] = article.cover
+
+        return article_formatted
+
     def get(self):
         """
         获取文章
         :return: {}
         """
         rc = current_app.redis_cluster
-        timestamp = time.time()
 
         # 从缓存中查询
         # TODO 后续可能只获取几个指定字段
@@ -162,45 +157,56 @@ class ArticleInfoCache(object):
                 ch_id=int(article[b'ch_id'])
             )
         else:
-            article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
-                                                      Article.cover, Article.ctime, Article.comment_count),
-                                            joinedload(Article.statistic, innerjoin=True).load_only(
-                                                ArticleStatistic.like_count,
-                                                ArticleStatistic.collect_count)) \
-                .filter_by(id=self.article_id, status=Article.STATUS.APPROVED).first()
-            if article is None:
-                return
-
-            article_formatted = marshal(article, self.article_info_fields_db)
-
-            # 判断是否置顶
-            try:
-                article_formatted['is_top'] = ChannelTopArticlesStorage(article.channel_id).exists(self.article_id)
-            except RedisError as e:
-                current_app.logger.error(e)
-                article_formatted['is_top'] = 0
-
-            # 设置缓存
-            article_formatted['cover'] = json.dumps(article.cover)
-
-            try:
-                pl = rc.pipeline()
-                pl.hmset(self.key, article_formatted)
-                pl.expire(self.key, constants.ArticleInfoCacheTTL.get_val())
-                results = pl.execute()
-                if results[0] and not results[1]:
-                    rc.delete(self.key)
-            except RedisError as e:
-                current_app.logger.error(e)
-
-            article_formatted['art_id'] = article_id
-            article_formatted['cover'] = article.cover
+            article_formatted = self.save()
 
         # 获取作者名
         author = cache_user.UserProfileCache(article_formatted['aut_id']).get()
         article_formatted['aut_name'] = author['name']
 
         return article_formatted
+
+    def exists(self):
+        """
+        判断文章是否存在
+        :return: bool
+        """
+        rc = current_app.redis_cluster
+
+        # 此处可使用的键有三种选择 user:{}:profile 或 user:{}:status 或 新建
+        # status主要为当前登录用户，而profile不仅仅是登录用户，覆盖范围更大，所以使用profile
+        try:
+            exists = rc.hget(self.key, 'exists')
+        except RedisError as e:
+            current_app.logger.error(e)
+            exists = None
+
+        if exists is not None:
+            exists = int(exists)
+
+        if exists == 1:
+            return True
+        elif exists == 0:
+            return False
+        else:
+            # 缓存中未查到
+            ret = db.session.query(func.count(Article.id)).filter_by(id=self.article_id,
+                                                                     status=Article.STATUS.APPROVED).first()
+            if ret[0] > 0:
+                try:
+                    self.save()
+                except SQLAlchemyError as e:
+                    current_app.logger.error(e)
+            else:
+                try:
+                    pl = rc.pipeline()
+                    pl.hset(self.key, 'exists', 0)
+                    pl.expire(self.key, constants.ArticleNotExistsCacheTTL.get_val())
+                    results = pl.execute()
+                    if results[0] and not results[1]:
+                        pl.delete(self.key)
+                except RedisError as e:
+                    current_app.logger.error(e)
+            return bool(ret[0])
 
 
 class ChannelTopArticlesStorage(object):
@@ -243,19 +249,65 @@ class ChannelTopArticlesStorage(object):
         return 0 if rank is None else 1
 
 
-def determine_article_exists(article_id):
+class ArticleDetailCache(object):
     """
-    判断文章是否存在
-    :param article_id: 文章id
-    :return: bool
+    文章详细内容缓存
     """
-    r = current_app.redis_cli['art_cache']
-    ret = r.exists('art:{}:info'.format(article_id))
-    if ret > 0:
-        return True
-    else:
-        ret = db.session.query(func.count(Article.id)).filter_by(id=article_id, status=Article.STATUS.APPROVED).first()
-        return True if ret[0] > 0 else False
+    article_fields = {
+        'art_id': fields.Integer(attribute='id'),
+        'title': fields.String(attribute='title'),
+        'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
+        'content': fields.String(attribute='content.content'),
+        'aut_id': fields.Integer(attribute='user_id'),
+        'ch_id': fields.Integer(attribute='channel_id'),
+    }
+
+    def __init__(self, article_id):
+        self.key = 'art:{}:detail'.format(article_id)
+        self.article_id = article_id
+
+    def get(self):
+        """
+        获取文章详情信息
+        :return:
+        """
+        # 查询文章数据
+        rc = current_app.redis_cluster
+        try:
+            article_bytes = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            article_bytes = None
+
+        if article_bytes:
+            # 使用缓存
+            article_dict = json.loads(article_bytes)
+        else:
+            # 查询数据库
+            article = Article.query.options(load_only(
+                Article.id,
+                Article.user_id,
+                Article.title,
+                Article.is_advertising,
+                Article.ctime,
+                Article.channel_id
+            )).filter_by(id=self.article_id, status=Article.STATUS.APPROVED).first()
+
+            article_dict = marshal(article, self.article_fields)
+
+            # 缓存
+            article_cache = json.dumps(article_dict)
+            try:
+                rc.setex(self.key, constants.ArticleDetailCacheTTL.get_val(), article_cache)
+            except RedisError:
+                pass
+
+        user = cache_user.UserProfileCache(article_dict['aut_id']).get()
+
+        article_dict['aut_name'] = user['name']
+        article_dict['aut_photo'] = user['photo']
+
+        return article_dict
 
 
 def update_article_collect_count(article_id, increment=1):

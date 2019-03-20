@@ -115,7 +115,7 @@ class SearchResource(Resource):
         hits = ret['hits']['hits']
         for result in hits:
             article_id = int(result['_id'])
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.ArticleInfoCache(article_id).get()
             if article:
                 results.append(article)
 

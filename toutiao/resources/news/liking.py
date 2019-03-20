@@ -60,7 +60,7 @@ class ArticleLikingListResource(Resource):
 
         # 发送点赞通知
         _user = cache_user.UserProfileCache(g.user_id).get()
-        _article = cache_article.get_article_info(target)
+        _article = cache_article.ArticleInfoCache(target).get()
         _data = {
             'user_id': g.user_id,
             'user_name': _user['name'],
