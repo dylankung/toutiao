@@ -170,11 +170,13 @@ class ArticleListResource(ArticleResourceBase):
             article_query = Article.query.join(Article.statistic).options(
                 load_only(Article.id, Article.title, Article.comment_count),
                 contains_eager(Article.statistic)
-            ).filter(Article.user_id == g.user_id)
+            ).filter(Article.user_id == g.user_id, Article.status == Article.STATUS.APPROVED)
 
         else:
             article_query = Article.query.options(load_only(Article.id, Article.title, Article.status, Article.cover,
-                                                            Article.ctime)).filter(Article.user_id == g.user_id)
+                                                            Article.ctime))\
+                .filter(Article.user_id == g.user_id, Article.status != Article.STATUS.DELETED,
+                        Article.status != Article.STATUS.BANNED)
 
         status = args['status']
         if status:
