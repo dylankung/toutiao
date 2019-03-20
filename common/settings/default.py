@@ -90,6 +90,11 @@ class DefaultConfig(object):
     WORKER_ID = 0
     SEQUENCE = 0
 
+    # 与推荐系统对接的kafka
+    KAFKA_SERVERS = [
+        '172.17.0.134:9092'
+    ]
+
 
 class CeleryConfig(object):
     """
