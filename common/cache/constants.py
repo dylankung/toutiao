@@ -113,3 +113,12 @@ class ArticleDetailCacheTTL(BaseCacheTTL):
     文章详细内容缓存时间，秒
     """
     TTL = 60 * 60
+
+
+class ArticleUserNoAttitudeCacheTTL(BaseCacheTTL):
+    """
+    用户对文章无态度缓存
+    为解决缓存击穿，有效期不宜过长
+    """
+    TTL = 3 * 60
+    MAX_DELTA = 30

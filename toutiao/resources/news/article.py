@@ -8,6 +8,7 @@ import random
 from datetime import datetime
 import time
 from redis.exceptions import ConnectionError
+from sqlalchemy.exc import SQLAlchemyError
 
 from models.news import Article, ArticleContent, Attitude
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
@@ -78,24 +79,28 @@ class ArticleResource(Resource):
             article['is_followed'] = cache_user.UserFollowingCache(user_id).determine_follows_target(article['aut_id'])
 
             # 查询登录用户对文章的态度（点赞or不喜欢）
-            ret = Attitude.query.options(load_only(Attitude.attitude))\
-                .filter_by(user_id=user_id, article_id=article_id).first()
-            if ret:
-                article['attitude'] = ret.attitude
+            try:
+                article['attitude'] = cache_article.ArticleUserAttitudeCache(user_id, article_id).get()
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
+                article['attitude'] = -1
+
+        # 获取相关文章推荐
+        article['recomments'] = []
+        try:
+            similar_articles = self._feed_similar_articles(article_id)
+            for _article_id in similar_articles:
+                _article = cache_article.ArticleInfoCache(_article_id).get()
+                article['recomments'].append({
+                    'art_id': _article['art_id'],
+                    'title': _article['title']
+                })
+        except Exception as e:
+            current_app.logger.error(e)
 
         # 更新阅读数
         cache_article.update_article_read_count(article_id)
         cache_user.update_user_article_read_count(article['aut_id'])
-
-        # 获取相关文章推荐
-        article['recomments'] = []
-        similar_articles = self._feed_similar_articles(article_id)
-        for _article_id in similar_articles:
-            _article = cache_article.ArticleInfoCache(_article_id).get()
-            article['recomments'].append({
-                'art_id': _article['art_id'],
-                'title': _article['title']
-            })
 
         return article
 

@@ -1,6 +1,5 @@
 from sqlalchemy.orm import joinedload, load_only
 from flask_restful import fields, marshal
-import pickle
 import json
 import time
 from sqlalchemy import func
@@ -8,7 +7,7 @@ from flask import current_app
 from redis.exceptions import RedisError, ConnectionError
 from sqlalchemy.exc import SQLAlchemyError
 
-from models.news import Article, ArticleStatistic
+from models.news import Article, ArticleStatistic, Attitude
 from models.user import User
 from models import db
 from . import user as cache_user
@@ -308,6 +307,55 @@ class ArticleDetailCache(object):
         article_dict['aut_photo'] = user['photo']
 
         return article_dict
+
+
+class ArticleUserAttitudeCache(object):
+    """
+    用户对文章态度的缓存，点赞或不喜欢
+    """
+    def __init__(self, user_id, article_id):
+        self.user_id = user_id
+        self.article_id = article_id
+        self.key = 'user:{}:art:{}:liking'
+
+    def get(self):
+        """
+        获取
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret is not None:
+            ret = int(ret)
+            return ret
+
+        att = Attitude.query.options(load_only(Attitude.attitude)) \
+            .filter_by(user_id=self.user_id, article_id=self.article_id).first()
+        ret = att.attitude if att else -1
+
+        try:
+            ret = rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), ret)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+        return ret
+
+    def clear(self):
+        """
+        清除
+        :return:
+        """
+        rc = current_app.redis_cluster
+        try:
+            rc.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
 
 
 def update_article_collect_count(article_id, increment=1):
