@@ -322,7 +322,7 @@ def _get_reply_from_db(comment_id, offset, limit):
     :return: [{comment}, ...]  评论结果列表
     """
     results = []  # 评论结果数据
-    new_cache = {}  # 构造的缓存数据
+    new_cache = []  # 构造的缓存数据
 
     # 通过双字段排序将置顶放在结果前列
     # 如果offset为None，不做偏移
@@ -348,7 +348,11 @@ def _get_reply_from_db(comment_id, offset, limit):
             comment_format = marshal(comment, comment_fields)
 
             # 构造缓存数据
-            new_cache[comment.id] = constants.COMMENTS_CACHE_MAX_SCORE+comment.id if comment.is_top else comment.id
+            if comment.is_top:
+                new_cache.append(constants.COMMENTS_CACHE_MAX_SCORE+comment.id)
+            else:
+                new_cache.append(comment.id)
+            new_cache.append(comment.id)
             pl.hmset('comm:{}'.format(comment.id), comment_format)
 
             if not (offset is not None and comment.is_top):
@@ -359,7 +363,7 @@ def _get_reply_from_db(comment_id, offset, limit):
                 results.append(comment_format)
 
         if new_cache:
-            pl.zadd('comm:{}:reply'.format(comment_id), **new_cache)
+            pl.zadd('comm:{}:reply'.format(comment_id), *new_cache)
         pl.execute()
 
     return results
