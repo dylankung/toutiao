@@ -57,6 +57,8 @@ class AllChannelsCache(object):
         :param channel_id: 频道id
         :return: bool
         """
+        # 此处不直接用redis判断是否存在键值
+        # 先从redis中判断是否存在键，再从键判断值是否存在，redis集群中无法保证事务
         chs = cls.get()
         for ch in chs:
             if channel_id == ch['id']:

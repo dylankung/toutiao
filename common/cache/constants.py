@@ -93,3 +93,11 @@ class UserChannelsCacheTTL(BaseCacheTTL):
     用户频道缓存时间，秒
     """
     TTL = 60 * 60
+
+
+class ArticleInfoCacheTTL(BaseCacheTTL):
+    """
+    文章信息缓存时间，秒
+    """
+    TTL = 30 * 60
+

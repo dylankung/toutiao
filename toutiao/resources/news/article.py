@@ -16,7 +16,7 @@ from utils import parser
 from cache import article as cache_article
 from cache import user as cache_user
 from models import db
-from utils.decorators import login_required, validate_token_if_using
+from utils.decorators import login_required, validate_token_if_using, set_db_to_write, set_db_to_read
 from utils.logging import write_trace_log
 
 
@@ -24,7 +24,7 @@ class ArticleResource(Resource):
     """
     文章
     """
-    method_decorators = [validate_token_if_using]
+    method_decorators = [set_db_to_read, validate_token_if_using]
 
     def _feed_similar_articles(self, article_id):
         """
