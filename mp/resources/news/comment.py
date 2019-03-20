@@ -58,7 +58,6 @@ class CommentListResource(Resource):
         """
         获取评论
         """
-        req_parser = RequestParser()
         # /comments?type,source,offset,limit
         # return = {
         #     'results': [
@@ -92,6 +91,11 @@ class CommentListResource(Resource):
             article_id = args.source
 
             result = cache_comment.get_comments_by_article(article_id, args.offset, limit)
+
+            article = cache_article.get_article_info(article_id)
+            result['art_id'] = article_id
+            result['art_title'] = article['title']
+            result['art_pubdate'] = article['pubdate']
         else:
             # 评论的评论
             comment_id = args.source
