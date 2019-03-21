@@ -4,6 +4,7 @@ from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import *
+from kafka import KafkaProducer
 
 
 def create_flask_app(config, enable_config_file=False):
@@ -73,6 +74,9 @@ def create_app(config, enable_config_file=False):
 
     # socket.io
     # app.sio = socketio.KombuManager(app.config['RABBITMQ'], write_only=True)
+
+    # 与推荐系统对接的kafka
+    app.kafka_producer = KafkaProducer(bootstrap_servers=app.config['KAFKA_SERVERS'])
 
     # MySQL数据库连接初始化
     from models import db
