@@ -632,6 +632,12 @@ class UserArticleCollectionsCache(object):
 
             return total_count, page_articles
 
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_cluster.delete(self.key)
+
 
 def get_user_articles(user_id):
     """
