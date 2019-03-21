@@ -77,8 +77,8 @@ class CollectionListResource(Resource):
         total_count, collections = cache_user.UserArticleCollectionsCache(g.user_id).get_page(page, per_page)
 
         results = []
-        for collection in collections:
-            article = cache_article.ArticleInfoCache(collection.article_id).get()
+        for article_id in collections:
+            article = cache_article.ArticleInfoCache(article_id).get()
             results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
