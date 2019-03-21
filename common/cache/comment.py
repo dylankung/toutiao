@@ -158,6 +158,9 @@ class CommentCache(object):
 
             return formatted_comment
 
+    def clear(self):
+        current_app.redis_cluster.delete(self.key)
+
 
 class CommentsAndRepliesCacheBase(object):
     """
@@ -288,6 +291,12 @@ class CommentsAndRepliesCacheBase(object):
                 rc.zadd(self.key, score, comment.id)
         except RedisError as e:
             current_app.logger.error(e)
+
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_cluster.delete(self.key)
 
 
 class ArticleCommentsCache(CommentsAndRepliesCacheBase):

@@ -40,24 +40,6 @@ from cache import statistic as cache_statistic
 #     return ret
 
 
-def update_article_comment_count(article_id, increment=1):
-    """
-    更新文章评论数量
-    :param article_id: 文章id
-    :param increment: 增量
-    :return:
-    """
-    Article.query.filter_by(id=article_id).update({'comment_count': Article.comment_count + increment})
-    db.session.commit()
-
-    r = current_app.redis_cli['art_cache']
-    key = 'art:{}:info'.format(article_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hincrby(key, 'comm_count', increment)
-
-
 class ArticleInfoCache(object):
     """
     文章基本信息缓存
