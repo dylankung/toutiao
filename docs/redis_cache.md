@@ -56,7 +56,6 @@ hash 还是序列化。。。
 
 | key                     | 类型   | 说明                                  | 举例                      |
 | ----------------------- | ------ | ------------------------------------- | ------------------------- |
-| art                     | zset   | 记录热门文章id，aps依据此进行定时清理 | [{article_id, timestamp}] |
 | ch:{channel_id}:art:top | zset   | 置顶文章                              | [{article_id, sequence}]  |
 | art:{article_id}:info   | hash   | 文章的基本信息                        |                           |
 | art:{article_id}:detail | string | 文章的内容                            | 'pickled data'            |

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import insert
 from flask_restful import inputs
 
-from utils.decorators import login_required, validate_token_if_using
+from utils.decorators import login_required, validate_token_if_using, set_db_to_write, set_db_to_read
 from models.news import UserChannel, Channel
 from models import db
 from cache import channel as cache_channel
@@ -17,11 +17,11 @@ class ChannelListResource(Resource):
     用户频道
     """
     method_decorators = {
-        'post': [login_required],
-        'put': [login_required],
-        'patch': [login_required],
-        'delete': [login_required],
-        'get': [validate_token_if_using]
+        'post': [set_db_to_write, login_required],
+        'put': [set_db_to_write, login_required],
+        'patch': [set_db_to_write, login_required],
+        'delete': [set_db_to_write, login_required],
+        'get': [set_db_to_read, validate_token_if_using]
     }
 
     def _parse_channel_list(self):
@@ -194,7 +194,7 @@ class ChannelResource(Resource):
     """
     用户频道
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def put(self, target):
         """

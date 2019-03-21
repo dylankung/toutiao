@@ -5,11 +5,12 @@ from flask import g, current_app
 from flask_restful import inputs
 import time
 
-from utils.decorators import login_required
+from utils.decorators import login_required, set_db_to_read, set_db_to_write
 from models.user import Relation, User
 from utils import parser
 from models import db
 from cache import user as cache_user
+from cache import statistic as cache_statistic
 from . import constants
 
 
@@ -17,7 +18,10 @@ class FollowingListResource(Resource):
     """
     关注用户
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'post': [set_db_to_write, login_required],
+        'get': [set_db_to_read, login_required],
+    }
 
     def post(self):
         """
@@ -33,8 +37,6 @@ class FollowingListResource(Resource):
         try:
             follow = Relation(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW)
             db.session.add(follow)
-            User.query.filter_by(id=target).update({'fans_count': User.fans_count + 1})
-            User.query.filter_by(id=g.user_id).update({'following_count': User.following_count + 1})
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
@@ -42,13 +44,14 @@ class FollowingListResource(Resource):
                                         Relation.target_user_id == target,
                                         Relation.relation != Relation.RELATION.FOLLOW)\
                 .update({'relation': Relation.RELATION.FOLLOW})
-            if ret > 0:
-                User.query.filter_by(id=target).update({'fans_count': User.fans_count + 1})
-                User.query.filter_by(id=g.user_id).update({'following_count': User.following_count + 1})
             db.session.commit()
 
         if ret > 0:
-            cache_user.UserFollowingCache(g.user_id).update(target, time.time())
+            timestamp = time.time()
+            cache_user.UserFollowingCache(g.user_id).update(target, timestamp)
+            cache_user.UserFollowersCache(target).update(g.user_id, timestamp)
+            cache_statistic.UserFollowingsCountStorage.incr(g.user_id)
+            cache_statistic.UserFollowersCountStorage.incr(target)
 
         # 发送关注通知
         _user = cache_user.UserProfileCache(g.user_id).get()
@@ -98,7 +101,7 @@ class FollowingResource(Resource):
     """
     关注用户
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def delete(self, target):
         """
@@ -108,13 +111,14 @@ class FollowingResource(Resource):
                                     Relation.target_user_id == target,
                                     Relation.relation == Relation.RELATION.FOLLOW)\
             .update({'relation': Relation.RELATION.DELETE})
-        if ret > 0:
-            User.query.filter_by(id=target).update({'fans_count': User.fans_count - 1})
-            User.query.filter_by(id=g.user_id).update({'following_count': User.following_count - 1})
         db.session.commit()
 
         if ret > 0:
-            cache_user.UserFollowingCache(g.user_id).update(target, time.time(), -1)
+            timestamp = time.time()
+            cache_user.UserFollowingCache(g.user_id).update(target, timestamp, -1)
+            cache_user.UserFollowersCache(target).update(g.user_id, timestamp, -1)
+            cache_statistic.UserFollowingsCountStorage.incr(g.user_id, -1)
+            cache_statistic.UserFollowersCountStorage.incr(target, -1)
         return {'message': 'OK'}, 204
 
 
@@ -122,7 +126,7 @@ class FollowerListResource(Resource):
     """
     跟随用户列表（粉丝列表）
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_read, login_required]
 
     def get(self):
         """

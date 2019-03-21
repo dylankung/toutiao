@@ -76,6 +76,28 @@ def verify_required(func):
     return wrapper
 
 
+def set_db_to_read(func):
+    """
+    设置使用读数据库
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        db.session().set_to_read()
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def set_db_to_write(func):
+    """
+    设置使用写数据库
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        db.session().set_to_write()
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def mis_login_required(func):
     """
     mis用户必须认证通过装饰器

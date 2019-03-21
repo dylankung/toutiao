@@ -13,13 +13,19 @@ from models.news import Collection
 from . import constants
 from cache import article as cache_article
 from utils.logging import write_trace_log
+from utils.decorators import set_db_to_read, set_db_to_write
+from cache import statistic as cache_statistic
+from cache import user as cache_user
 
 
 class CollectionListResource(Resource):
     """
     文章收藏
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'post': [set_db_to_write, login_required],
+        'get': [set_db_to_read, login_required]
+    }
 
     def post(self):
         """
@@ -34,7 +40,7 @@ class CollectionListResource(Resource):
 
         # 记录埋点日志
         if args.Trace:
-            article = cache_article.get_article_info(target)
+            article = cache_article.ArticleInfoCache(target).get()
             write_trace_log(args.Trace, channel_id=article['ch_id'])
 
         ret = 1
@@ -46,10 +52,12 @@ class CollectionListResource(Resource):
             db.session.rollback()
             ret = Collection.query.filter_by(user_id=g.user_id, article_id=target, is_deleted=True) \
                 .update({'is_deleted': False})
+            db.session.commit()
+
         if ret > 0:
-            # ArticleStatistic.query.filter_by(id=target).update({'collect_count': ArticleStatistic.collect_count + 1})
-            cache_article.update_article_collect_count(target)
-        db.session.commit()
+            cache_statistic.ArticleCollectingCountStorage.incr(target)
+            cache_statistic.UserArticleCollectingCountStorage.incr(g.user_id)
+
         return {'target': target}, 201
 
     def get(self):
@@ -66,17 +74,12 @@ class CollectionListResource(Resource):
         page = 1 if args.page is None else args.page
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
-        # TODO 未做缓存
-        ret = db.session.query(func.count(Collection.id)).filter_by(user_id=g.user_id, is_deleted=False).first()
-        total_count = ret[0]
+        total_count, collections = cache_user.UserArticleCollectionsCache(g.user_id).get_page(page, per_page)
+
         results = []
-        if total_count > 0 and (page-1) * per_page < total_count:
-            collections = Collection.query.options(load_only(Collection.article_id))\
-                .filter_by(user_id=g.user_id, is_deleted=False)\
-                .order_by(Collection.utime.desc()).offset((page-1)*per_page).limit(per_page).all()
-            for collection in collections:
-                article = cache_article.get_article_info(collection.article_id)
-                results.append(article)
+        for collection in collections:
+            article = cache_article.ArticleInfoCache(collection.article_id).get()
+            results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
 
@@ -85,7 +88,7 @@ class CollectionResource(Resource):
     """
     文章收藏
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def delete(self, target):
         """
@@ -93,10 +96,11 @@ class CollectionResource(Resource):
         """
         ret = Collection.query.filter_by(user_id=g.user_id, article_id=target, is_deleted=False) \
             .update({'is_deleted': True})
-        if ret > 0:
-            # ArticleStatistic.query.filter_by(id=target).update({'collect_count': ArticleStatistic.collect_count - 1})
-            cache_article.update_article_collect_count(target, -1)
         db.session.commit()
+
+        if ret > 0:
+            cache_statistic.ArticleCollectingCountStorage.incr(target, -1)
+            cache_statistic.UserArticleCollectingCountStorage.incr(g.user_id, -1)
         return {'message': 'OK'}, 204
 
 

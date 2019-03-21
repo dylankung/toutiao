@@ -13,6 +13,8 @@ from utils import parser
 from models.news import Article, ArticleContent, ArticleStatistic
 from models import db
 from . import constants
+from cache import user as cache_user
+from cache import article as cache_article
 
 
 class ArticleResourceBase(Resource):
@@ -88,7 +90,10 @@ class ArticleListResource(ArticleResourceBase):
         if cover_type == -1:
             cover = self._generate_article_cover(content)
 
+        article_id = current_app.id_worker.get_id()
+
         article = Article(
+            id=article_id,
             user_id=g.user_id,
             channel_id=args['channel_id'],
             title=args['title'],
@@ -96,12 +101,11 @@ class ArticleListResource(ArticleResourceBase):
             status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
         )
         db.session.add(article)
-        db.session.flush()
-        article_id = article.id
 
         article_content = ArticleContent(id=article_id, content=content)
         db.session.add(article_content)
 
+        # TODO 已废弃
         article_statistic = ArticleStatistic(id=article_id)
         db.session.add(article_statistic)
 
@@ -244,7 +248,7 @@ class ArticleResource(ArticleResourceBase):
     """
     def put(self, target):
         """
-        发表文章
+        修改文章
         """
         req_parser = RequestParser()
         req_parser.add_argument('draft', type=inputs.boolean, required=False, location='args')
@@ -281,6 +285,11 @@ class ArticleResource(ArticleResourceBase):
             current_app.logger.error(e)
             db.session.rollback()
             return {'message': 'Server has something wrong.'}, 507
+
+        # 清除缓存
+        cache_user.UserArticlesCache(g.user_id).clear()
+        cache_article.ArticleInfoCache(target).clear()
+        cache_article.ArticleDetailCache(target).clear()
 
         # if not draft:
             # TODO 机器审核
@@ -324,6 +333,5 @@ class ArticleResource(ArticleResourceBase):
         if ret == 0:
             return {'message': 'Invalid article.'}, 400
 
-        # TODO 维护缓存
         # TODO 维护ES
         return {'message': 'ok'}, 204

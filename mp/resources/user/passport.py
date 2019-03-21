@@ -6,7 +6,7 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import load_only
 from redis.exceptions import ConnectionError
-from sqlalchemy.exc import  SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
 from celery_tasks.sms.tasks import send_verification_code
 from utils import parser

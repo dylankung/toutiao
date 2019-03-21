@@ -10,12 +10,18 @@ from models.user import User, UserProfile
 from utils import parser
 from models import db
 from utils.storage import upload_image
+from utils.decorators import set_db_to_write, set_db_to_read
 
 
 class UserResource(Resource):
     """
     用户数据资源
     """
+
+    method_decorators = {
+        'get': [set_db_to_read],
+    }
+
     def get(self, target):
         """
         获取target用户的数据
@@ -45,7 +51,7 @@ class CurrentUserResource(Resource):
     """
     用户自己的数据
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_read, login_required]
 
     def get(self):
         """
@@ -61,7 +67,10 @@ class ProfileResource(Resource):
     """
     用户资料
     """
-    method_decorators = [login_required]
+    method_decorators = {
+        'get': [set_db_to_read, login_required],
+        'patch': [set_db_to_write, login_required],
+    }
 
     def get(self):
         """
@@ -111,16 +120,17 @@ class ProfileResource(Resource):
         args = json_parser.parse_args()
 
         user_id = g.user_id
-        new_cache_values = {}
         new_user_values = {}
         new_profile_values = {}
         return_values = {'id': user_id}
+
         need_delete_profilex = False
+        need_delete_profile = False
 
         if args.name:
-            new_cache_values['name'] = args.name
             new_user_values['name'] = args.name
             return_values['name'] = args.name
+            need_delete_profile = True
 
         if args.photo:
             try:
@@ -128,9 +138,9 @@ class ProfileResource(Resource):
             except Exception as e:
                 current_app.logger.error('upload failed {}'.format(e))
                 return {'message': 'Uploading profile photo image failed.'}, 507
-            new_cache_values['photo'] = photo_url
             new_user_values['profile_photo'] = photo_url
             return_values['photo'] = current_app.config['QINIU_DOMAIN'] + photo_url
+            need_delete_profile = True
 
         if args.gender:
             new_profile_values['gender'] = args.gender
@@ -143,9 +153,9 @@ class ProfileResource(Resource):
             need_delete_profilex = True
 
         if args.intro:
-            new_cache_values['intro'] = args.intro
             new_user_values['introduction'] = args.intro
             return_values['intro'] = args.intro
+            need_delete_profile = True
 
         if args.real_name:
             new_profile_values['real_name'] = args.real_name
@@ -187,13 +197,13 @@ class ProfileResource(Resource):
                 User.query.filter_by(id=user_id).update(new_user_values)
             if new_profile_values:
                 UserProfile.query.filter_by(id=user_id).update(new_profile_values)
+            db.session.commit()
         except IntegrityError:
             db.session.rollback()
             return {'message': 'User name has existed.'}, 409
 
-        db.session.commit()
-        if new_cache_values:
-            cache_user.UserProfileCache(user_id).update(new_cache_values)
+        if need_delete_profile:
+            cache_user.UserProfileCache(user_id).clear()
 
         if need_delete_profilex:
             cache_user.UserAdditionalProfileCache(user_id).clear()
@@ -205,7 +215,7 @@ class PhotoResource(Resource):
     """
     用户图像 （头像，身份证）
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def patch(self):
         file_parser = RequestParser()
@@ -216,10 +226,10 @@ class PhotoResource(Resource):
         files = file_parser.parse_args()
 
         user_id = g.user_id
-        new_cache_values = {}
         new_user_values = {}
         new_profile_values = {}
         return_values = {'id': user_id}
+        need_delete_profile = False
 
         if files.photo:
             try:
@@ -227,9 +237,9 @@ class PhotoResource(Resource):
             except Exception as e:
                 current_app.logger.error('upload failed {}'.format(e))
                 return {'message': 'Uploading profile photo image failed.'}, 507
-            new_cache_values['photo'] = photo_url
             new_user_values['profile_photo'] = photo_url
             return_values['photo'] = current_app.config['QINIU_DOMAIN'] + photo_url
+            need_delete_profile = True
 
         if files.id_card_front:
             try:
@@ -265,7 +275,7 @@ class PhotoResource(Resource):
 
         db.session.commit()
 
-        if new_cache_values:
-            cache_user.UserProfileCache(user_id).update(new_cache_values)
+        if need_delete_profile:
+            cache_user.UserProfileCache(user_id).clear()
 
         return return_values, 201

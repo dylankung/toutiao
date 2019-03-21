@@ -4,20 +4,21 @@ from flask import g, current_app
 from sqlalchemy.exc import IntegrityError
 import time
 
-from utils.decorators import login_required
+from utils.decorators import login_required, set_db_to_write
 from utils import parser
 from models import db
 from models.news import Attitude, ArticleStatistic, CommentLiking, Comment
 from cache import comment as cache_comment
 from cache import article as cache_article
 from cache import user as cache_user
+from cache import statistic as cache_statistic
 
 
 class ArticleLikingListResource(Resource):
     """
     文章点赞
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def post(self):
         """
@@ -29,38 +30,32 @@ class ArticleLikingListResource(Resource):
         target = args.target
 
         # 此次操作前，用户对文章可能是没有态度，也可能是不喜欢，需要先查询对文章的原始态度，然后对相应的统计数据进行累计或减少
-        # TODO 如果统计影响性能，可以改为定时
-
         atti = Attitude.query.filter_by(user_id=g.user_id, article_id=target).first()
         if atti is None:
             attitude = Attitude(user_id=g.user_id, article_id=target, attitude=Attitude.ATTITUDE.LIKING)
             db.session.add(attitude)
-            # ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count + 1})
-            cache_article.update_article_liking_count(target)
             db.session.commit()
+            cache_statistic.ArticleLikingCountStorage.incr(target)
         else:
             if atti.attitude == Attitude.ATTITUDE.DISLIKE:
                 # 原先是不喜欢
                 atti.attitude = Attitude.ATTITUDE.LIKING
                 db.session.add(atti)
-                ArticleStatistic.query.filter_by(id=target).update({
-                    'dislike_count': ArticleStatistic.dislike_count - 1
-                })
-                cache_article.update_article_liking_count(target)
                 db.session.commit()
+                cache_statistic.ArticleLikingCountStorage.incr(target)
+                cache_statistic.ArticleDislikeCountStorage.incr(target, -1)
+                cache_statistic.UserLikedCountStorage.incr(g.user_id)
             elif atti.attitude is None:
                 # 存在数据，但是无态度
                 atti.attitude = Attitude.ATTITUDE.LIKING
                 db.session.add(atti)
-                # ArticleStatistic.query.filter_by(id=target).update({
-                #     'like_count': ArticleStatistic.like_count + 1,
-                # })
-                cache_article.update_article_liking_count(target)
                 db.session.commit()
+                cache_statistic.ArticleLikingCountStorage.incr(target)
+                cache_statistic.UserLikedCountStorage.incr(g.user_id)
 
         # 发送点赞通知
         _user = cache_user.UserProfileCache(g.user_id).get()
-        _article = cache_article.get_article_info(target)
+        _article = cache_article.ArticleInfoCache(target).get()
         _data = {
             'user_id': g.user_id,
             'user_name': _user['name'],
@@ -78,7 +73,7 @@ class ArticleLikingResource(Resource):
     """
     文章点赞
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def delete(self, target):
         """
@@ -86,10 +81,11 @@ class ArticleLikingResource(Resource):
         """
         ret = Attitude.query.filter_by(user_id=g.user_id, article_id=target, attitude=Attitude.ATTITUDE.LIKING) \
             .update({'attitude': None})
-        if ret > 0:
-            # ArticleStatistic.query.filter_by(id=target).update({'like_count': ArticleStatistic.like_count - 1})
-            cache_article.update_article_liking_count(target, -1)
         db.session.commit()
+
+        if ret > 0:
+            cache_statistic.ArticleLikingCountStorage.incr(target, -1)
+            cache_statistic.UserLikedCountStorage.incr(g.user_id, -1)
         return {'message': 'OK'}, 204
 
 
@@ -97,7 +93,7 @@ class CommentLikingListResource(Resource):
     """
     评论点赞
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def post(self):
         """
@@ -116,10 +112,10 @@ class CommentLikingListResource(Resource):
             db.session.rollback()
             ret = CommentLiking.query.filter_by(user_id=g.user_id, comment_id=target, is_deleted=True) \
                 .update({'is_deleted': False})
+            db.session.commit()
+
         if ret > 0:
-            Comment.query.filter_by(id=target).update({'like_count': Comment.like_count + 1})
-            cache_comment.update_comment_liking_count(target)
-        db.session.commit()
+            cache_statistic.CommentLikingCountStorage.incr(target)
         return {'target': target}, 201
 
 
@@ -127,7 +123,7 @@ class CommentLikingResource(Resource):
     """
     评论点赞
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_write, login_required]
 
     def delete(self, target):
         """
@@ -135,8 +131,7 @@ class CommentLikingResource(Resource):
         """
         ret = CommentLiking.query.filter_by(user_id=g.user_id, comment_id=target, is_deleted=False) \
             .update({'is_deleted': True})
-        if ret > 0:
-            Comment.query.filter_by(id=target).update({'like_count': Comment.like_count - 1})
-            cache_comment.update_comment_liking_count(target, -1)
         db.session.commit()
+        if ret > 0:
+            cache_statistic.CommentLikingCountStorage.incr(target, -1)
         return {'message': 'OK'}, 204

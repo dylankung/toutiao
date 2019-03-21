@@ -138,6 +138,7 @@ class Relation(db.Model):
 class Search(db.Model):
     """
     用户搜索记录表
+    ******************已废弃****************
     """
     __tablename__ = 'user_search'
 

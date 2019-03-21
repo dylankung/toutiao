@@ -8,6 +8,7 @@ import random
 from datetime import datetime
 import time
 from redis.exceptions import ConnectionError
+from sqlalchemy.exc import SQLAlchemyError
 
 from models.news import Article, ArticleContent, Attitude
 from rpc.recommend import user_reco_pb2, user_reco_pb2_grpc
@@ -15,8 +16,9 @@ from . import constants
 from utils import parser
 from cache import article as cache_article
 from cache import user as cache_user
+from cache import statistic as cache_statistic
 from models import db
-from utils.decorators import login_required, validate_token_if_using
+from utils.decorators import login_required, validate_token_if_using, set_db_to_write, set_db_to_read
 from utils.logging import write_trace_log
 
 
@@ -24,7 +26,7 @@ class ArticleResource(Resource):
     """
     文章
     """
-    method_decorators = [validate_token_if_using]
+    method_decorators = [set_db_to_read, validate_token_if_using]
 
     def _feed_similar_articles(self, article_id):
         """
@@ -54,13 +56,13 @@ class ArticleResource(Resource):
         user_id = g.user_id
 
         # 查询文章数据
-        exist = cache_article.determine_article_exists(article_id)
+        exist = cache_article.ArticleInfoCache(article_id).exists()
         if not exist:
             abort(404, message='The article does not exist.')
 
-        article = cache_article.get_article_detail(article_id)
+        article = cache_article.ArticleDetailCache(article_id).get()
 
-        # 埋点
+        # 推荐系统所需埋点
         if args.Trace:
             write_trace_log(args.Trace, channel_id=article['ch_id'])
 
@@ -78,24 +80,28 @@ class ArticleResource(Resource):
             article['is_followed'] = cache_user.UserFollowingCache(user_id).determine_follows_target(article['aut_id'])
 
             # 查询登录用户对文章的态度（点赞or不喜欢）
-            ret = Attitude.query.options(load_only(Attitude.attitude))\
-                .filter_by(user_id=user_id, article_id=article_id).first()
-            if ret:
-                article['attitude'] = ret.attitude
-
-        # 更新阅读数
-        cache_article.update_article_read_count(article_id)
-        cache_user.update_user_article_read_count(article['aut_id'])
+            try:
+                article['attitude'] = cache_article.ArticleUserAttitudeCache(user_id, article_id).get()
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
+                article['attitude'] = -1
 
         # 获取相关文章推荐
         article['recomments'] = []
-        similar_articles = self._feed_similar_articles(article_id)
-        for _article_id in similar_articles:
-            _article = cache_article.get_article_info(_article_id)
-            article['recomments'].append({
-                'art_id': _article['art_id'],
-                'title': _article['title']
-            })
+        try:
+            similar_articles = self._feed_similar_articles(article_id)
+            for _article_id in similar_articles:
+                _article = cache_article.ArticleInfoCache(_article_id).get()
+                article['recomments'].append({
+                    'art_id': _article['art_id'],
+                    'title': _article['title']
+                })
+        except Exception as e:
+            current_app.logger.error(e)
+
+        # 更新阅读数
+        cache_statistic.ArticleReadingCountStorage.incr(article_id)
+        cache_statistic.UserArticlesReadingCountStorage.incr(article['aut_id'])
 
         return article
 
@@ -104,23 +110,23 @@ class ArticleListResource(Resource):
     """
     获取推荐文章列表数据
     """
-    method_decorators = [validate_token_if_using]
+    method_decorators = [set_db_to_read, validate_token_if_using]
 
-    def _get_recommended_articles(self, channel_id, page, per_page):
-        """
-        获取推荐的文章（伪推荐）
-        :param channel_id: 频道id
-        :param page: 页数
-        :param per_page: 每页数量
-        :return: [article_id, ...]
-        """
-        offset = (page - 1) * per_page
-        articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
-            .order_by(Article.id).offset(offset).limit(per_page).all()
-        if articles:
-            return [article.id for article in articles]
-        else:
-            return []
+    # def _get_recommended_articles(self, channel_id, page, per_page):
+    #     """
+    #     获取推荐的文章（伪推荐）已废弃
+    #     :param channel_id: 频道id
+    #     :param page: 页数
+    #     :param per_page: 每页数量
+    #     :return: [article_id, ...]
+    #     """
+    #     offset = (page - 1) * per_page
+    #     articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
+    #         .order_by(Article.id).offset(offset).limit(per_page).all()
+    #     if articles:
+    #         return [article.id for article in articles]
+    #     else:
+    #         return []
 
     def _feed_articles(self, channel_id, feed_count):
         """
@@ -150,32 +156,32 @@ class ArticleListResource(Resource):
 
         return resp.recommends
 
-    def _generate_article_cover(self, article_id):
-        """
-        生成文章封面(处理测试数据专用）
-        :param article_id: 文章id
-        """
-        article = Article.query.options(load_only(Article.cover)).filter_by(id=article_id).first()
-        if article.cover['type'] > 0:
-            return
-        content = ArticleContent.query.filter_by(id=article_id).first()
-        if content is None:
-            return
-        results = re.findall(r'src=\"http([^"]+)\"', content.content)
-        length = len(results)
-        if length <= 0:
-            return
-        elif length < 3:
-            img_url = random.choice(results)
-            img_url = 'http' + img_url
-            Article.query.filter_by(id=article_id).update({'cover': {'type': 1, 'images': [img_url]}})
-            db.session.commit()
-        else:
-            random.shuffle(results)
-            img_urls = results[:3]
-            img_urls = ['http'+img_url for img_url in img_urls]
-            Article.query.filter_by(id=article_id).update({'cover': {'type': 3, 'images': img_urls}})
-            db.session.commit()
+    # def _generate_article_cover(self, article_id):
+    #     """
+    #     生成文章封面(处理测试数据专用） 已废弃
+    #     :param article_id: 文章id
+    #     """
+    #     article = Article.query.options(load_only(Article.cover)).filter_by(id=article_id).first()
+    #     if article.cover['type'] > 0:
+    #         return
+    #     content = ArticleContent.query.filter_by(id=article_id).first()
+    #     if content is None:
+    #         return
+    #     results = re.findall(r'src=\"http([^"]+)\"', content.content)
+    #     length = len(results)
+    #     if length <= 0:
+    #         return
+    #     elif length < 3:
+    #         img_url = random.choice(results)
+    #         img_url = 'http' + img_url
+    #         Article.query.filter_by(id=article_id).update({'cover': {'type': 1, 'images': [img_url]}})
+    #         db.session.commit()
+    #     else:
+    #         random.shuffle(results)
+    #         img_urls = results[:3]
+    #         img_urls = ['http'+img_url for img_url in img_urls]
+    #         Article.query.filter_by(id=article_id).update({'cover': {'type': 3, 'images': img_urls}})
+    #         db.session.commit()
 
     def get(self):
         """
@@ -198,9 +204,9 @@ class ArticleListResource(Resource):
 
         if page == 1:
             # 第一页
-            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            top_article_id_li = cache_article.ChannelTopArticlesStorage(channel_id).get()
             for article_id in top_article_id_li:
-                article = cache_article.get_article_info(article_id)
+                article = cache_article.ArticleInfoCache(article_id).get()
                 if article:
                     results.append(article)
 
@@ -212,7 +218,7 @@ class ArticleListResource(Resource):
         # 查询文章
         for feed in feeds:
             # self._generate_article_cover(article_id)
-            article = cache_article.get_article_info(feed.article_id)
+            article = cache_article.ArticleInfoCache(feed.article_id).get()
             if article:
                 article['trace'] = {
                     'click': feed.params.click,
@@ -229,7 +235,7 @@ class ArticleListResourceV1D1(Resource):
     """
     获取推荐文章列表数据
     """
-    method_decorators = [validate_token_if_using]
+    method_decorators = [set_db_to_read, validate_token_if_using]
 
     def _feed_articles(self, channel_id, timestamp, feed_count):
         """
@@ -290,9 +296,9 @@ class ArticleListResourceV1D1(Resource):
 
         if with_top:
             # 包含置顶
-            top_article_id_li = cache_article.get_channel_top_articles(channel_id)
+            top_article_id_li = cache_article.ChannelTopArticlesStorage(channel_id).get()
             for article_id in top_article_id_li:
-                article = cache_article.get_article_info(article_id)
+                article = cache_article.ArticleInfoCache(article_id).get()
                 if article:
                     article['pubdate'] = now
                     results.append(article)
@@ -302,7 +308,7 @@ class ArticleListResourceV1D1(Resource):
 
         # 查询文章
         for feed in feeds:
-            article = cache_article.get_article_info(feed.article_id)
+            article = cache_article.ArticleInfoCache(feed.article_id).get()
             if article:
                 article['pubdate'] = feed_time
                 article['trace'] = {
@@ -320,6 +326,8 @@ class UserArticleListResource(Resource):
     """
     用户文章列表
     """
+    method_decorators = [set_db_to_read]
+
     def get(self, user_id):
         """
         获取user_id 用户的文章数据
@@ -338,13 +346,16 @@ class UserArticleListResource(Resource):
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
         results = []
+
+        # 已废弃
         # articles = cache_user.get_user_articles(user_id)
         # total_count = len(articles)
         # page_articles = articles[(page - 1) * per_page:page * per_page]
-        total_count, page_articles = cache_user.get_user_articles_by_page(user_id, page, per_page)
+
+        total_count, page_articles = cache_user.UserArticlesCache(user_id).get_page(page, per_page)
 
         for article_id in page_articles:
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.ArticleInfoCache(article_id).get()
             if article:
                 results.append(article)
 
@@ -355,7 +366,7 @@ class CurrentUserArticleListResource(Resource):
     """
     当前用户的文章列表
     """
-    method_decorators = [login_required]
+    method_decorators = [set_db_to_read, login_required]
 
     def get(self):
         """
@@ -372,13 +383,16 @@ class CurrentUserArticleListResource(Resource):
         per_page = args.per_page if args.per_page else constants.DEFAULT_ARTICLE_PER_PAGE_MIN
 
         results = []
+
+        # 已废弃
         # articles = cache_user.get_user_articles(g.user_id)
         # total_count = len(articles)
         # page_articles = articles[(page - 1) * per_page:page * per_page]
-        total_count, page_articles = cache_user.get_user_articles_by_page(g.user_id, page, per_page)
+
+        total_count, page_articles = cache_user.UserArticlesCache(g.user_id).get_page(page, per_page)
 
         for article_id in page_articles:
-            article = cache_article.get_article_info(article_id)
+            article = cache_article.ArticleInfoCache(article_id).get()
             if article:
                 results.append(article)
 

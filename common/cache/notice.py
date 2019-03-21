@@ -1,107 +1,159 @@
 from flask import current_app
-import pickle
+import json
 from sqlalchemy.orm import load_only
-from sqlalchemy import func
+from redis.exceptions import RedisError
 
 from models.notice import Announcement
-from models import db
+from . import constants
 
 
-def get_announcements_by_page(page, per_page):
+class AnnouncementsCache(object):
     """
-    获取系统公告列表
-    :param page: 页数
-    :param per_page: 每页数量
-    :return: total_count, []
+    系统公告列表缓存
     """
-    r = current_app.redis_cli['notice_cache']
+    key = 'announcement'
 
-    key = 'announce'
-    exist = r.exists(key)
-    if exist:
-        # Cache exists.
-        total_count = r.zcard(key)
-        ret = r.zrevrange(key, (page - 1) * per_page, page * per_page, withscores=True)
-        if ret:
+    @classmethod
+    def get_page(cls, page, per_page):
+        """
+        获取系统公告列表
+        :param page: 页数
+        :param per_page: 每页数量
+        :return: total_count, []
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            pl = rc.pipeline()
+            pl.zcard(cls.key)
+            pl.zrevrange(cls.key, (page - 1) * per_page, page * per_page, withscores=True)
+            total_count, ret = pl.execute()
+        except RedisError as e:
+            current_app.logger.error(e)
+            total_count = 0
+            ret = []
+
+        if total_count > 0:
+            # Cache exists.
             results = []
-            for announcement, announcement_id in ret:
-                _announcement = pickle.loads(announcement)
-                _announcement['id'] = int(announcement_id)
-                results.append(_announcement)
+            for ann, ann_id in ret:
+                _ann = json.loads(ann)
+                ann_id['id'] = int(ann_id)
+                results.append(_ann)
             return total_count, results
         else:
-            return total_count, []
-    else:
-        # No cache.
-        ret = Announcement.query.options(load_only(Announcement.id, Announcement.pubtime, Announcement.title)) \
-            .filter_by(status=Announcement.STATUS.PUBLISHED) \
-            .order_by(Announcement.pubtime.desc()).all()
+            # No cache.
+            ret = Announcement.query.options(load_only(Announcement.id, Announcement.pubtime, Announcement.title)) \
+                .filter_by(status=Announcement.STATUS.PUBLISHED) \
+                .order_by(Announcement.pubtime.desc()).all()
 
-        results = []
-        cache = []
-        for announcement in ret:
-            _announcement = dict(
-                pubdate=announcement.pubtime.strftime('%Y-%m-%dT%H:%M:%S'),
-                title=announcement.title
-            )
-            cache.append(announcement.id)
-            cache.append(pickle.dumps(_announcement))
-            _announcement['id'] = announcement.id
-            results.append(_announcement)
+            results = []
+            cache = []
+            for ann in ret:
+                _ann = dict(
+                    pubdate=ann.pubtime.strftime('%Y-%m-%dT%H:%M:%S'),
+                    title=ann.title
+                )
+                cache.append(ann.id)
+                cache.append(json.dumps(_ann))
+                _ann['id'] = ann.id
+                results.append(_ann)
 
-        if cache:
-            r.zadd(key, *cache)
+            if cache:
+                try:
+                    pl = rc.pipeline()
+                    pl.zadd(cls.key, *cache)
+                    pl.expire(cls.key, constants.ANNOUNCEMENTS_CACHE_TTL)
+                    result = pl.execute()
+                    if result[0] and not result[1]:
+                        rc.delete(cls.key)
+                except RedisError as e:
+                    current_app.logger.error(e)
 
-        total_count = len(results)
-        page_results = results[(page - 1) * per_page:page * per_page]
+            total_count = len(results)
+            page_results = results[(page - 1) * per_page:page * per_page]
 
-        return total_count, page_results
+            return total_count, page_results
 
 
-def determine_announcement_exist(announcement_id):
+class AnnouncementDetailCache(object):
     """
-    判断公告是否存在
-    :param announcement_id:
-    :return:
+    系统公告详细内容缓存
     """
-    r = current_app.redis_cli['notice_cache']
-    ret = r.exists('announce')
-    if ret > 0:
-        ret = r.zrangebyscore('announce', announcement_id, announcement_id)
-        if ret:
-            return True
-        else:
-            return False
-    else:
-        ret = db.session.query(func.count(Announcement.id))\
-            .filter_by(id=announcement_id, status=Announcement.STATUS.PUBLISHED).first()
-        return True if ret[0] > 0 else False
+    def __init__(self, ann_id):
+        self.key = 'announcement:{}'.format(ann_id)
+        self.ann_id = ann_id
 
+    def save(self):
+        """
+        保存
+        """
+        rc = current_app.redis_cluster
 
-def get_announcement_detail(announcement_id):
-    """
-    获取公告内容
-    :param announcement_id:
-    :return:
-    """
-    r = current_app.redis_cli['notice_cache']
-    key = 'announce:{}'.format(announcement_id)
-    ret = r.get(key)
-    if ret:
-        announcement = pickle.loads(ret)
-        announcement['id'] = announcement_id
-        return announcement
-    else:
-        announcement = Announcement.query.options(load_only(Announcement.title, Announcement.content, Announcement.pubtime))\
-            .filter_by(id=announcement_id, status=Announcement.STATUS.PUBLISHED).first()
-        _announcement = {
-            'pubdate': announcement.pubtime.strftime('%Y-%m-%dT%H:%M:%S'),
-            'title': announcement.title,
-            'content': announcement.content
+        ann = Announcement.query.options(
+            load_only(Announcement.title, Announcement.content, Announcement.pubtime)) \
+            .filter_by(id=self.ann_id, status=Announcement.STATUS.PUBLISHED).first()
+
+        if ann is None:
+            return None
+
+        _ann = {
+            'pubdate': ann.pubtime.strftime('%Y-%m-%dT%H:%M:%S'),
+            'title': ann.title,
+            'content': ann.content
         }
-        r.set(key, pickle.dumps(_announcement))
-        _announcement['id'] = announcement_id
-        return _announcement
+        try:
+            rc.setex(self.key, constants.AnnouncementDetailCacheTTL.get_val(), json.dumps(_ann))
+        except RedisError as e:
+            current_app.logger.error(e)
 
+        return _ann
 
+    def get(self):
+        """
+        获取公告内容
+        """
+        rc = current_app.redis_cluster
+        try:
+            ret = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret is not None:
+            ann = json.loads(ret)
+            ann['id'] = self.ann_id
+            return ann
+        else:
+            _ann = self.save()
+            _ann['id'] = self.ann_id
+            return _ann
+
+    def exists(self):
+        """
+        判断公告是否存在
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret:
+            return False if ret == b'-1' else True
+        else:
+            # 数据库查询
+            ann = self.save()
+            if ann is None:
+                # 不存在, 设置缓存，防止击穿
+                try:
+                    rc.setex(self.key, constants.AnnouncementNotExistsCacheTTL.get_val(), '-1')
+                except RedisError as e:
+                    current_app.logger.error(e)
+
+                return False
+            else:
+                return True
 

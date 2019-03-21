@@ -6,6 +6,7 @@ from utils.decorators import login_required
 from models.user import Search
 from . import constants
 from models import db
+from cache import user as cache_user
 
 
 class HistoryListResource(Resource):
@@ -18,15 +19,12 @@ class HistoryListResource(Resource):
         """
         获取用户搜索历史
         """
-        ret = Search.query.options(load_only(Search.keyword)).filter_by(user_id=g.user_id, is_deleted=False)\
-            .order_by(Search.utime.desc()).limit(constants.USER_SEARCH_HISTORY_RETRIEVE_LIMIT).all()
-
-        return {'keywords': [search.keyword for search in ret]}
+        ret = cache_user.UserSearchingHistoryStorage(g.user_id).get()
+        return {'keywords': ret}
 
     def delete(self):
         """
         删除搜索历史
         """
-        Search.query.filter_by(user_id=g.user_id, is_deleted=False).update({'is_deleted': True})
-        db.session.commit()
+        cache_user.UserSearchingHistoryStorage(g.user_id).clear()
         return {'message': 'OK'}, 204
