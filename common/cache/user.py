@@ -488,6 +488,7 @@ class UserSearchingHistoryStorage(object):
             current_app.logger.error(e)
             keywords = current_app.redis_slave.zrevrange(self.key, 0, -1)
 
+        keywords = [keyword.decode() for keyword in keywords]
         return keywords
 
     def clear(self):
