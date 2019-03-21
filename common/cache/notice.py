@@ -38,7 +38,7 @@ class AnnouncementsCache(object):
             results = []
             for ann, ann_id in ret:
                 _ann = json.loads(ann)
-                ann_id['id'] = int(ann_id)
+                _ann['id'] = int(ann_id)
                 results.append(_ann)
             return total_count, results
         else:
