@@ -41,7 +41,7 @@ create_logger()
 
 # 修正统计数据
 from statistic import fix_statistics
-scheduler.add_job(fix_statistics, trigger='date')
+scheduler.add_job(fix_statistics, trigger='cron', hour=3)
 
 scheduler.start()
 
