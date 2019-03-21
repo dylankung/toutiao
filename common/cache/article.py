@@ -278,7 +278,7 @@ class ArticleUserAttitudeCache(object):
     def __init__(self, user_id, article_id):
         self.user_id = user_id
         self.article_id = article_id
-        self.key = 'user:{}:art:{}:liking'
+        self.key = 'user:{}:art:{}:liking'.format(user_id, article_id)
 
     def get(self):
         """
@@ -302,7 +302,7 @@ class ArticleUserAttitudeCache(object):
         ret = att.attitude if att else -1
 
         try:
-            ret = rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), int(ret))
+            rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), int(ret))
         except RedisError as e:
             current_app.logger.error(e)
 
