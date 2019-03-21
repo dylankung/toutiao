@@ -41,6 +41,8 @@ class CommentCache(object):
             current_app.logger.error(e)
             return None
         else:
+            if comment is None:
+                return None
             comment = json.loads(comment)
             comment = CommentCache.fill_fields(comment)
             return comment
