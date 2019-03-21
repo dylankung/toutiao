@@ -160,7 +160,10 @@ class ArticleInfoCache(object):
 
         if ret is None:
             article_formatted = self.save()
-            return article_formatted['allow_comm']
+        else:
+            article_formatted = json.loads(ret)
+
+        return article_formatted['allow_comm']
 
     def clear(self):
         rc = current_app.redis_cluster

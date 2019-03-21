@@ -45,7 +45,7 @@ class CommentListResource(Resource):
 
         allow_comment = cache_article.ArticleInfoCache(article_id or target).determine_allow_comment()
         if not allow_comment:
-            return {'message': 'Article denied comment.'}, 403
+            return {'message': 'Article denied comment.'}, 400
 
         if not article_id:
             # 对文章评论
