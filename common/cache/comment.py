@@ -262,7 +262,7 @@ class CommentsAndRepliesCacheBase(object):
                 cache.append(comment.id)
 
             end_id = ret[-1].id
-            last_id = page_comments[-1].id
+            last_id = page_comments[-1]
 
             # 设置缓存
             if cache:
