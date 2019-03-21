@@ -89,7 +89,7 @@ class ArticleCollectingCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(Collection.article_id, func.count(Collection.article_id)) \
-            .filter(Collection.is_deleted == 0).groupy_by(Collection.article_id).all()
+            .filter(Collection.is_deleted == 0).group_by(Collection.article_id).all()
         return ret
 
 
@@ -102,7 +102,7 @@ class UserArticleCollectingCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(Collection.user_id, func.count(Collection.article_id)) \
-            .filter(Collection.is_deleted == 0).groupy_by(Collection.user_id).all()
+            .filter(Collection.is_deleted == 0).group_by(Collection.user_id).all()
         return ret
 
 
@@ -115,7 +115,7 @@ class ArticleDislikeCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(Attitude.article_id, func.count(Collection.article_id)) \
-            .filter(Attitude.attitude == Attitude.ATTITUDE.DISLIKE).groupy_by(Collection.article_id).all()
+            .filter(Attitude.attitude == Attitude.ATTITUDE.DISLIKE).group_by(Collection.article_id).all()
         return ret
 
 
@@ -128,7 +128,7 @@ class ArticleLikingCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(Attitude.article_id, func.count(Collection.article_id)) \
-            .filter(Attitude.attitude == Attitude.ATTITUDE.LIKING).groupy_by(Collection.article_id).all()
+            .filter(Attitude.attitude == Attitude.ATTITUDE.LIKING).group_by(Collection.article_id).all()
         return ret
 
 
@@ -141,7 +141,7 @@ class CommentLikingCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(CommentLiking.comment_id, func.count(CommentLiking.comment_id)) \
-            .filter(CommentLiking.is_deleted == 0).groupy_by(CommentLiking.comment_id).all()
+            .filter(CommentLiking.is_deleted == 0).group_by(CommentLiking.comment_id).all()
         return ret
 
 
@@ -154,7 +154,7 @@ class ArticleCommentCountStorage(CountStorageBase):
     @classmethod
     def db_query(cls):
         ret = db.session.query(Comment.article_id, func.count(Comment.comment_id)) \
-            .filter(Comment.status == Comment.STATUS.APPROVED).groupy_by(Comment.article_id).all()
+            .filter(Comment.status == Comment.STATUS.APPROVED).group_by(Comment.article_id).all()
         return ret
 
 
@@ -168,7 +168,7 @@ class CommentReplyCountStorage(CountStorageBase):
     def db_query(cls):
         ret = db.session.query(Comment.parent_id, func.count(Comment.comment_id)) \
             .filter(Comment.status == Comment.STATUS.APPROVED, Comment.parent_id != None)\
-            .groupy_by(Comment.parent_id).all()
+            .group_by(Comment.parent_id).all()
         return ret
 
 
@@ -182,7 +182,7 @@ class UserFollowingsCountStorage(CountStorageBase):
     def db_query(cls):
         ret = db.session.query(Relation.user_id, func.count(Relation.target_user_id)) \
             .filter(Relation.relation == Relation.RELATION.FOLLOW)\
-            .groupy_by(Relation.user_id).all()
+            .group_by(Relation.user_id).all()
         return ret
 
 
@@ -196,7 +196,7 @@ class UserFollowersCountStorage(CountStorageBase):
     def db_query(cls):
         ret = db.session.query(Relation.target_user_id, func.count(Relation.user_id)) \
             .filter(Relation.relation == Relation.RELATION.FOLLOW) \
-            .groupy_by(Relation.target_user_id).all()
+            .group_by(Relation.target_user_id).all()
         return ret
 
 
@@ -210,5 +210,5 @@ class UserLikedCountStorage(CountStorageBase):
     def db_query(cls):
         ret = db.session.query(Article.user_id, func.count(Attitude.id)).join(Attitude.article) \
             .filter(Attitude.attitude == Attitude.ATTITUDE.LIKING) \
-            .groupy_by(Article.user_id).all()
+            .group_by(Article.user_id).all()
         return ret
