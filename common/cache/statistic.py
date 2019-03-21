@@ -153,7 +153,7 @@ class ArticleCommentCountStorage(CountStorageBase):
 
     @classmethod
     def db_query(cls):
-        ret = db.session.query(Comment.article_id, func.count(Comment.comment_id)) \
+        ret = db.session.query(Comment.article_id, func.count(Comment.id)) \
             .filter(Comment.status == Comment.STATUS.APPROVED).group_by(Comment.article_id).all()
         return ret
 
@@ -166,7 +166,7 @@ class CommentReplyCountStorage(CountStorageBase):
 
     @classmethod
     def db_query(cls):
-        ret = db.session.query(Comment.parent_id, func.count(Comment.comment_id)) \
+        ret = db.session.query(Comment.parent_id, func.count(Comment.id)) \
             .filter(Comment.status == Comment.STATUS.APPROVED, Comment.parent_id != None)\
             .group_by(Comment.parent_id).all()
         return ret
