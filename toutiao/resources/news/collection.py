@@ -55,6 +55,7 @@ class CollectionListResource(Resource):
             db.session.commit()
 
         if ret > 0:
+            cache_user.UserArticleCollectionsCache(g.user_id).clear()
             cache_statistic.ArticleCollectingCountStorage.incr(target)
             cache_statistic.UserArticleCollectingCountStorage.incr(g.user_id)
 
@@ -99,6 +100,7 @@ class CollectionResource(Resource):
         db.session.commit()
 
         if ret > 0:
+            cache_user.UserArticleCollectionsCache(g.user_id).clear()
             cache_statistic.ArticleCollectingCountStorage.incr(target, -1)
             cache_statistic.UserArticleCollectingCountStorage.incr(g.user_id, -1)
         return {'message': 'OK'}, 204
