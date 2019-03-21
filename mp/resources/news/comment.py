@@ -34,6 +34,7 @@ class CommentStatusResource(Resource):
         db.session.commit()
 
         if ret > 0:
+            cache_article.ArticleInfoCache(args.article_id).clear()
             return {'article_id': args.article_id, 'allow_comment': args.allow_comment}, 201
         else:
             return {'message': 'Invalid article status.'}, 400

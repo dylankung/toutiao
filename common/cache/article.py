@@ -10,8 +10,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from models.news import Article, ArticleStatistic, Attitude
 from models.user import User
 from models import db
-from . import user as cache_user
+from cache import user as cache_user
 from . import constants
+from cache import statistic as cache_statistic
 
 
 # # 无用
@@ -64,12 +65,9 @@ class ArticleInfoCache(object):
     article_info_fields_db = {
         'title': fields.String(attribute='title'),
         'aut_id': fields.Integer(attribute='user_id'),
-        # 'aut_name': fields.String(attribute='user.name'),
-        'comm_count': fields.Integer(attribute='comment_count'),
         'pubdate': fields.DateTime(attribute='ctime', dt_format='iso8601'),
-        'like_count': fields.Integer(attribute='statistic.like_count'),
-        'collect_count': fields.Integer(attribute='statistic.collect_count'),
-        'ch_id': fields.Integer(attribute='channel_id')
+        'ch_id': fields.Integer(attribute='channel_id'),
+        'allow_comm': fields.Integer(attribute='allow_comment'),
     }
 
     def __init__(self, article_id):
@@ -83,15 +81,13 @@ class ArticleInfoCache(object):
         rc = current_app.redis_cluster
 
         article = Article.query.options(load_only(Article.id, Article.title, Article.user_id, Article.channel_id,
-                                                  Article.cover, Article.ctime, Article.comment_count),
-                                        joinedload(Article.statistic, innerjoin=True).load_only(
-                                            ArticleStatistic.like_count,
-                                            ArticleStatistic.collect_count)) \
+                                                  Article.cover, Article.ctime, Article.allow_comment))\
             .filter_by(id=self.article_id, status=Article.STATUS.APPROVED).first()
         if article is None:
             return
 
         article_formatted = marshal(article, self.article_info_fields_db)
+        article_formatted['cover'] = article.cover
 
         # 判断是否置顶
         try:
@@ -100,28 +96,24 @@ class ArticleInfoCache(object):
             current_app.logger.error(e)
             article_formatted['is_top'] = 0
 
-        # 设置缓存
-        article_formatted['cover'] = json.dumps(article.cover)
-
-        # 补充exists字段，为防止缓存击穿使用
-        # 参考下面exists方法说明
-        article_formatted['exists'] = 1
-
         try:
-            pl = rc.pipeline()
-            pl.hmset(self.key, article_formatted)
-            pl.expire(self.key, constants.ArticleInfoCacheTTL.get_val())
-            results = pl.execute()
-            if results[0] and not results[1]:
-                rc.delete(self.key)
+            rc.setex(self.key, constants.ArticleInfoCacheTTL.get_val(), article_formatted)
         except RedisError as e:
             current_app.logger.error(e)
-        finally:
-            del article_formatted['exists']
 
+        return article_formatted
+
+    def _fill_fields(self, article_formatted):
+        """
+        补充字段
+        """
         article_formatted['art_id'] = self.article_id
-        article_formatted['cover'] = article.cover
-
+        # 获取作者名
+        author = cache_user.UserProfileCache(article_formatted['aut_id']).get()
+        article_formatted['aut_name'] = author['name']
+        article_formatted['comm_count'] = cache_statistic.ArticleCommentCountStorage.get(self.article_id)
+        article_formatted['like_count'] = cache_statistic.ArticleLikingCountStorage.get(self.article_id)
+        article_formatted['collect_count'] = cache_statistic.ArticleCollectingCountStorage.get(self.article_id)
         return article_formatted
 
     def get(self):
@@ -132,35 +124,19 @@ class ArticleInfoCache(object):
         rc = current_app.redis_cluster
 
         # 从缓存中查询
-        # TODO 后续可能只获取几个指定字段
         try:
-            article = rc.hgetall(self.key)
+            article = rc.get(self.key)
         except RedisError as e:
             current_app.logger.error(e)
             article = None
 
         if article:
-            # 不能处理bytes类型
-            # article_formatted = marshal(article, article_info_fields_redis)
-            article_formatted = dict(
-                art_id=self.article_id,
-                title=article[b'title'].decode(),
-                aut_id=int(article[b'aut_id']),
-                # aut_name=article[b'aut_name'].decode(),
-                comm_count=int(article[b'comm_count']),
-                pubdate=article[b'pubdate'].decode(),
-                is_top=int(article[b'is_top']),
-                cover=json.loads(article[b'cover']),
-                like_count=int(article[b'like_count']),
-                collect_count=int(article[b'collect_count']),
-                ch_id=int(article[b'ch_id'])
-            )
+            article_formatted = json.loads(article)
         else:
             article_formatted = self.save()
 
-        # 获取作者名
-        author = cache_user.UserProfileCache(article_formatted['aut_id']).get()
-        article_formatted['aut_name'] = author['name']
+        article_formatted = self._fill_fields(article_formatted)
+        del article_formatted['allow_comm']
 
         return article_formatted
 
@@ -174,38 +150,39 @@ class ArticleInfoCache(object):
         # 此处可使用的键有三种选择 user:{}:profile 或 user:{}:status 或 新建
         # status主要为当前登录用户，而profile不仅仅是登录用户，覆盖范围更大，所以使用profile
         try:
-            exists = rc.hget(self.key, 'exists')
+            ret = rc.get(self.key)
         except RedisError as e:
             current_app.logger.error(e)
-            exists = None
+            ret = None
 
-        if exists is not None:
-            exists = int(exists)
-
-        if exists == 1:
-            return True
-        elif exists == 0:
-            return False
+        if ret is not None:
+            return False if ret == b'-1' else True
         else:
             # 缓存中未查到
-            ret = db.session.query(func.count(Article.id)).filter_by(id=self.article_id,
-                                                                     status=Article.STATUS.APPROVED).first()
-            if ret[0] > 0:
-                try:
-                    self.save()
-                except SQLAlchemyError as e:
-                    current_app.logger.error(e)
+            article = self.save()
+            if article is None:
+                return False
             else:
-                try:
-                    pl = rc.pipeline()
-                    pl.hset(self.key, 'exists', 0)
-                    pl.expire(self.key, constants.ArticleNotExistsCacheTTL.get_val())
-                    results = pl.execute()
-                    if results[0] and not results[1]:
-                        pl.delete(self.key)
-                except RedisError as e:
-                    current_app.logger.error(e)
-            return bool(ret[0])
+                return True
+
+    def determine_allow_comment(self):
+        """
+        判断是否允许评论
+        """
+        rc = current_app.redis_cluster
+        try:
+            ret = rc.get(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret is None:
+            article_formatted = self.save()
+            return article_formatted['allow_comm']
+
+    def clear(self):
+        rc = current_app.redis_cluster
+        rc.delete(self.key)
 
 
 class ChannelTopArticlesStorage(object):
@@ -308,6 +285,9 @@ class ArticleDetailCache(object):
 
         return article_dict
 
+    def clear(self):
+        current_app.redis_cluster.delete(self.key)
+
 
 class ArticleUserAttitudeCache(object):
     """
@@ -358,54 +338,3 @@ class ArticleUserAttitudeCache(object):
             current_app.logger.error(e)
 
 
-def update_article_collect_count(article_id, increment=1):
-    """
-    更新文章收藏数量
-    :param article_id: 文章id
-    :param increment: 增量
-    :return:
-    """
-    ArticleStatistic.query.filter_by(id=article_id).update({'collect_count': ArticleStatistic.collect_count + increment})
-    db.session.commit()
-
-    r = current_app.redis_cli['art_cache']
-    key = 'art:{}:info'.format(article_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hincrby(key, 'collect_count', increment)
-
-
-def update_article_liking_count(article_id, increment=1):
-    """
-    更新文章点赞数量
-    :param article_id: 文章id
-    :param increment: 增量
-    :return:
-    """
-    ArticleStatistic.query.filter_by(id=article_id).update({'like_count': ArticleStatistic.like_count + increment})
-    db.session.commit()
-
-    r = current_app.redis_cli['art_cache']
-    key = 'art:{}:info'.format(article_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hincrby(key, 'like_count', increment)
-
-
-def update_article_read_count(article_id):
-    """
-    更新文章阅读数
-    :param article_id:
-    :return:
-    """
-    ArticleStatistic.query.filter_by(id=article_id).update({'read_count': ArticleStatistic.read_count + 1})
-    db.session.commit()
-
-    r = current_app.redis_cli['art_cache']
-    key = 'art:{}:info'.format(article_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hincrby(key, 'read_count', 1)

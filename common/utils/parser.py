@@ -109,7 +109,7 @@ def comment_id(value):
         if _comment_id <= 0:
             raise ValueError('Invalid target comment id.')
         else:
-            ret = cache_comment.determine_comment_exists(_comment_id)
+            ret = cache_comment.CommentCache(_comment_id).exists()
             if ret:
                 return _comment_id
             else:

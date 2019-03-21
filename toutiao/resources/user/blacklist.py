@@ -10,6 +10,7 @@ from models.user import Relation, User
 from utils import parser
 from models import db
 from cache import user as cache_user
+from cache import statistic as cache_statistic
 
 
 class BlacklistListResource(Resource):
@@ -50,7 +51,11 @@ class BlacklistListResource(Resource):
             db.session.commit()
 
             if fol_ret > 0:
-                cache_user.UserFollowingCache(g.user_id).update(target, time.time(), -1)
+                timestamp = time.time()
+                cache_user.UserFollowingCache(g.user_id).update(target, timestamp, -1)
+                cache_user.UserFollowersCache(target).update(g.user_id, timestamp, -1)
+                cache_statistic.UserFollowingsCountStorage.incr(g.user_id, -1)
+                cache_statistic.UserFollowersCountStorage.incr(target, -1)
 
         return {'target': target}, 201
 

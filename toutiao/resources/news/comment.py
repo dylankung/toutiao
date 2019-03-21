@@ -3,9 +3,10 @@ from flask_restful.reqparse import RequestParser
 from flask_restful.inputs import positive, int_range
 from flask import g, current_app
 from sqlalchemy.orm import load_only
+from sqlalchemy.exc import SQLAlchemyError
 import time
 
-from utils.decorators import login_required
+from utils.decorators import login_required, set_db_to_write, set_db_to_read
 from utils import parser
 from models import db
 from models.news import Comment, Article
@@ -13,13 +14,17 @@ from cache import comment as cache_comment
 from cache import article as cache_article
 from cache import user as cache_user
 from . import constants
+from cache import statistic as cache_statistic
 
 
 class CommentListResource(Resource):
     """
     评论
     """
-    method_decorators = {'post': [login_required]}
+    method_decorators = {
+        'post': [set_db_to_write, login_required],
+        'get': [set_db_to_read],
+    }
 
     def post(self):
         """
@@ -38,21 +43,26 @@ class CommentListResource(Resource):
         if not content:
             return {'message': 'Empty content.'}, 400
 
-        # TODO 缓存中增加是否允许评论
-        article = Article.query.options(load_only(Article.allow_comment)).filter_by(id=(article_id or target)).first()
-        if not article.allow_comment:
+        allow_comment = cache_article.ArticleInfoCache(article_id or target).determine_allow_comment()
+        if not allow_comment:
             return {'message': 'Article denied comment.'}, 403
 
         if not article_id:
             # 对文章评论
             article_id = target
 
-            comment = Comment(user_id=g.user_id, article_id=article_id, parent_id=None, content=content)
+            comment_id = current_app.id_worker.get_id()
+            comment = Comment(id=comment_id, user_id=g.user_id, article_id=article_id, parent_id=None, content=content)
             db.session.add(comment)
             db.session.commit()
-            # TODO 增加评论审核后 在评论审核中累计评论数量
-            cache_article.update_article_comment_count(article_id)
-            cache_comment.update_comment_by_article(article_id, comment)
+
+            # TODO 增加评论审核后 在评论审核中添加缓存
+            cache_statistic.ArticleCommentCountStorage.incr(article_id)
+            try:
+                cache_comment.CommentCache(comment_id).save(comment)
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
+            cache_comment.ArticleCommentsCache(article_id).add(comment)
 
             # 发送评论通知
             _user = cache_user.UserProfileCache(g.user_id).get()
@@ -69,22 +79,25 @@ class CommentListResource(Resource):
 
         else:
             # 对评论的回复
-            ret = Comment.query.options(load_only(Comment.id)).filter_by(id=target, article_id=article_id).first()
-            if ret is None:
+            exists = cache_comment.CommentCache(target).exists()
+            if not exists:
                 return {'message': 'Invalid target comment id.'}, 400
 
-            comment = Comment(user_id=g.user_id, article_id=article_id, parent_id=target, content=content)
+            comment_id = current_app.id_worker.get_id()
+            comment = Comment(id=comment_id, user_id=g.user_id, article_id=article_id, parent_id=target, content=content)
             db.session.add(comment)
             db.session.commit()
 
-            # TODO 增加评论审核后 在评论审核中累计评论数量
-            cache_article.update_article_comment_count(article_id)
-            cache_comment.update_comment_reply_count(target)
-            cache_comment.update_reply_by_comment(target, comment)
+            # TODO 增加评论审核后 在评论审核中添加评论缓存
+            cache_statistic.ArticleCommentCountStorage.incr(article_id)
+            cache_statistic.CommentReplyCountStorage.incr(target)
+            try:
+                cache_comment.CommentCache(comment_id).save(comment)
+            except SQLAlchemyError as e:
+                current_app.logger.error(e)
+            cache_comment.CommentRepliesCache(target).add(comment)
 
         return {'com_id': comment.id, 'target': target, 'art_id': article_id}, 201
-
-        # TODO 评论审核时更新评论缓存数据
 
     def _comment_type(self, value):
         """
@@ -130,13 +143,13 @@ class CommentListResource(Resource):
         if args.type == 'a':
             # 文章评论
             article_id = args.source
-
-            result = cache_comment.get_comments_by_article(article_id, args.offset, limit)
+            total_count, end_id, last_id, ret = cache_comment.ArticleCommentsCache(article_id).get_page(args.offset, limit)
         else:
             # 评论的评论
             comment_id = args.source
+            total_count, end_id, last_id, ret = cache_comment.CommentRepliesCache(comment_id).get_page(args.offset, limit)
 
-            result = cache_comment.get_reply_by_comment(comment_id, args.offset, limit)
+        results = cache_comment.CommentCache.get_list(ret)
 
-        return result
+        return {'total_count': total_count, 'end_id': end_id, 'last_id': last_id, 'results': results}
 

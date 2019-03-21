@@ -77,7 +77,7 @@ class ProfileResource(Resource):
 
         db.session.commit()
         if new_cache_values:
-            cache_user.update_user_profile(user_id, new_cache_values)
+            cache_user.UserProfileCache.clear()
 
         return return_values, 201
 
@@ -114,6 +114,6 @@ class PhotoResource(Resource):
         db.session.commit()
 
         if new_cache_values:
-            cache_user.update_user_profile(user_id, new_cache_values)
+            cache_user.UserProfileCache.clear()
 
         return return_values, 201

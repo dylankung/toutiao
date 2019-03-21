@@ -1,14 +1,16 @@
 import os
+import logging.handlers
+from redis.sentinel import Sentinel
 
 from toutiao import create_flask_app
 from settings.default import DefaultConfig
 from models import db
-from utils.redis_client import create_redis_clients
-import logging.handlers
 
 toutiao_app = create_flask_app(DefaultConfig, enable_config_file=True)
 db.init_app(toutiao_app)
-redis_cli = create_redis_clients(toutiao_app)
+
+_sentinel = Sentinel(toutiao_app.config['REDIS_SENTINELS'])
+redis_master = _sentinel.master_for(toutiao_app.config['REDIS_SENTINEL_SERVICE_NAME'])
 
 
 def create_logger():

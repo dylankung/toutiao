@@ -8,9 +8,10 @@ from redis.exceptions import RedisError, ConnectionError
 from sqlalchemy.exc import SQLAlchemyError
 
 from models.user import User, Relation, UserProfile
-from models.news import Article
+from models.news import Article, Collection
 from models import db
 from . import constants
+from cache import statistic as cache_statistic
 
 
 class UserProfileCache(object):
@@ -24,11 +25,6 @@ class UserProfileCache(object):
         'is_media': fields.Integer(attribute='is_media'),
         'intro': fields.String(attribute='introduction'),
         'certi': fields.String(attribute='certificate'),
-        'art_count': fields.Integer(attribute='article_count'),
-        'follow_count': fields.Integer(attribute='following_count'),
-        'fans_count': fields.Integer(attribute='fans_count'),
-        'like_count': fields.Integer(attribute='like_count'),
-        'read_count': fields.Integer(attribute='read_count'),
     }
 
     def __init__(self, user_id):
@@ -47,12 +43,7 @@ class UserProfileCache(object):
                                                 User.profile_photo,
                                                 User.is_media,
                                                 User.introduction,
-                                                User.certificate,
-                                                User.article_count,
-                                                User.following_count,
-                                                User.fans_count,
-                                                User.like_count,
-                                                User.read_count)) \
+                                                User.certificate)) \
                 .filter_by(id=self.user_id).first()
         user.profile_photo = user.profile_photo or ''
         user.introduction = user.introduction or ''
@@ -66,35 +57,44 @@ class UserProfileCache(object):
         """
         rc = current_app.redis_cluster
 
+        # 判断缓存是否存在
         if force:
             exists = False
         else:
             try:
-                exists = rc.hexists(self.key, 'mobile')
+                ret = rc.get(self.key)
             except RedisError as e:
                 current_app.logger.error(e)
                 exists = False
+            else:
+                if ret == b'-1':
+                    exists = False
+                else:
+                    exists = True
 
         if not exists:
             # This user cache data did not exist previously.
-            user_data = self._generate_user_profile_cache(user)
+            if user is None:
+                user = User.query.options(load_only(User.name,
+                                                    User.mobile,
+                                                    User.profile_photo,
+                                                    User.is_media,
+                                                    User.introduction,
+                                                    User.certificate)) \
+                    .filter_by(id=self.user_id).first()
 
-            # 补充exists字段，为防止缓存击穿使用
-            # 参考下面exists方法说明
-            user_data['exists'] = 1
+            if user is None:
+                return None
+
+            user.profile_photo = user.profile_photo or ''
+            user.introduction = user.introduction or ''
+            user.certificate = user.certificate or ''
+            user_data = marshal(user, self.user_fields_for_db)
 
             try:
-                pl = rc.pipeline()
-                pl.hmset(self.key, user_data)
-                pl.expire(self.key, constants.UserProfileCacheTTL.get_val())
-                results = pl.execute()
+                rc.setex(self.key, constants.UserProfileCacheTTL.get_val(), json.dumps(user_data))
             except RedisError as e:
                 current_app.logger.error(e)
-            else:
-                # 有效期设置失败
-                if results[0] and not results[1]:
-                    rc.delete(self.key)
-
             return user_data
 
     def get(self):
@@ -105,46 +105,39 @@ class UserProfileCache(object):
         rc = current_app.redis_cluster
 
         try:
-            ret = rc.hgetall(self.key)
+            ret = rc.get(self.key)
         except RedisError as e:
             current_app.logger.error(e)
             ret = None
         if ret:
             # hit cache
-            user_data = {
-                    'mobile': ret[b'mobile'].decode(),
-                    'name': ret[b'name'].decode(),
-                    'photo': ret[b'photo'].decode(),
-                    'is_media': int(ret[b'is_media']),
-                    'intro': ret[b'intro'].decode(),
-                    'certi': ret[b'certi'].decode(),
-                    'art_count': int(ret[b'art_count']),
-                    'follow_count': int(ret[b'follow_count']),
-                    'fans_count': int(ret[b'fans_count']),
-                    'like_count': int(ret[b'like_count']),
-                    'read_count': int(ret[b'read_count']),
-                }
+            user_data = json.loads(ret)
         else:
             user_data = self.save(force=True)
+
+        user_data = self._fill_fields(user_data)
 
         if not user_data['photo']:
             user_data['photo'] = constants.DEFAULT_USER_PROFILE_PHOTO
         user_data['photo'] = current_app.config['QINIU_DOMAIN'] + user_data['photo']
         return user_data
 
-    def update(self, profile):
+    def _fill_fields(self, user_data):
         """
-        更新用户资料
-        :param profile: dict
-        :return:
+        补充字段
         """
-        rc = current_app.redis_cluster
+        user_data['art_count'] = cache_statistic.UserArticlesCountStorage.get(self.user_id)
+        user_data['follow_count'] = cache_statistic.UserFollowingsCountStorage.get(self.user_id)
+        user_data['fans_count'] = cache_statistic.UserFollowersCountStorage.get(self.user_id)
+        user_data['like_count'] = cache_statistic.UserLikedCountStorage.get(self.user_id)
+        return user_data
 
-        # 此处使用ttl是看还有多长时间过期，如果有效期剩余过小，更新无意义
+    def clear(self):
+        """
+        清除
+        """
         try:
-            ttl = rc.ttl(self.key)
-            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_CACHE_TTL_LIMIT:
-                rc.hmset(self.key, profile)
+            current_app.redis_cluster.delete(self.key)
         except RedisError as e:
             current_app.logger.error(e)
 
@@ -158,94 +151,24 @@ class UserProfileCache(object):
         # 此处可使用的键有三种选择 user:{}:profile 或 user:{}:status 或 新建
         # status主要为当前登录用户，而profile不仅仅是登录用户，覆盖范围更大，所以使用profile
         try:
-            exists = rc.hget(self.key, 'exists')
+            ret = rc.get(self.key)
         except RedisError as e:
             current_app.logger.error(e)
-            exists = None
+            ret = None
 
-        if exists is not None:
-            exists = int(exists)
-
-        if exists == 1:
-            return True
-        elif exists == 0:
-            return False
+        if ret is not None:
+            return False if ret == b'-1' else True
         else:
             # 缓存中未查到
-            ret = db.session.query(func.count(User.id)).filter_by(id=self.user_id).first()
-            if ret[0] > 0:
+            user_data = self.save(force=True)
+            if user_data is None:
                 try:
-                    self.save()
-                except SQLAlchemyError as e:
-                    current_app.logger.error(e)
-            else:
-                try:
-                    pl = rc.pipeline()
-                    pl.hset(self.key, 'exists', 0)
-                    pl.expire(self.key, constants.UserNotExistsCacheTTL.get_val())
-                    results = pl.execute()
-                    if results[0] and not results[1]:
-                        pl.delete(self.key)
+                    rc.setex(self.key, constants.UserNotExistsCacheTTL.get_val(), -1)
                 except RedisError as e:
                     current_app.logger.error(e)
-            return bool(ret[0])
-
-    def update_follow_count(self, increment):
-        """
-        更新关注数
-        :param increment:
-        :return:
-        """
-        rc = current_app.redis_cluster
-        try:
-            ttl = rc.ttl(self.key)
-            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_STATISTIC_CACHE_TTL_LIMIT:
-                rc.hincrby(self.key, 'follow_count', increment)
-        except RedisError as e:
-            current_app.logger.error(e)
-
-    def get_follow_count(self):
-        """
-        获取关注数
-        :return:
-        """
-        rc = current_app.redis_cluster
-        try:
-            ret = rc.hget(self.key, 'follow_count')
-        except RedisError as e:
-            current_app.logger.error(e)
-            ret = None
-        if ret is not None:
-            ret = int(ret)
-        return ret
-
-    def update_fans_count(self, increment):
-        """
-        更新粉丝数
-        :param increment:
-        :return:
-        """
-        rc = current_app.redis_cluster
-        try:
-            ttl = rc.ttl(self.key)
-            if ttl > constants.ALLOW_UPDATE_USER_PROFILE_STATISTIC_CACHE_TTL_LIMIT:
-                rc.hincrby(self.key, 'fans_count', increment)
-        except RedisError as e:
-            current_app.logger.error(e)
-
-    def get_fans_count(self):
-        """
-        获取粉丝数
-        """
-        rc = current_app.redis_cluster
-        try:
-            ret = rc.hget(self.key, 'fans_count')
-        except RedisError as e:
-            current_app.logger.error(e)
-            ret = None
-        if ret is not None:
-            ret = int(ret)
-        return ret
+                return False
+            else:
+                return True
 
 
 class UserStatusCache(object):
@@ -363,7 +286,7 @@ class UserFollowingCache(object):
             return [int(uid) for uid in ret]
 
         # 为了防止缓存击穿，先尝试从缓存中判断关注数是否为0，若为0不再查询数据库
-        ret = UserProfileCache(self.user_id).get_follow_count()
+        ret = cache_statistic.UserFollowingsCountStorage.get(self.user_id)
         if ret == 0:
             return []
 
@@ -411,9 +334,6 @@ class UserFollowingCache(object):
         """
         rc = current_app.redis_cluster
 
-        # Update user following count
-        UserProfileCache(self.user_id).update_follow_count(increment)
-
         # Update user following user id list
         try:
             ttl = rc.ttl(self.key)
@@ -424,12 +344,6 @@ class UserFollowingCache(object):
                     rc.zrem(self.key, target_user_id)
         except RedisError as e:
             current_app.logger.error(e)
-
-        # Update target user followers(fans) count
-        UserProfileCache(target_user_id).update_fans_count(increment)
-
-        # Update target user followers(fans) user id list
-        UserFollowersCache(target_user_id).update(self.user_id, timestamp, increment)
 
 
 class UserFollowersCache(object):
@@ -457,7 +371,7 @@ class UserFollowersCache(object):
             # In order to be consistent with db data type.
             return [int(uid) for uid in ret]
 
-        ret = UserProfileCache(self.user_id).get_fans_count()
+        ret = cache_statistic.UserFollowersCountStorage.get(self.user_id)
         if ret == 0:
             return []
 
@@ -506,7 +420,7 @@ class UserReadingHistoryStorage(object):
     用户阅读历史
     """
     def __init__(self, user_id):
-        self.key = 'user:{}:his'.format(user_id)
+        self.key = 'user:{}:his:reading'.format(user_id)
         self.user_id = user_id
 
     def save(self, article_id):
@@ -545,9 +459,182 @@ class UserReadingHistoryStorage(object):
         return total_count, article_ids
 
 
+class UserSearchingHistoryStorage(object):
+    """
+    用户搜索历史
+    """
+    def __init__(self, user_id):
+        self.key = 'user:{}:his:searching'.format(user_id)
+        self.user_id = user_id
+
+    def save(self, keyword):
+        """
+        保存用户搜索历史
+        :param keyword: 关键词
+        :return:
+        """
+        pl = current_app.redis_master.pipeline()
+        pl.zadd(self.key, time.time(), keyword)
+        pl.zremrangebyrank(self.key, 0, -1*(constants.SEARCHING_HISTORY_COUNT_PER_USER+1))
+        pl.execute()
+
+    def get(self):
+        """
+        获取搜索历史
+        """
+        try:
+            keywords = current_app.redis_master.zrevrange(self.key, 0, -1)
+        except ConnectionError as e:
+            current_app.logger.error(e)
+            keywords = current_app.redis_slave.zrevrange(self.key, 0, -1)
+
+        return keywords
+
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_master.delete(self.key)
+
+
+class UserArticlesCache(object):
+    """
+    用户文章缓存
+    """
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.key = 'user:{}:art'.format(user_id)
+
+    def get_page(self, page, per_page):
+        """
+        获取用户的文章列表
+        :param page: 页数
+        :param per_page: 每页数量
+        :return: total_count, [article_id, ..]
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            pl = rc.pipeline()
+            pl.zcard(self.key)
+            pl.zrevrange(self.key, (page - 1) * per_page, page * per_page)
+            total_count, ret = pl.execute()
+        except RedisError as e:
+            current_app.logger.error(e)
+            total_count = 0
+            ret = []
+
+        if total_count > 0:
+            # Cache exists.
+            return total_count, [int(aid) for aid in ret]
+        else:
+            # No cache.
+            total_count = cache_statistic.UserArticlesCountStorage.get(self.user_id)
+            if total_count == 0:
+                return 0, []
+
+            ret = Article.query.options(load_only(Article.id, Article.ctime)) \
+                .filter_by(user_id=self.user_id, status=Article.STATUS.APPROVED) \
+                .order_by(Article.ctime.desc()).all()
+
+            articles = []
+            cache = []
+            for article in ret:
+                articles.append(article.id)
+                cache.append(article.ctime.timestamp())
+                cache.append(article.id)
+
+            if cache:
+                try:
+                    pl = rc.pipeline()
+                    pl.zadd(self.key, *cache)
+                    pl.expire(self.key, constants.UserArticlesCacheTTL.get_val())
+                    results = pl.execute()
+                    if results[0] and not results[1]:
+                        rc.delete(self.key)
+                except RedisError as e:
+                    current_app.logger.error(e)
+
+            total_count = len(articles)
+            page_articles = articles[(page - 1) * per_page:page * per_page]
+
+            return total_count, page_articles
+
+    def clear(self):
+        """
+        清除
+        """
+        rc = current_app.redis_cluster
+        rc.delete(self.key)
+
+
+class UserArticleCollectionsCache(object):
+    """
+    用户收藏文章缓存
+    """
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.key = 'user:{}:art:collection'.format(user_id)
+
+    def get_page(self, page, per_page):
+        """
+        获取用户的文章列表
+        :param page: 页数
+        :param per_page: 每页数量
+        :return: total_count, [article_id, ..]
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            pl = rc.pipeline()
+            pl.zcard(self.key)
+            pl.zrevrange(self.key, (page - 1) * per_page, page * per_page)
+            total_count, ret = pl.execute()
+        except RedisError as e:
+            current_app.logger.error(e)
+            total_count = 0
+            ret = []
+
+        if total_count > 0:
+            # Cache exists.
+            return total_count, [int(aid) for aid in ret]
+        else:
+            # No cache.
+            total_count = cache_statistic.UserArticleCollectingCountStorage.get(self.user_id)
+            if total_count == 0:
+                return 0, []
+
+            ret = Collection.query.options(load_only(Collection.article_id, Collection.utime)) \
+                .filter_by(user_id=self.user_id, is_deleted=False) \
+                .order_by(Collection.utime.desc()).all()
+
+            collections = []
+            cache = []
+            for collection in ret:
+                collections.append(collection.article_id)
+                cache.append(collection.utime.timestamp())
+                cache.append(collection.article_id)
+
+            if cache:
+                try:
+                    pl = rc.pipeline()
+                    pl.zadd(self.key, *cache)
+                    pl.expire(self.key, constants.UserArticleCollectionsCacheTTL.get_val())
+                    results = pl.execute()
+                    if results[0] and not results[1]:
+                        rc.delete(self.key)
+                except RedisError as e:
+                    current_app.logger.error(e)
+
+            total_count = len(collections)
+            page_articles = collections[(page - 1) * per_page:page * per_page]
+
+            return total_count, page_articles
+
+
 def get_user_articles(user_id):
     """
-    获取用户的所有文章列表
+    获取用户的所有文章列表 已废弃
     :param user_id:
     :return:
     """
@@ -583,57 +670,6 @@ def get_user_articles(user_id):
     return articles
 
 
-def get_user_articles_by_page(user_id, page, per_page):
-    """
-    获取用户的文章列表
-    :param user_id:
-    :param page: 页数
-    :param per_page: 每页数量
-    :return: total_count, [article_id, ..]
-    """
-    r = current_app.redis_cli['user_cache']
-    timestamp = time.time()
-
-    key = 'user:{}:art'.format(user_id)
-    exist = r.exists(key)
-    if exist:
-        # Cache exists.
-        r.zadd('user:art', timestamp, user_id)
-        total_count = r.zcard(key)
-        ret = r.zrevrange(key, (page - 1) * per_page, page * per_page)
-        if ret:
-            return total_count, [int(aid) for aid in ret]
-        else:
-            return total_count, []
-    else:
-        # No cache.
-        ret = r.hget('user:{}'.format(user_id), 'art_count')
-        if ret is not None and int(ret) == 0:
-            return 0, []
-
-        ret = Article.query.options(load_only(Article.id, Article.ctime)) \
-            .filter_by(user_id=user_id, status=Article.STATUS.APPROVED) \
-            .order_by(Article.ctime.desc()).all()
-
-        articles = []
-        cache = []
-        for article in ret:
-            articles.append(article.id)
-            cache.append(article.ctime.timestamp())
-            cache.append(article.id)
-
-        if cache:
-            pl = r.pipeline()
-            pl.zadd('user:art', timestamp, user_id)
-            pl.zadd(key, *cache)
-            pl.execute()
-
-        total_count = len(articles)
-        page_articles = articles[(page - 1) * per_page:page * per_page]
-
-        return total_count, page_articles
-
-
 # 已废弃
 # def synchronize_reading_history_to_db(user_id):
 #     """
@@ -663,21 +699,5 @@ def get_user_articles_by_page(user_id, page, per_page):
 #         db.session.execute(sql)
 #         db.session.commit()
 
-
-def update_user_article_read_count(user_id):
-    """
-    更新用户文章被阅读数
-    :param user_id:
-    :return:
-    """
-    User.query.filter_by(id=user_id).update({'read_count': User.read_count + 1})
-    db.session.commit()
-
-    r = current_app.redis_cli['user_cache']
-    key = 'user:{}'.format(user_id)
-    exist = r.exists(key)
-
-    if exist:
-        r.hincrby(key, 'read_count', 1)
 
 

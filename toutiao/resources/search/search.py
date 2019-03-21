@@ -2,9 +2,11 @@ from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
 from flask import g, current_app
+from redis.exceptions import RedisError
 
 from . import constants
 from cache import article as cache_article
+from cache import user as cache_user
 from models.user import Search
 from models import db
 
@@ -121,9 +123,10 @@ class SearchResource(Resource):
 
         # Record user search history
         if g.user_id and page == 1:
-            _search = Search(user_id=g.user_id, keyword=q)
-            db.session.add(_search)
-            db.session.commit()
+            try:
+                cache_user.UserSearchingHistoryStorage(g.user_id).save(q)
+            except RedisError as e:
+                current_app.logger.error(e)
 
         # Add new es index doc
         if total_count and page == 1:
