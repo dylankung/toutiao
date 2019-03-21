@@ -302,7 +302,7 @@ class ArticleUserAttitudeCache(object):
         ret = att.attitude if att else -1
 
         try:
-            ret = rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), ret)
+            ret = rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), int(ret))
         except RedisError as e:
             current_app.logger.error(e)
 
