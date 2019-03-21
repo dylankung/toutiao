@@ -87,7 +87,7 @@ class CommentCache(object):
         else:
             ret = Comment.query.filter(Comment.id.in_(need_db_query),
                                        Comment.status == Comment.STATUS.APPROVED).all()
-            pl = rc.pipeline
+            pl = rc.pipeline()
             for comment in ret:
                 # 处理序列化
                 formatted_comment = marshal(comment, cls.comment_fields)
