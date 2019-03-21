@@ -253,7 +253,7 @@ class CommentsAndRepliesCacheBase(object):
                     score += constants.COMMENTS_CACHE_MAX_SCORE
 
                 # 构造返回数据
-                if score < offset and page_count <= limit:
+                if ((offset is not None and score < offset) or offset is None) and page_count <= limit:
                     page_comments.append(comment.id)
                     page_count += 1
 
