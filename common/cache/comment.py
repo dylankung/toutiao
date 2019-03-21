@@ -223,12 +223,11 @@ class CommentsAndRepliesCacheBase(object):
             end_id = None
             last_id = None
             ret = []
-        else:
-            end_id = int(end_id[0])
-            last_id = int(ret[-1])
 
         if total_count > 0:
             # Cache exists.
+            end_id = int(end_id[0])
+            last_id = int(ret[-1])
             return total_count, end_id, last_id, [int(cid) for cid in ret]
         else:
             # No cache.
