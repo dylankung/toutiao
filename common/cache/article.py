@@ -79,7 +79,7 @@ class ArticleInfoCache(object):
             article_formatted['is_top'] = 0
 
         try:
-            rc.setex(self.key, constants.ArticleInfoCacheTTL.get_val(), article_formatted)
+            rc.setex(self.key, constants.ArticleInfoCacheTTL.get_val(), json.dumps(article_formatted))
         except RedisError as e:
             current_app.logger.error(e)
 
