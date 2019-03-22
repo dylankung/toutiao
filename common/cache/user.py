@@ -2,7 +2,6 @@ from flask import current_app
 import time
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
-from flask_restful import marshal, fields
 import json
 from redis.exceptions import RedisError, ConnectionError
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,38 +17,9 @@ class UserProfileCache(object):
     """
     用户信息缓存
     """
-    user_fields_for_db = {
-        'mobile': fields.String(attribute='mobile'),
-        'name': fields.String(attribute='name'),
-        'photo': fields.String(attribute='profile_photo'),
-        'is_media': fields.Integer(attribute='is_media'),
-        'intro': fields.String(attribute='introduction'),
-        'certi': fields.String(attribute='certificate'),
-    }
-
     def __init__(self, user_id):
         self.key = 'user:{}:profile'.format(user_id)
         self.user_id = user_id
-
-    def _generate_user_profile_cache(self, user=None):
-        """
-        从数据库查询用户数据
-        :param user: 已存在的用户数据
-        :return:
-        """
-        if user is None:
-            user = User.query.options(load_only(User.name,
-                                                User.mobile,
-                                                User.profile_photo,
-                                                User.is_media,
-                                                User.introduction,
-                                                User.certificate)) \
-                .filter_by(id=self.user_id).first()
-        user.profile_photo = user.profile_photo or ''
-        user.introduction = user.introduction or ''
-        user.certificate = user.certificate or ''
-        user_data = marshal(user, self.user_fields_for_db)
-        return user_data
 
     def save(self, user=None, force=False):
         """
@@ -86,10 +56,14 @@ class UserProfileCache(object):
             if user is None:
                 return None
 
-            user.profile_photo = user.profile_photo or ''
-            user.introduction = user.introduction or ''
-            user.certificate = user.certificate or ''
-            user_data = marshal(user, self.user_fields_for_db)
+            user_data = {
+                'mobile': user.mobile,
+                'name': user.name,
+                'photo': user.profile_photo or '',
+                'is_media': user.is_media,
+                'intro': user.introduction or '',
+                'certi': user.certificate or '',
+            }
 
             try:
                 rc.setex(self.key, constants.UserProfileCacheTTL.get_val(), json.dumps(user_data))
