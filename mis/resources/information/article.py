@@ -97,6 +97,7 @@ class ArticleListResource(Resource):
         args = json_parser.parse_args()
         articles = Article.query.filter(Article.id.in_(args.article_ids)).all()
         need_kafka_send_msgs = []
+        need_rebuild_es_indexes = []
         for article in articles:
             if args.status == Article.STATUS.BANNED:
                 # 封禁
@@ -116,6 +117,8 @@ class ArticleListResource(Resource):
 
                 # 记录需要kafka推送的消息
                 need_kafka_send_msgs.append('{},{}'.format(article.channel_id, article.id))
+                # 记录需要es添加索引
+                need_rebuild_es_indexes.append(article)
 
             elif args.status == Article.STATUS.FAILED:
                 # 审核失败(驳回)
@@ -136,6 +139,21 @@ class ArticleListResource(Resource):
         # 文章通过审核，kafka推送消息给推荐系统
         for msg in need_kafka_send_msgs:
             current_app.kafka_producer.send('new-article', msg.encode())
+
+        # 添加ES索引
+        for article in need_rebuild_es_indexes:
+            doc = {
+                'article_id': article.id,
+                'user_id': article.user_id,
+                'title': article.title,
+                'content': article.content.content,
+                'status': article.status,
+                'create_time': article.ctime
+                }
+            try:
+                current_app.es.index(index='articles', doc_type='article', body=doc, id=article.id)
+            except Exception as e:
+                current_app.logger.error(e)
 
         return {'message': 'OK'}, 201
 

@@ -1,4 +1,5 @@
 from flask import Flask
+from elasticsearch5 import Elasticsearch
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from redis.exceptions import RedisError
@@ -62,15 +63,15 @@ def create_app(config, enable_config_file=False):
     # app.rpc_reco = grpc.insecure_channel(app.config['RPC'].RECOMMEND)
 
     # Elasticsearch
-    # app.es = Elasticsearch(
-    #     app.config['ES'],
-    #     # sniff before doing anything
-    #     sniff_on_start=True,
-    #     # refresh nodes after a node fails to respond
-    #     sniff_on_connection_fail=True,
-    #     # and also every 60 seconds
-    #     sniffer_timeout=60
-    # )
+    app.es = Elasticsearch(
+        app.config['ES'],
+        # sniff before doing anything
+        sniff_on_start=True,
+        # refresh nodes after a node fails to respond
+        sniff_on_connection_fail=True,
+        # and also every 60 seconds
+        sniffer_timeout=60
+    )
 
     # socket.io
     # app.sio = socketio.KombuManager(app.config['RABBITMQ'], write_only=True)

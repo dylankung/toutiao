@@ -120,8 +120,6 @@ class ArticleListResource(ArticleResourceBase):
             # TODO 机器审核
             # TODO 新文章消息推送
 
-        # TODO 维护Elasticsearch索引
-
         return {'id': article_id}, 201
 
     def _status(self, value):
@@ -294,8 +292,6 @@ class ArticleResource(ArticleResourceBase):
         # if not draft:
             # TODO 机器审核
             # TODO 新文章消息推送
-
-        # TODO 维护Elasticsearch索引
 
         return {'id': target}, 201
 
