@@ -302,7 +302,7 @@ class ArticleUserAttitudeCache(object):
 
         att = Attitude.query.options(load_only(Attitude.attitude)) \
             .filter_by(user_id=self.user_id, article_id=self.article_id).first()
-        ret = att.attitude if att else -1
+        ret = att.attitude if att and att.attitude else -1
 
         try:
             rc.setex(self.key, constants.ArticleUserNoAttitudeCacheTTL.get_val(), int(ret))

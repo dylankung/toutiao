@@ -94,15 +94,20 @@ class CommentListResource(Resource):
         if args.type == 'a':
             # 文章评论
             article_id = args.source
+            article_info_cache = cache_article.ArticleInfoCache(article_id)
+            if not article_info_cache.exists():
+                return {'Article not exists.'}, 400
             total_count, end_id, last_id, ret = cache_comment.ArticleCommentsCache(article_id)\
                 .get_page(args.offset, limit)
-            article = cache_article.ArticleInfoCache(article_id).get()
+            article = article_info_cache.get()
             result['art_id'] = article_id
             result['art_title'] = article['title']
             result['art_pubdate'] = article['pubdate']
         else:
             # 评论的评论
             comment_id = args.source
+            if not cache_comment.CommentCache(comment_id).exists():
+                return {'Comment not exists.'}, 400
             total_count, end_id, last_id, ret = cache_comment.CommentRepliesCache(comment_id).get_page(args.offset,
                                                                                                        limit)
         results = cache_comment.CommentCache.get_list(ret)
@@ -110,7 +115,7 @@ class CommentListResource(Resource):
         # 判断当前用户是否有点赞行为
         liking_comments = []
         if ret:
-            liking_comments = CommentLiking.query.option(load_only(CommentLiking.comment_id))\
+            liking_comments = CommentLiking.query.options(load_only(CommentLiking.comment_id))\
                 .filter(CommentLiking.comment_id.in_(ret), CommentLiking.user_id == g.user_id,
                         CommentLiking.is_deleted == 0).all()
         liking_comments = set(liking_comments)

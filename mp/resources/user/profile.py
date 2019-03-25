@@ -44,7 +44,7 @@ class ProfileResource(Resource):
         db.session().set_to_write()
         json_parser = RequestParser()
         json_parser.add_argument('name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
-        json_parser.add_argument('intro', type=inputs.regex(r'^.{1, 60}$'), required=False, location='json')
+        json_parser.add_argument('intro', type=inputs.regex(r'^.{0,60}$'), required=False, location='json')
         json_parser.add_argument('email', type=parser.email, required=False, location='json')
         args = json_parser.parse_args()
 
