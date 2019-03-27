@@ -15,6 +15,7 @@ from models import db
 from . import constants
 from cache import user as cache_user
 from cache import article as cache_article
+from cache import statistic as cache_statistic
 
 
 class ArticleResourceBase(Resource):
@@ -213,7 +214,7 @@ class ArticleListResource(ArticleResourceBase):
                         'id': article.id,
                         'title': article.title,
                         'comment_status': article.allow_comment,
-                        'total_comment_count': article.comment_count,
+                        'total_comment_count': cache_statistic.ArticleCommentCountStorage.get(article.id),
                         'fans_comment_count': article.statistic.fans_comment_count
                     })
             elif args['response_type'] == 'statistic':
@@ -222,10 +223,10 @@ class ArticleListResource(ArticleResourceBase):
                         'id': article.id,
                         'title': article.title,
                         'comment_count': article.comment_count,
-                        'read_count': article.statistic.read_count,
-                        'like_count': article.statistic.like_count,
+                        'read_count': cache_statistic.ArticleCommentCountStorage.get(article.id),
+                        'like_count': cache_statistic.ArticleLikingCountStorage.get(article.id),
                         'repost_count': article.statistic.repost_count,
-                        'collect_count': article.statistic.collect_count
+                        'collect_count': cache_statistic.ArticleCollectingCountStorage.get(article.id)
                     })
             else:
                 for article in articles:
