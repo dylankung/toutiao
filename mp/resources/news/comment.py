@@ -115,9 +115,10 @@ class CommentListResource(Resource):
         # 判断当前用户是否有点赞行为
         liking_comments = []
         if ret:
-            liking_comments = CommentLiking.query.options(load_only(CommentLiking.comment_id))\
+            liking_ret = CommentLiking.query.options(load_only(CommentLiking.comment_id))\
                 .filter(CommentLiking.comment_id.in_(ret), CommentLiking.user_id == g.user_id,
                         CommentLiking.is_deleted == 0).all()
+            liking_comments = [comment_liking.comment_id for comment_liking in liking_ret]
         liking_comments = set(liking_comments)
         for comment in results:
             comment['is_liking'] = 1 if comment['com_id'] in liking_comments else 0
