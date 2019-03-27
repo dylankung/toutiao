@@ -212,12 +212,12 @@ class CommentsAndRepliesCacheBase(object):
         try:
             pl = rc.pipeline()
             pl.zcard(self.key)
-            pl.zrange(self.key, 0, 0)
+            pl.zrange(self.key, 0, 0, withscores=True)
             if offset is None:
                 # 从头开始取
                 pl.zrevrange(self.key, 0, limit - 1)
             else:
-                pl.zrevrangebyscore(self.key, offset - 1, 0, 0, limit - 1)
+                pl.zrevrangebyscore(self.key, offset - 1, 0, 0, limit - 1, withscores=True)
             total_count, end_id, ret = pl.execute()
         except RedisError as e:
             current_app.logger.error(e)
@@ -228,8 +228,9 @@ class CommentsAndRepliesCacheBase(object):
 
         if total_count > 0:
             # Cache exists.
-            end_id = int(end_id[0])
-            last_id = int(ret[-1]) if ret else None
+            end_id = int(end_id[0][1])
+            # ret -> [(value, score)...]
+            last_id = int(ret[-1][1]) if ret else None
             return total_count, end_id, last_id, [int(cid) for cid in ret]
         else:
             # No cache.
@@ -248,9 +249,10 @@ class CommentsAndRepliesCacheBase(object):
             page_comments = []
             page_count = 0
             total_count = len(ret)
+            page_last_comment = None
 
             for comment in ret:
-                score = round(comment.ctime.timestamp() * 1000)
+                score = comment.ctime.timestamp()
                 if comment.is_top:
                     score += constants.COMMENTS_CACHE_MAX_SCORE
 
@@ -258,13 +260,14 @@ class CommentsAndRepliesCacheBase(object):
                 if ((offset is not None and score < offset) or offset is None) and page_count <= limit:
                     page_comments.append(comment.id)
                     page_count += 1
+                    page_last_comment = comment
 
                 # 构造缓存数据
                 cache.append(score)
                 cache.append(comment.id)
 
-            end_id = ret[-1].id
-            last_id = page_comments[-1]
+            end_id = ret[-1].ctime.timestamp()
+            last_id = page_last_comment.ctime.timestamp() if page_last_comment else None
 
             # 设置缓存
             if cache:
@@ -288,7 +291,7 @@ class CommentsAndRepliesCacheBase(object):
         try:
             ttl = rc.ttl(self.key)
             if ttl > constants.ALLOW_UPDATE_ARTICLE_COMMENTS_CACHE_TTL_LIMIT:
-                score = round(comment.ctime.timestamp() * 1000)
+                score = comment.ctime.timestamp()
                 rc.zadd(self.key, score, comment.id)
         except RedisError as e:
             current_app.logger.error(e)
