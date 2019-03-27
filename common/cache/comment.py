@@ -215,7 +215,7 @@ class CommentsAndRepliesCacheBase(object):
             pl.zrange(self.key, 0, 0, withscores=True)
             if offset is None:
                 # 从头开始取
-                pl.zrevrange(self.key, 0, limit - 1)
+                pl.zrevrange(self.key, 0, limit - 1, withscores=True)
             else:
                 pl.zrevrangebyscore(self.key, offset - 1, 0, 0, limit - 1, withscores=True)
             total_count, end_id, ret = pl.execute()
