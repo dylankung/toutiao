@@ -102,7 +102,7 @@ class UserDefaultChannelsCache(object):
 
         for ch in channels:
             results.append({
-                'id': ch.channel_id,
+                'id': ch.id,
                 'name': ch.name
             })
 
