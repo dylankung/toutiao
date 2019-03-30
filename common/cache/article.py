@@ -117,6 +117,9 @@ class ArticleInfoCache(object):
         else:
             article_formatted = self.save()
 
+        if not article_formatted:
+            return None
+
         article_formatted = self._fill_fields(article_formatted)
         del article_formatted['allow_comm']
 
