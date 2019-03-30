@@ -114,6 +114,6 @@ class PhotoResource(Resource):
         db.session.commit()
 
         if new_cache_values:
-            cache_user.UserProfileCache.clear()
+            cache_user.UserProfileCache(user_id).clear()
 
         return return_values, 201
