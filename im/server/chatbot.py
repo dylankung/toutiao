@@ -49,14 +49,14 @@ def on_message(sid, data):
 
 
 def chatbot_rpc_callback(resp_future, sid=None):
-    exc = resp_future.exception()
-    if exc is not None:
-        logger.error(exc)
+    try:
+        resp = resp_future.result(timeout=3)
+    except Exception as e:
+        logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
         timestamp = int(time.time())
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
     else:
-        resp = resp_future.result()
         msg = resp.user_response
         timestamp = resp.create_time
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
