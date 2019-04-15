@@ -18,6 +18,8 @@ def on_message(sid, data):
     :param data:
     :return:
     """
+    logger.info('received msg:{} from user_id:{}'.format(data, sid))
+
     rooms = sio.rooms(sid)
     assert len(rooms) == 2
 
@@ -30,6 +32,7 @@ def on_message(sid, data):
             break
 
     assert user_id != ''
+    logger.info('user_id: {}'.format(user_id))
 
     # TODO 接入chatbot RPC服务
     stub = chatbot_pb2_grpc.ChatBotServiceStub(rpc_chat)
@@ -52,7 +55,6 @@ def on_message(sid, data):
     #
     # sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
-    logger.info('received msg:{} from user_id:{}'.format(data, user_id))
     # 异步调用
     try:
         resp_future = stub.Chatbot.future(req, timeout=3)
