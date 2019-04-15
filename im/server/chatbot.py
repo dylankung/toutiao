@@ -39,7 +39,7 @@ def on_message(sid, data):
         create_time=data.get('timestamp', int(time.time()))
     )
     try:
-        resp_future = stub.Chatbot.future(req)
+        resp_future = stub.Chatbot.future(req, timeout=3)
         resp_future.add_done_callback(partial(chatbot_rpc_callback, sid=sid))
     except Exception as e:
         logger.error(e)
