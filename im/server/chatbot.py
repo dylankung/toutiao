@@ -39,25 +39,38 @@ def on_message(sid, data):
         create_time=data.get('timestamp', int(time.time()))
     )
     try:
-        resp_future = stub.Chatbot.future(req, timeout=3)
-        resp_future.add_done_callback(partial(chatbot_rpc_callback, sid=sid))
+        resp = stub.Chatbot(req, timeout=3)
     except Exception as e:
         logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
         timestamp = int(time.time())
-        sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
-
-
-def chatbot_rpc_callback(resp_future, sid=None):
-    try:
-        resp = resp_future.result(timeout=3)
-    except Exception as e:
-        logger.error(e)
-        msg = 'oops，我病了，容我缓一下...'
-        timestamp = int(time.time())
-        sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
     else:
         msg = resp.user_response
         timestamp = resp.create_time
-        sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+
+    sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+
+    # 异步调用
+    # try:
+    #     resp_future = stub.Chatbot.future(req, timeout=3)
+    #     resp_future.add_done_callback(partial(chatbot_rpc_callback, sid=sid))
+    # except Exception as e:
+    #     logger.error(e)
+    #     msg = 'oops，我病了，容我缓一下...'
+    #     timestamp = int(time.time())
+    #     sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+
+
+# def chatbot_rpc_callback(resp_future, sid=None):
+#     try:
+#         resp = resp_future.result(timeout=3)
+#     except Exception as e:
+#         logger.error(e)
+#         msg = 'oops，我病了，容我缓一下...'
+#         timestamp = int(time.time())
+#         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+#     else:
+#         msg = resp.user_response
+#         timestamp = resp.create_time
+#         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
