@@ -60,6 +60,7 @@ def on_message(sid, data):
         logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
         timestamp = int(time.time())
+        logger.info('send msg:{} to sid:{}'.format(msg, sid))
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
 
@@ -70,9 +71,11 @@ def chatbot_rpc_callback(resp_future, sid=None):
         logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
         timestamp = int(time.time())
+        logger.info('send msg:{} to sid:{}'.format(msg, sid))
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
     else:
         msg = resp.user_response
         timestamp = resp.create_time
+        logger.info('send msg:{} to sid:{}'.format(msg, sid))
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
