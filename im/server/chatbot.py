@@ -52,6 +52,7 @@ def on_message(sid, data):
     #
     # sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
+    logger.info('received msg:{} from user_id:{}'.format(data, user_id))
     # 异步调用
     try:
         resp_future = stub.Chatbot.future(req, timeout=3)
