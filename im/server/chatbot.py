@@ -57,8 +57,11 @@ def on_message(sid, data):
 
     # 异步调用
     try:
+        logger.info('enter grpc')
         resp_future = stub.Chatbot.future(req, timeout=3)
+        logger.info('call add_done_callback grpc')
         resp_future.add_done_callback(partial(chatbot_rpc_callback, sid=sid))
+        logger.info('finish add_done_callback grpc')
     except Exception as e:
         logger.error(e)
         msg = 'oops，我病了，容我缓一下...'
@@ -68,6 +71,7 @@ def on_message(sid, data):
 
 
 def chatbot_rpc_callback(resp_future, sid=None):
+    logger.info('enter chatbot_rpc_callback grpc')
     try:
         resp = resp_future.result(timeout=3)
     except Exception as e:
@@ -77,8 +81,11 @@ def chatbot_rpc_callback(resp_future, sid=None):
         logger.info('send msg:{} to sid:{}'.format(msg, sid))
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
     else:
+        logger.info('enter chatbot_rpc_callback else grpc')
         msg = resp.user_response
         timestamp = resp.create_time
         logger.info('send msg:{} to sid:{}'.format(msg, sid))
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
+    logger.info('exit chatbot_rpc_callback grpc')
+
 
