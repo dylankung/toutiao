@@ -35,12 +35,18 @@ def on_message(sid, data):
     logger.info('user_id: {}'.format(user_id))
 
     # TODO 接入chatbot RPC服务
-    stub = chatbot_pb2_grpc.ChatBotServiceStub(rpc_chat)
-    req = chatbot_pb2.ReceivedMessage(
-        user_id=str(user_id),
-        user_message=data.get('msg', ''),
-        create_time=data.get('timestamp', int(time.time()))
-    )
+    try:
+        logger.info('stub grpc')
+        stub = chatbot_pb2_grpc.ChatBotServiceStub(rpc_chat)
+        logger.info('req grpc')
+        req = chatbot_pb2.ReceivedMessage(
+            user_id=str(user_id),
+            user_message=data.get('msg', ''),
+            create_time=data.get('timestamp', int(time.time()))
+        )
+    except Exception as e:
+        logger.error(e)
+        return
 
     # # 同步调用
     # try:
