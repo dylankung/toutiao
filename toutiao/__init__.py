@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import grpc
 from elasticsearch5 import Elasticsearch
 import socketio
+from flask_cors import CORS
 
 
 def create_flask_app(config, enable_config_file=False):
@@ -40,6 +41,9 @@ def create_app(config, enable_config_file=False):
     # 限流器
     from utils.limiter import limiter as lmt
     lmt.init_app(app)
+
+    # CORS
+    CORS(app)
 
     # 配置日志
     from utils.logging import create_logger
