@@ -256,8 +256,13 @@ class ArticleListResourceV1D1(Resource):
             page = timestamp - self.PSEUDO_TIMESTAMP_BASE
             per_page = feed_count
             offset = (page - 1) * per_page
-            articles = Article.query.options(load_only(Article.id)).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
-                .order_by(Article.id).offset(offset).limit(per_page).all()
+            articles_query = Article.query.options(load_only(Article.id))
+            if int(channel_id) == 0:
+                articles_query = articles_query.filter_by(status=Article.STATUS.APPROVED)
+            else:
+                articles_query = articles_query.filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)
+
+            articles = articles_query.order_by(Article.id).offset(offset).limit(per_page).all()
             if articles:
                 return [article.id for article in articles], timestamp+1
             else:
@@ -336,19 +341,16 @@ class ArticleListResourceV1D1(Resource):
 
         # 查询文章
         for feed in feeds:
-            article = cache_article.ArticleInfoCache(feed.article_id).get()
+            # article = cache_article.ArticleInfoCache(feed.article_id).get()
+            article = cache_article.ArticleInfoCache(feed).get()
             if article:
                 article['pubdate'] = feed_time
-                article['trace'] = {
-                    # 'click': feed.params.click,
-                    # 'collect': feed.params.collect,
-                    # 'share': feed.params.share,
-                    # 'read': feed.params.read
-                    'click': 'pseudo click trace param',
-                    'collect': 'pseudo collect trace param',
-                    'share': 'pseudo share trace param',
-                    'read': 'pseudo read trace param'
-                }
+                # article['trace'] = {
+                #     'click': feed.params.click,
+                #     'collect': feed.params.collect,
+                #     'share': feed.params.share,
+                #     'read': feed.params.read
+                # }
                 results.append(article)
 
         return {'pre_timestamp': pre_timestamp, 'results': results}
