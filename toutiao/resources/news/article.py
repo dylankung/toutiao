@@ -237,6 +237,32 @@ class ArticleListResourceV1D1(Resource):
     """
     method_decorators = [set_db_to_read, validate_token_if_using]
 
+    PSEUDO_TIMESTAMP_BASE = 1556789000000
+    PSEUDO_TIMESTAMP_FIRST = 1556789000001
+    PSEUDO_TIMESTAMP_MAX = 1556789999999
+
+    def _pseudo_feed_articles(self, channel_id, timestamp, feed_count):
+        """
+        获取推荐的文章（伪推荐)
+        :param channel_id: 频道id
+        :param timestamp: 请求的时间戳
+        :param feed_count: 每页数量
+        :return: [article_id, ...]
+        """
+        timestamp = int(timestamp)
+        if timestamp > self.PSEUDO_TIMESTAMP_MAX:
+            return [], self.PSEUDO_TIMESTAMP_FIRST
+        else:
+            page = timestamp - self.PSEUDO_TIMESTAMP_BASE
+            per_page = feed_count
+            offset = (page - 1) * per_page
+            articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
+                .order_by(Article.id).offset(offset).limit(per_page).all()
+            if articles:
+                return [article.id for article in articles], timestamp+1
+            else:
+                return [], None
+
     def _feed_articles(self, channel_id, timestamp, feed_count):
         """
         获取推荐文章
@@ -287,7 +313,8 @@ class ArticleListResourceV1D1(Resource):
         with_top = args.with_top
         per_page = constants.DEFAULT_ARTICLE_PER_PAGE_MIN
         try:
-            feed_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(timestamp/1000))
+            # feed_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(timestamp/1000))
+            feed_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(time.time()))
         except Exception:
             return {'message': 'timestamp param error'}, 400
 
@@ -304,7 +331,8 @@ class ArticleListResourceV1D1(Resource):
                     results.append(article)
 
         # 获取推荐文章列表
-        feeds, pre_timestamp = self._feed_articles(channel_id, timestamp, per_page)
+        # feeds, pre_timestamp = self._feed_articles(channel_id, timestamp, per_page)
+        feeds, pre_timestamp = self._pseudo_feed_articles(channel_id, timestamp, per_page)
 
         # 查询文章
         for feed in feeds:
@@ -312,10 +340,14 @@ class ArticleListResourceV1D1(Resource):
             if article:
                 article['pubdate'] = feed_time
                 article['trace'] = {
-                    'click': feed.params.click,
-                    'collect': feed.params.collect,
-                    'share': feed.params.share,
-                    'read': feed.params.read
+                    # 'click': feed.params.click,
+                    # 'collect': feed.params.collect,
+                    # 'share': feed.params.share,
+                    # 'read': feed.params.read
+                    'click': 'pseudo click trace param',
+                    'collect': 'pseudo collect trace param',
+                    'share': 'pseudo share trace param',
+                    'read': 'pseudo read trace param'
                 }
                 results.append(article)
 
