@@ -256,7 +256,7 @@ class ArticleListResourceV1D1(Resource):
             page = timestamp - self.PSEUDO_TIMESTAMP_BASE
             per_page = feed_count
             offset = (page - 1) * per_page
-            articles = Article.query.options(load_only()).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
+            articles = Article.query.options(load_only(Article.id)).filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)\
                 .order_by(Article.id).offset(offset).limit(per_page).all()
             if articles:
                 return [article.id for article in articles], timestamp+1
