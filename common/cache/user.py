@@ -398,7 +398,7 @@ class UserRelationshipCache(object):
         """
         清除
         """
-        current_app.redis_master.delete(self.key)
+        current_app.redis_cluster.delete(self.key)
 
 
 class UserFollowersCache(object):
