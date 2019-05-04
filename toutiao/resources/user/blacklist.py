@@ -56,6 +56,7 @@ class BlacklistListResource(Resource):
                 cache_user.UserFollowersCache(target).update(g.user_id, timestamp, -1)
                 cache_statistic.UserFollowingsCountStorage.incr(g.user_id, -1)
                 cache_statistic.UserFollowersCountStorage.incr(target, -1)
+                cache_user.UserRelationshipCache(g.user_id).clear()
 
         return {'target': target}, 201
 

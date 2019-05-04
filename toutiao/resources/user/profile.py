@@ -35,12 +35,16 @@ class UserResource(Resource):
         user_data = cache.get()
 
         user_data['is_following'] = False
+        user_data['is_blacklist'] = False
         if g.user_id:
             # Check if user has followed target user.
             # ret = Relation.query.options(load_only(Relation.id))\
             #     .filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.FOLLOW).first()
             # user_data['is_following'] = cache_user.determine_user_follows_target(g.user_id, target)
-            user_data['is_following'] = cache_user.UserFollowingCache(g.user_id).determine_follows_target(target)
+            # user_data['is_following'] = cache_user.UserFollowingCache(g.user_id).determine_follows_target(target)
+            relation_cache = cache_user.UserRelationshipCache(g.user_id)
+            user_data['is_following'] = relation_cache.determine_follows_target(target)
+            user_data['is_blacklist'] = relation_cache.determine_blacklist_target(target)
 
         user_data['id'] = target
         del user_data['mobile']
