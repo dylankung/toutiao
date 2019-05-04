@@ -320,6 +320,87 @@ class UserFollowingCache(object):
             current_app.logger.error(e)
 
 
+class UserRelationshipCache(object):
+    """
+    用户关系缓存数据
+    """
+
+    def __init__(self, user_id):
+        self.key = 'user:{}:relationship'.format(user_id)
+        self.user_id = user_id
+
+    def get(self):
+        """
+        获取用户的关系数据
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.hgetall(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret:
+            # 为了防止缓存击穿
+            if b'-1' in ret:
+                return {}
+            else:
+                # In order to be consistent with db data type.
+                return {int(uid): int(relation) for uid, relation in ret}
+
+        ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime, Relation.relation)) \
+            .filter(Relation.user_id == self.user_id, Relation.relation != Relation.RELATION.DELETE) \
+            .order_by(Relation.utime.desc()).all()
+
+        relations = {}
+        for relation in ret:
+            relations[relation.target_user_id] = relation.relation
+
+        pl = rc.pipeline()
+        try:
+            if relations:
+                pl.hmset(self.key, relations)
+                pl.expire(self.key, constants.UserFollowingsCacheTTL.get_val())
+            else:
+                pl.hmset(self.key, {-1: -1})
+                pl.expire(self.key, constants.UserRelationshipNotExistsCacheTTL.get_val())
+            results = pl.execute()
+            if results[0] and not results[1]:
+                rc.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+        return relations
+
+    def determine_follows_target(self, target_user_id):
+        """
+        判断用户是否关注了目标用户
+        :param target_user_id: 被关注的用户id
+        :return:
+        """
+        relations = self.get()
+
+        return relations.get(target_user_id) == Relation.RELATION.FOLLOW
+
+    def determine_blacklist_target(self, target_user_id):
+        """
+        判断是否已拉黑目标用户
+        :param target_user_id:
+        :return:
+        """
+        relations = self.get()
+
+        return relations.get(target_user_id) == Relation.RELATION.BLACKLIST
+
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_master.delete(self.key)
+
+
 class UserFollowersCache(object):
     """
     用户粉丝缓存

@@ -77,7 +77,8 @@ class ArticleResource(Resource):
                 current_app.logger.error(e)
 
             # 查询关注
-            article['is_followed'] = cache_user.UserFollowingCache(user_id).determine_follows_target(article['aut_id'])
+            # article['is_followed'] = cache_user.UserFollowingCache(user_id).determine_follows_target(article['aut_id'])
+            article['is_followed'] = cache_user.UserRelationshipCache(user_id).determine_follows_target(article['aut_id'])
 
             # 查询登录用户对文章的态度（点赞or不喜欢）
             try:

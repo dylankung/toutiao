@@ -52,6 +52,7 @@ class FollowingListResource(Resource):
             cache_user.UserFollowersCache(target).update(g.user_id, timestamp)
             cache_statistic.UserFollowingsCountStorage.incr(g.user_id)
             cache_statistic.UserFollowersCountStorage.incr(target)
+            cache_user.UserRelationshipCache(g.user_id).clear()
 
         # 发送关注通知
         _user = cache_user.UserProfileCache(g.user_id).get()
@@ -119,6 +120,7 @@ class FollowingResource(Resource):
             cache_user.UserFollowersCache(target).update(g.user_id, timestamp, -1)
             cache_statistic.UserFollowingsCountStorage.incr(g.user_id, -1)
             cache_statistic.UserFollowersCountStorage.incr(target, -1)
+            cache_user.UserRelationshipCache(g.user_id).clear()
         return {'message': 'OK'}, 204
 
 
