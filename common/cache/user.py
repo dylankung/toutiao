@@ -348,7 +348,7 @@ class UserRelationshipCache(object):
                 return {}
             else:
                 # In order to be consistent with db data type.
-                return {int(uid): int(relation) for uid, relation in ret}
+                return {int(uid): int(relation) for uid, relation in ret.items()}
 
         ret = Relation.query.options(load_only(Relation.target_user_id, Relation.utime, Relation.relation)) \
             .filter(Relation.user_id == self.user_id, Relation.relation != Relation.RELATION.DELETE) \
