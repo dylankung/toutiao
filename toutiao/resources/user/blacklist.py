@@ -56,7 +56,8 @@ class BlacklistListResource(Resource):
                 cache_user.UserFollowersCache(target).update(g.user_id, timestamp, -1)
                 cache_statistic.UserFollowingsCountStorage.incr(g.user_id, -1)
                 cache_statistic.UserFollowersCountStorage.incr(target, -1)
-                cache_user.UserRelationshipCache(g.user_id).clear()
+
+        cache_user.UserRelationshipCache(g.user_id).clear()
 
         return {'target': target}, 201
 
@@ -71,8 +72,10 @@ class BlacklistResource(Resource):
         """
         取消拉黑用户
         """
-        Relation.query.filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.BLACKLIST)\
+        ret = Relation.query.filter_by(user_id=g.user_id, target_user_id=target, relation=Relation.RELATION.BLACKLIST)\
             .update({'relation': Relation.RELATION.DELETE})
         db.session.commit()
+        if ret > 0:
+            cache_user.UserRelationshipCache(g.user_id).clear()
         return {'message': 'OK'}, 204
 
