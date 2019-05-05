@@ -770,6 +770,14 @@ class UserArticleAttitudeCache(object):
 
         return attitudes.get(article_id, -1)
 
+    def determine_liking_article(self, article_id):
+        """
+        判断是否对文章点赞
+        :param article_id:
+        :return:
+        """
+        return self.get_article_attitude(article_id) == Attitude.ATTITUDE.LIKING
+
     def clear(self):
         """
         清除

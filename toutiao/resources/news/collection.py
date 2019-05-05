@@ -81,7 +81,7 @@ class CollectionListResource(Resource):
         user_article_attitude_cache = cache_user.UserArticleAttitudeCache(g.user_id)
         for article_id in collections:
             article = cache_article.ArticleInfoCache(article_id).get()
-            article['is_liking'] = user_article_attitude_cache.get_article_attitude(article_id)
+            article['is_liking'] = user_article_attitude_cache.determine_liking_article(article_id)
             results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
