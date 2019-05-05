@@ -53,7 +53,8 @@ class ArticleLikingListResource(Resource):
                 cache_statistic.ArticleLikingCountStorage.incr(target)
                 cache_statistic.UserLikedCountStorage.incr(g.user_id)
 
-        cache_article.ArticleUserAttitudeCache(g.user_id, target).clear()
+        # cache_article.ArticleUserAttitudeCache(g.user_id, target).clear()
+        cache_user.UserArticleAttitudeCache(g.user_id).clear()
 
         # 发送点赞通知
         _user = cache_user.UserProfileCache(g.user_id).get()
@@ -88,7 +89,8 @@ class ArticleLikingResource(Resource):
         if ret > 0:
             cache_statistic.ArticleLikingCountStorage.incr(target, -1)
             cache_statistic.UserLikedCountStorage.incr(g.user_id, -1)
-            cache_article.ArticleUserAttitudeCache(g.user_id, target).clear()
+            # cache_article.ArticleUserAttitudeCache(g.user_id, target).clear()
+            cache_user.UserArticleAttitudeCache(g.user_id).clear()
         return {'message': 'OK'}, 204
 
 

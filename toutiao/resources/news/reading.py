@@ -41,8 +41,10 @@ class ReadingHistoryListResource(Resource):
         results = []
         total_count, article_ids = cache_user.UserReadingHistoryStorage(user_id).get(page, per_page)
 
+        user_article_attitude_cache = cache_user.UserArticleAttitudeCache(user_id)
         for article_id in article_ids:
             article = cache_article.ArticleInfoCache(int(article_id)).get()
+            article['is_liking'] = user_article_attitude_cache.get_article_attitude(article_id)
             results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}

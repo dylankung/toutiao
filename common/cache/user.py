@@ -1,4 +1,4 @@
-from flask import current_app
+from flask import current_app, g
 import time
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
@@ -7,7 +7,7 @@ from redis.exceptions import RedisError, ConnectionError
 from sqlalchemy.exc import SQLAlchemyError
 
 from models.user import User, Relation, UserProfile
-from models.news import Article, Collection
+from models.news import Article, Collection, Attitude
 from models import db
 from . import constants
 from cache import statistic as cache_statistic
@@ -701,6 +701,80 @@ class UserArticleCollectionsCache(object):
         """
         total_count, collections = self.get_page(1, -1)
         return target in collections
+
+
+class UserArticleAttitudeCache(object):
+    """
+    用户文章态度缓存数据
+    """
+
+    def __init__(self, user_id):
+        self.key = 'user:{}:art:attitude'.format(user_id)
+        self.user_id = user_id
+
+    def get_all(self):
+        """
+        获取用户文章态度数据
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.hgetall(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret:
+            # 为了防止缓存击穿
+            if b'-1' in ret:
+                return {}
+            else:
+                # In order to be consistent with db data type.
+                return {int(aid): int(attitude) for aid, attitude in ret.items()}
+
+        ret = Attitude.query.options(load_only(Attitude.article_id, Attitude.attitude)) \
+            .filter(Attitude.user_id == self.user_id, Attitude.attitude != None).all()
+
+        attitudes = {}
+        for atti in ret:
+            attitudes[atti.article_id] = atti.attitude
+
+        pl = rc.pipeline()
+        try:
+            if attitudes:
+                pl.hmset(self.key, attitudes)
+                pl.expire(self.key, constants.UserArticleAttitudeCacheTTL.get_val())
+            else:
+                pl.hmset(self.key, {-1: -1})
+                pl.expire(self.key, constants.UserArticleAttitudeNotExistsCacheTTL.get_val())
+            results = pl.execute()
+            if results[0] and not results[1]:
+                rc.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+        return attitudes
+
+    def get_article_attitude(self, article_id):
+        """
+        获取指定文章态度
+        :param article_id:
+        :return:
+        """
+        if hasattr(g, 'article_attitudes'):
+            attitudes = g.article_attitudes
+        else:
+            attitudes = self.get_all()
+            g.article_attitudes = attitudes
+
+        return attitudes.get(article_id, -1)
+
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_cluster.delete(self.key)
 
 
 def get_user_articles(user_id):

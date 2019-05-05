@@ -84,7 +84,8 @@ class ArticleResource(Resource):
 
             # 查询登录用户对文章的态度（点赞or不喜欢）
             try:
-                article['attitude'] = cache_article.ArticleUserAttitudeCache(user_id, article_id).get()
+                # article['attitude'] = cache_article.ArticleUserAttitudeCache(user_id, article_id).get()
+                article['attitude'] = cache_user.UserArticleAttitudeCache(user_id).get_article_attitude(article_id)
             except SQLAlchemyError as e:
                 current_app.logger.error(e)
                 article['attitude'] = -1
