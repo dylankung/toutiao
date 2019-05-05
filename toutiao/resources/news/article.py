@@ -269,7 +269,7 @@ class ArticleListResourceV1D1(Resource):
             else:
                 articles_query = articles_query.filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)
 
-            articles = articles_query.order_by(Article.id).offset(offset).limit(per_page).all()
+            articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
             if articles:
                 return [article.id for article in articles], timestamp+1
             else:
