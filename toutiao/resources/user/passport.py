@@ -84,7 +84,7 @@ class AuthorizationResource(Resource):
             current_app.logger.error(e)
             real_code = current_app.redis_slave.get(key)
 
-        if mobile != '18516952650':
+        if mobile not in ('18516952650', '13911111111'):
             try:
                 current_app.redis_master.delete(key)
             except ConnectionError as e:
