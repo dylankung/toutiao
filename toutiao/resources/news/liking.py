@@ -121,6 +121,7 @@ class CommentLikingListResource(Resource):
 
         if ret > 0:
             cache_statistic.CommentLikingCountStorage.incr(target)
+            cache_user.UserCommentLikingCache(g.user_id).clear()
         return {'target': target}, 201
 
 
@@ -139,4 +140,5 @@ class CommentLikingResource(Resource):
         db.session.commit()
         if ret > 0:
             cache_statistic.CommentLikingCountStorage.incr(target, -1)
+            cache_user.UserCommentLikingCache(g.user_id).clear()
         return {'message': 'OK'}, 204
