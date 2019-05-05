@@ -68,6 +68,8 @@ class ArticleResource(Resource):
 
         article['is_followed'] = False
         article['attitude'] = None
+        # 增加用户是否收藏了文章
+        article['is_collected'] = False
 
         if user_id:
             # 非匿名用户添加用户的阅读历史
@@ -86,6 +88,9 @@ class ArticleResource(Resource):
             except SQLAlchemyError as e:
                 current_app.logger.error(e)
                 article['attitude'] = -1
+
+            # 增加用户是否收藏了文章
+            article['is_collected'] = cache_user.UserArticleCollectionsCache(g.user_id).determine_collect_target(article_id)
 
         # 获取相关文章推荐
         article['recomments'] = []
@@ -352,9 +357,6 @@ class ArticleListResourceV1D1(Resource):
                 #     'share': feed.params.share,
                 #     'read': feed.params.read
                 # }
-                # 增加用户是否收藏了文章
-                article['is_collected'] = False if not g.user_id else cache_user.UserArticleCollectionsCache(g.user_id)\
-                    .determine_collect_target(feed)
                 results.append(article)
 
         return {'pre_timestamp': pre_timestamp, 'results': results}
