@@ -693,6 +693,15 @@ class UserArticleCollectionsCache(object):
         """
         current_app.redis_cluster.delete(self.key)
 
+    def determine_collect_target(self, target):
+        """
+        判断用户是否收藏了指定文章
+        :param target:
+        :return:
+        """
+        total_count, collections = self.get_page(1, -1)
+        return target in collections
+
 
 def get_user_articles(user_id):
     """

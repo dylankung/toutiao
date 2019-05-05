@@ -352,6 +352,9 @@ class ArticleListResourceV1D1(Resource):
                 #     'share': feed.params.share,
                 #     'read': feed.params.read
                 # }
+                # 增加用户是否收藏了文章
+                article['is_collected'] = False if not g.user_id else cache_user.UserArticleCollectionsCache(g.user_id)\
+                    .determine_collect_target(feed)
                 results.append(article)
 
         return {'pre_timestamp': pre_timestamp, 'results': results}
