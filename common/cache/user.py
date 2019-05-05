@@ -815,9 +815,10 @@ class UserCommentLikingCache(object):
                 # In order to be consistent with db data type.
                 return set([int(cid) for cid in ret])
 
-        cids = CommentLiking.query.options(load_only(CommentLiking.comment_id)) \
+        ret = CommentLiking.query.options(load_only(CommentLiking.comment_id)) \
             .filter(CommentLiking.user_id == self.user_id, CommentLiking.is_deleted == False).all()
 
+        cids = [com.coment_id for com in ret]
         pl = rc.pipeline()
         try:
             if cids:
