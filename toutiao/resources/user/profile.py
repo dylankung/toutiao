@@ -115,7 +115,7 @@ class ProfileResource(Resource):
         json_parser.add_argument('photo', type=parser.image_base64, required=False, location='json')
         json_parser.add_argument('gender', type=self._gender, required=False, location='json')
         json_parser.add_argument('birthday', type=parser.date, required=False, location='json')
-        json_parser.add_argument('intro', type=inputs.regex(r'^.{1, 60}$'), required=False, location='json')
+        json_parser.add_argument('intro', type=inputs.regex(r'^.{0,60}$'), required=False, location='json')
         json_parser.add_argument('real_name', type=inputs.regex(r'^.{1,7}$'), required=False, location='json')
         json_parser.add_argument('id_number', type=parser.id_number, required=False, location='json')
         json_parser.add_argument('id_card_front', type=parser.image_base64, required=False, location='json')
