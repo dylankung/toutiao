@@ -7,7 +7,7 @@ from redis.exceptions import RedisError, ConnectionError
 from sqlalchemy.exc import SQLAlchemyError
 
 from models.user import User, Relation, UserProfile
-from models.news import Article, Collection, Attitude
+from models.news import Article, Collection, Attitude, CommentLiking, Comment
 from models import db
 from . import constants
 from cache import statistic as cache_statistic
@@ -777,6 +777,76 @@ class UserArticleAttitudeCache(object):
         :return:
         """
         return self.get_article_attitude(article_id) == Attitude.ATTITUDE.LIKING
+
+    def clear(self):
+        """
+        清除
+        """
+        current_app.redis_cluster.delete(self.key)
+
+
+class UserCommentLikingCache(object):
+    """
+    用户评论点赞缓存数据
+    """
+
+    def __init__(self, user_id):
+        self.key = 'user:{}:comm:liking'.format(user_id)
+        self.user_id = user_id
+
+    def get(self):
+        """
+        获取用户文章评论点赞数据
+        :return:
+        """
+        rc = current_app.redis_cluster
+
+        try:
+            ret = rc.smembers(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+            ret = None
+
+        if ret:
+            # 为了防止缓存击穿
+            if b'-1' in ret:
+                return []
+            else:
+                # In order to be consistent with db data type.
+                return set([int(cid) for cid in ret])
+
+        cids = CommentLiking.query.options(load_only(CommentLiking.comment_id)) \
+            .filter(CommentLiking.user_id == self.user_id, CommentLiking.is_deleted == False).all()
+
+        pl = rc.pipeline()
+        try:
+            if cids:
+                pl.sadd(self.key, *cids)
+                pl.expire(self.key, constants.UserCommentLikingCacheTTL.get_val())
+            else:
+                pl.sadd(self.key, -1)
+                pl.expire(self.key, constants.UserCommentLikingNotExistsCacheTTL.get_val())
+            results = pl.execute()
+            if results[0] and not results[1]:
+                rc.delete(self.key)
+        except RedisError as e:
+            current_app.logger.error(e)
+
+        return set(cids)
+
+    def determine_liking_comment(self, comment_id):
+        """
+        判断是否对文章点赞
+        :param comment_id:
+        :return:
+        """
+        if hasattr(g, self.key):
+            liking_comments = getattr(g, self.key)
+        else:
+            liking_comments = self.get()
+            setattr(g, self.key, liking_comments)
+
+        return comment_id in liking_comments
 
     def clear(self):
         """

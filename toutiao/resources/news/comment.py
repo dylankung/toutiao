@@ -151,5 +151,13 @@ class CommentListResource(Resource):
 
         results = cache_comment.CommentCache.get_list(ret)
 
+        if g.user_id:
+            user_comment_liking_cache = cache_user.UserCommentLikingCache(g.user_id)
+            for comment in results:
+                comment['is_liking'] = user_comment_liking_cache.determine_liking_comment(comment['com_id'])
+        else:
+            for comment in results:
+                comment['is_liking'] = False
+
         return {'total_count': total_count, 'end_id': end_id, 'last_id': last_id, 'results': results}
 

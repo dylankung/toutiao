@@ -131,6 +131,22 @@ class UserArticleAttitudeNotExistsCacheTTL(BaseCacheTTL):
     MAX_DELTA = 60
 
 
+class UserCommentLikingCacheTTL(BaseCacheTTL):
+    """
+    用户文章评论点赞缓存时间，秒
+    """
+    TTL = 10 * 60
+    MAX_DELTA = 2 * 60
+
+
+class UserCommentLikingNotExistsCacheTTL(BaseCacheTTL):
+    """
+    用户文章评论点赞不存在数据缓存时间，秒
+    """
+    TTL = 3 * 60
+    MAX_DELTA = 60
+
+
 class ArticleInfoCacheTTL(BaseCacheTTL):
     """
     文章信息缓存时间，秒
