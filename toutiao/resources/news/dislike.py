@@ -7,7 +7,7 @@ from utils import parser
 from models import db
 from models.news import Attitude, ArticleStatistic
 from cache import statistic as cache_statistic
-
+from cache import user as cache_user
 
 class DislikeListResource(Resource):
     """
@@ -47,6 +47,8 @@ class DislikeListResource(Resource):
                 db.session.commit()
                 cache_statistic.ArticleDislikeCountStorage.incr(target)
 
+        cache_user.UserArticleAttitudeCache(g.user_id).clear()
+
         return {'target': target}, 201
 
 
@@ -65,6 +67,7 @@ class DislikeResource(Resource):
         db.session.commit()
         if ret > 0:
             cache_statistic.ArticleDislikeCountStorage.incr(target, -1)
+            cache_user.UserArticleAttitudeCache(g.user_id).clear()
         return {'message': 'OK'}, 204
 
 
