@@ -93,13 +93,20 @@ class ArticleListResource(ArticleResourceBase):
 
         article_id = current_app.id_worker.get_id()
 
+        # TODO 暂时增加特权帐号，文章直接为审核通过状态
+        if draft:
+            article_status = Article.STATUS.DRAFT
+        else:
+            article_status = Article.STATUS.APPROVED if g.user_id == 1 else Article.STATUS.UNREVIEWED
+
         article = Article(
             id=article_id,
             user_id=g.user_id,
             channel_id=args['channel_id'],
             title=args['title'],
             cover=cover,
-            status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
+            # status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
+            status=article_status
         )
         db.session.add(article)
 
@@ -269,11 +276,18 @@ class ArticleResource(ArticleResourceBase):
         if cover_type == -1:
             cover = self._generate_article_cover(content)
 
+        # TODO 暂时增加特权帐号，文章直接为审核通过状态
+        if draft:
+            article_status = Article.STATUS.DRAFT
+        else:
+            article_status = Article.STATUS.APPROVED if g.user_id == 1 else Article.STATUS.UNREVIEWED
+
         Article.query.filter_by(id=target).update(dict(
             channel_id=args['channel_id'],
             title=args['title'],
             cover=cover,
-            status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
+            # status=Article.STATUS.DRAFT if draft else Article.STATUS.UNREVIEWED
+            status=article_status
         ))
 
         ArticleContent.query.filter_by(id=target).update(dict(content=content))
