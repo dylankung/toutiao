@@ -14,9 +14,9 @@ class IMTestResource(Resource):
         """
         im测试
         """
-        user_id = 1
+        user_id = 2
         if 'f' == event:
-            target = 5
+            target = 1
             # 发送关注通知
             _user = cache_user.UserProfileCache(user_id).get()
             _data = {
@@ -30,7 +30,7 @@ class IMTestResource(Resource):
             return {'message': '已发送following notify事件'}
 
         elif 'l' == event:
-            target = 141428
+            target = 1
             # 发送点赞通知
             _user = cache_user.UserProfileCache(user_id).get()
             _article = cache_article.ArticleInfoCache(target).get()
@@ -46,7 +46,7 @@ class IMTestResource(Resource):
             return {'message': '已发送liking notify事件'}
 
         elif 'c' == event:
-            article_id = 141428
+            article_id = 1
             # 发送评论通知
             _user = cache_user.UserProfileCache(user_id).get()
             _article = cache_article.ArticleInfoCache(article_id).get()
