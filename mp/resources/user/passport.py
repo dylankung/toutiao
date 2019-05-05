@@ -130,8 +130,12 @@ class AuthorizationResource(Resource):
             return {'message': 'Invalid code.'}, 400
 
         # 查询或保存用户
+        # TODO 暂时关闭实名认证
+        # user = User.query.options(load_only(User.id, User.name, User.profile_photo))\
+        #     .filter_by(mobile=mobile, is_verified=True).first()
+
         user = User.query.options(load_only(User.id, User.name, User.profile_photo))\
-            .filter_by(mobile=mobile, is_verified=True).first()
+            .filter_by(mobile=mobile).first()
         if user is None:
             return {'message': 'Please verify your real information in app.'}, 403
 
