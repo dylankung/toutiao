@@ -432,9 +432,11 @@ class CurrentUserArticleListResource(Resource):
 
         total_count, page_articles = cache_user.UserArticlesCache(g.user_id).get_page(page, per_page)
 
+        user_article_attitude_cache = cache_user.UserArticleAttitudeCache(g.user_id)
         for article_id in page_articles:
             article = cache_article.ArticleInfoCache(article_id).get()
             if article:
+                article['is_liking'] = user_article_attitude_cache.determine_liking_article(article_id)
                 results.append(article)
 
         return {'total_count': total_count, 'page': page, 'per_page': per_page, 'results': results}
