@@ -189,9 +189,11 @@ class ArticleListResource(ArticleResourceBase):
                         Article.status != Article.STATUS.BANNED)
 
         status = args['status']
-        if status:
-            total_count_query = total_count_query.filter(Article.status.in_(status))
-            article_query = article_query.filter(Article.status.in_(status))
+        if status is None:
+            status = Article.STATUS_ENUM
+
+        total_count_query = total_count_query.filter(Article.status.in_(status))
+        article_query = article_query.filter(Article.status.in_(status))
 
         channel_id = args['channel_id']
         if channel_id:
