@@ -97,7 +97,8 @@ class CommentListResource(Resource):
                 current_app.logger.error(e)
             cache_comment.CommentRepliesCache(target).add(comment)
 
-        return {'com_id': comment.id, 'target': target, 'art_id': article_id}, 201
+        new_obj = cache_comment.CommentCache(comment_id).get()
+        return {'com_id': comment.id, 'target': target, 'art_id': article_id, 'new_obj': new_obj}, 201
 
     def _comment_type(self, value):
         """
