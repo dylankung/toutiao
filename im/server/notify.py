@@ -11,12 +11,9 @@ def on_connect(sid, environ):
     :return:
     """
     user_id = check_user_id_from_querystring(environ, sio.JWT_SECRET)
-    print(user_id)
 
-    if not user_id:
-        return False
-
-    sio.enter_room(sid, str(user_id))
+    if user_id:
+        sio.enter_room(sid, str(user_id))
 
 
 @sio.on('disconnect')
