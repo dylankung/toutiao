@@ -266,11 +266,11 @@ class ArticleListResourceV1D1(Resource):
         page = r.zscore(key, timestamp)
 
         if page is None:
-            max_page = r.zrevrange(key, 0, 0)
+            max_page = r.zrevrange(key, 0, 0, withscores=True)
             if not max_page:
                 page = 1
             else:
-                page = int(max_page[1]) + 1
+                page = int(max_page[0][1]) + 1
             r.zadd(key, page, timestamp)
             r.expire(key, 300)
         else:
