@@ -303,7 +303,7 @@ class ArticleListResourceV1D1(Resource):
         articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
         current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
         if articles:
-            return [article.id for article in articles], timestamp-1
+            return [article.id for article in articles], timestamp-100
         else:
             return [], None
 
