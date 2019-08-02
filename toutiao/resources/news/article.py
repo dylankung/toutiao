@@ -270,7 +270,7 @@ class ArticleListResourceV1D1(Resource):
             if not max_page:
                 page = 1
             else:
-                page = int(max_page[0]) + 1
+                page = int(max_page[1]) + 1
             r.zadd(key, page, timestamp)
             r.expire(key, 600)
         else:
