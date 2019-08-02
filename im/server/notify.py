@@ -10,7 +10,6 @@ def on_connect(sid, environ):
     :param environ: WSGI dict
     :return:
     """
-    print('connect *************************************')
     user_id = check_user_id_from_querystring(environ, sio.JWT_SECRET)
     print(user_id)
 
