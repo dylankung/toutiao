@@ -19,7 +19,7 @@ def on_message(sid, data):
     :return:
     """
     rooms = sio.rooms(sid)
-    assert len(rooms) == 2
+    # assert len(rooms) == 2
 
     user_id = ''
     for room in rooms:
@@ -29,7 +29,7 @@ def on_message(sid, data):
             user_id = room
             break
 
-    assert user_id != ''
+    # assert user_id != ''
 
     # TODO 接入chatbot RPC服务
     stub = chatbot_pb2_grpc.ChatBotServiceStub(rpc_chat)
