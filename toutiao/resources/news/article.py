@@ -1,5 +1,5 @@
 from flask_restful import Resource, abort
-from flask import g, current_app
+from flask import g, current_app, request
 from sqlalchemy.orm import load_only
 from flask_restful.reqparse import RequestParser
 from flask_restful import inputs
@@ -20,6 +20,7 @@ from cache import statistic as cache_statistic
 from models import db
 from utils.decorators import login_required, validate_token_if_using, set_db_to_write, set_db_to_read
 from utils.logging import write_trace_log
+from models.user import Relation
 
 
 class ArticleResource(Resource):
@@ -256,24 +257,51 @@ class ArticleListResourceV1D1(Resource):
         :param feed_count: 每页数量
         :return: [article_id, ...]
         """
-        timestamp = int(timestamp)
-        if timestamp > self.PSEUDO_TIMESTAMP_MAX:
-            return [], self.PSEUDO_TIMESTAMP_FIRST
+        if g.user_id is not None:
+            user_id = g.user_id
         else:
-            page = timestamp - self.PSEUDO_TIMESTAMP_BASE
-            per_page = feed_count
-            offset = (page - 1) * per_page
-            articles_query = Article.query.options(load_only(Article.id))
-            if int(channel_id) == 0:
-                articles_query = articles_query.filter_by(status=Article.STATUS.APPROVED)
-            else:
-                articles_query = articles_query.filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)
+            user_id = request.remote_addr
+        r = current_app.redis_cluster
+        key = 'user:{}:reco'.format(user_id)
+        page = r.zscore(key, timestamp)
 
-            articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
-            if articles:
-                return [article.id for article in articles], timestamp+1
+        if page is None:
+            max_page = r.zrevrange(key, 0, 0)
+            if not max_page:
+                page = 1
             else:
-                return [], None
+                page = int(max_page[0]) + 1
+            r.zadd(key, page, timestamp)
+            r.expire(key, 600)
+        else:
+            page = int(page)
+
+        per_page = feed_count
+        offset = (page - 1) * per_page
+
+        articles_query = Article.query.options(load_only(Article.id))
+        if int(channel_id) == 0:
+            articles_query = articles_query.filter_by(status=Article.STATUS.APPROVED)
+        else:
+            articles_query = articles_query.filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)
+
+        if g.user_id:
+            # 过滤掉用户不喜欢和拉黑的文章
+            attitudes = cache_user.UserArticleAttitudeCache(g.user_id).get_all()
+            exclude_articles = [aid for aid, att in attitudes.items() if att == Attitude.ATTITUDE.DISLIKE]
+            if exclude_articles:
+                articles_query.filter(Article.id.notin_(exclude_articles))
+
+            relations = cache_user.UserRelationshipCache(g.user_id).get()
+            blacklist_users = [uid for uid, rel in relations.items() if rel == Relation.RELATION.BLACKLIST]
+            if blacklist_users:
+                articles_query.filter(Article.user_id.notin_(blacklist_users))
+
+        articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
+        if articles:
+            return [article.id for article in articles], timestamp-1
+        else:
+            return [], None
 
     def _feed_articles(self, channel_id, timestamp, feed_count):
         """
@@ -351,7 +379,7 @@ class ArticleListResourceV1D1(Resource):
             # article = cache_article.ArticleInfoCache(feed.article_id).get()
             article = cache_article.ArticleInfoCache(feed).get()
             if article:
-                article['pubdate'] = feed_time
+                # article['pubdate'] = feed_time
                 # article['trace'] = {
                 #     'click': feed.params.click,
                 #     'collect': feed.params.collect,
