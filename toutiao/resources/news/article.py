@@ -276,6 +276,9 @@ class ArticleListResourceV1D1(Resource):
         else:
             page = int(page)
 
+        current_app.logger.info('user_id={}'.format(user_id))
+        current_app.logger.info('page={}'.format(page))
+
         per_page = feed_count
         offset = (page - 1) * per_page
 
