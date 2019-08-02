@@ -272,7 +272,7 @@ class ArticleListResourceV1D1(Resource):
             else:
                 page = int(max_page[0][1]) + 1
             r.zadd(key, page, timestamp)
-            r.expire(key, 300)
+            r.expire(key, 100)
         else:
             page = int(page)
 
@@ -296,13 +296,13 @@ class ArticleListResourceV1D1(Resource):
             exclude_articles = [aid for aid, att in attitudes.items() if att == Attitude.ATTITUDE.DISLIKE]
             current_app.logger.info('exclude_articles={}'.format(exclude_articles))
             if exclude_articles:
-                articles_query.filter(Article.id.notin_(exclude_articles))
+                articles_query = articles_query.filter(Article.id.notin_(exclude_articles))
 
             relations = cache_user.UserRelationshipCache(g.user_id).get()
             blacklist_users = [uid for uid, rel in relations.items() if rel == Relation.RELATION.BLACKLIST]
             current_app.logger.info('blacklist_users={}'.format(blacklist_users))
             if blacklist_users:
-                articles_query.filter(Article.user_id.notin_(blacklist_users))
+                articles_query = articles_query.filter(Article.user_id.notin_(blacklist_users))
 
         articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
         current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
