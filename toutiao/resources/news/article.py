@@ -276,8 +276,7 @@ class ArticleListResourceV1D1(Resource):
         else:
             page = int(page)
 
-        current_app.logger.info('user_id={}'.format(user_id))
-        current_app.logger.info('page={}'.format(page))
+        g.page = page
 
         per_page = feed_count
         offset = (page - 1) * per_page
@@ -301,7 +300,6 @@ class ArticleListResourceV1D1(Resource):
                 articles_query.filter(Article.user_id.notin_(blacklist_users))
 
         articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
-        current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
         if articles:
             return [article.id for article in articles], timestamp-100
         else:
@@ -392,7 +390,7 @@ class ArticleListResourceV1D1(Resource):
                 # }
                 results.append(article)
 
-        return {'pre_timestamp': pre_timestamp, 'results': results}
+        return {'pre_timestamp': pre_timestamp, 'results': results, 'page': g.page}
 
 
 class UserArticleListResource(Resource):
