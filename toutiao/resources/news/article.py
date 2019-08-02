@@ -287,25 +287,25 @@ class ArticleListResourceV1D1(Resource):
         else:
             articles_query = articles_query.filter_by(channel_id=channel_id, status=Article.STATUS.APPROVED)
 
-        current_app.logger.info('page={}'.format(page))
-        current_app.logger.info('user_id={}'.format(user_id))
+        # current_app.logger.info('page={}'.format(page))
+        # current_app.logger.info('user_id={}'.format(user_id))
 
         if g.user_id:
             # 过滤掉用户不喜欢和拉黑的文章
             attitudes = cache_user.UserArticleAttitudeCache(g.user_id).get_all()
             exclude_articles = [aid for aid, att in attitudes.items() if att == Attitude.ATTITUDE.DISLIKE]
-            current_app.logger.info('exclude_articles={}'.format(exclude_articles))
+            # current_app.logger.info('exclude_articles={}'.format(exclude_articles))
             if exclude_articles:
                 articles_query = articles_query.filter(Article.id.notin_(exclude_articles))
 
             relations = cache_user.UserRelationshipCache(g.user_id).get()
             blacklist_users = [uid for uid, rel in relations.items() if rel == Relation.RELATION.BLACKLIST]
-            current_app.logger.info('blacklist_users={}'.format(blacklist_users))
+            # current_app.logger.info('blacklist_users={}'.format(blacklist_users))
             if blacklist_users:
                 articles_query = articles_query.filter(Article.user_id.notin_(blacklist_users))
 
         articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
-        current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
+        # current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
         if articles:
             return [article.id for article in articles], timestamp-100
         else:
