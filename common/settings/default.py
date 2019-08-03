@@ -95,6 +95,9 @@ class DefaultConfig(object):
         '172.17.0.134:9092'
     ]
 
+    # 图灵机器人
+    TULING_APIKEY = ''
+
 
 class CeleryConfig(object):
     """

@@ -9,6 +9,7 @@ from im.common import get_config, create_logger
 
 sio = socketio.Server()
 rpc_chat = None
+config = None
 
 
 def run(port):
@@ -17,6 +18,7 @@ def run(port):
     :param port: 端口
     :return:
     """
+    global config
     config = get_config()
     log = create_logger(config)
 
