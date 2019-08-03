@@ -68,7 +68,7 @@ def on_message(sid, data):
 
     # 调用图灵机器人
     user_message = data.get('msg', '')
-    if not user_message:
+    if user_message:
         try:
             msg = chatbot.get_chat_response(user_id, user_message, config, logger)
         except Exception as e:
