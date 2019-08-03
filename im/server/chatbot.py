@@ -74,7 +74,8 @@ def on_message(sid, data):
         except Exception as e:
             logger.error(e)
             msg = '抱歉我比较忙，暂时不能回答您，只能告诉您当前的时间是{}'.format(dt.strftime(dt.now(), '%Y年%m月%d日%H:%M:%S'))
-            timestamp = int(time.time())
+
+        timestamp = int(time.time())
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
 
 
