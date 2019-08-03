@@ -22,7 +22,7 @@ def get_chat_response(user_id, text, config, logger):
     }
 
     req = request.Request(API,
-                          data=json.dumps(req_data),
+                          data=json.dumps(req_data).encode(),
                           headers={'Content-Type': 'application/json'},
                           method='POST')
     resp = request.urlopen(req, timeout=180)
