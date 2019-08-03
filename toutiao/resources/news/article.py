@@ -260,7 +260,7 @@ class ArticleListResourceV1D1(Resource):
         if g.user_id is not None:
             user_id = g.user_id
         else:
-            user_id = request.remote_addr
+            user_id = request.headers.get('X-Real-IP', request.remote_addr)
         r = current_app.redis_cluster
         key = 'user:{}:reco'.format(user_id)
         page = r.zscore(key, timestamp)
