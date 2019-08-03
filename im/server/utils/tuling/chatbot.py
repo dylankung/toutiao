@@ -16,7 +16,7 @@ def get_chat_response(user_id, text, config, logger):
             },
         },
         "userInfo": {
-            "apiKey": config.get("TULING_APIKEY"),
+            "apiKey": config.TULING_APIKEY,
             "userId": str(user_id)
         }
     }
