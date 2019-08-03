@@ -69,11 +69,14 @@ def on_message(sid, data):
     # 调用图灵机器人
     user_message = data.get('msg', '')
     if user_message:
-        try:
-            msg = chatbot.get_chat_response(user_id, user_message, config, logger)
-        except Exception as e:
-            logger.error(e)
-            msg = '抱歉我比较忙，暂时不能回答您，只能告诉您当前的时间是{}'.format(dt.strftime(dt.now(), '%Y年%m月%d日%H:%M:%S'))
+        if user_message == '你好,小智机器人':
+            msg = '你好呀～～'
+        else:
+            try:
+                msg = chatbot.get_chat_response(user_id, user_message, config, logger)
+            except Exception as e:
+                logger.error(e)
+                msg = '抱歉我比较忙，暂时不能回答您，只能告诉您当前的时间是{}'.format(dt.strftime(dt.now(), '%Y年%m月%d日%H:%M:%S'))
 
         timestamp = int(time.time())
         sio.send({'msg': msg, 'timestamp': timestamp}, room=sid)
