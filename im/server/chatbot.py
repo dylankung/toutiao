@@ -22,7 +22,7 @@ def on_message(sid, data):
     rooms = sio.rooms(sid)
     # assert len(rooms) == 2
 
-    user_id = ''
+    user_id = sid
     for room in rooms:
         if room == sid:
             continue
