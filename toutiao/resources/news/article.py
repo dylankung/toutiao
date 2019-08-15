@@ -253,6 +253,9 @@ class ArticleListResourceV1D1(Resource):
     PSEUDO_TIMESTAMP_FIRST = 1556789000001
     PSEUDO_TIMESTAMP_MAX = 1556789999999
 
+    TRACE_PARAM = '{{"actionTime":"{action_time}","readTime":"","channelId":{channel_id},"param":{{"action":"{action}",' \
+                  ' "userId": "{user_id}", "articleId": "{article_id}", "algorithmCombine": "C2"}}}}'
+
     def _pseudo_feed_articles(self, channel_id, timestamp, feed_count):
         """
         获取推荐的文章（伪推荐)
@@ -311,7 +314,40 @@ class ArticleListResourceV1D1(Resource):
         articles = articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page).all()
         # current_app.logger.info(articles_query.order_by(Article.id.desc()).offset(offset).limit(per_page))
         if articles:
-            return [article.id for article in articles], timestamp-100
+            articles_with_trace = []
+            for article in articles:
+                article.article_id = article.id
+                action_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                article.click_param = self.TRACE_PARAM.format(
+                    action_time=action_time,
+                    channel_id=channel_id,
+                    action='click',
+                    user_id=user_id,
+                    article_id=article.id
+                )
+                article.collect_param = self.TRACE_PARAM.format(
+                    action_time=action_time,
+                    channel_id=channel_id,
+                    action='collect',
+                    user_id=user_id,
+                    article_id=article.id
+                )
+                article.share_param = self.TRACE_PARAM.format(
+                    action_time=action_time,
+                    channel_id=channel_id,
+                    action='share',
+                    user_id=user_id,
+                    article_id=article.id
+                )
+                article.read_param = self.TRACE_PARAM.format(
+                    action_time=action_time,
+                    channel_id=channel_id,
+                    action='read',
+                    user_id=user_id,
+                    article_id=article.id
+                )
+                articles_with_trace.append(article)
+            return articles_with_trace, timestamp-100
         else:
             return [], None
 
@@ -388,16 +424,25 @@ class ArticleListResourceV1D1(Resource):
 
         # 查询文章
         for feed in feeds:
-            # article = cache_article.ArticleInfoCache(feed.article_id).get()
-            article = cache_article.ArticleInfoCache(feed).get()
+            article = cache_article.ArticleInfoCache(feed.article_id).get()
             if article:
                 # article['pubdate'] = feed_time
+
+                # from reco system rpc call
                 # article['trace'] = {
                 #     'click': feed.params.click,
                 #     'collect': feed.params.collect,
                 #     'share': feed.params.share,
                 #     'read': feed.params.read
                 # }
+
+                # from pseudo reco call
+                article['trace'] = {
+                    'click': feed.click_param,
+                    'collect': feed.collect_param,
+                    'share': feed.share_param,
+                    'read': feed.read_param
+                }
                 results.append(article)
 
         return {'pre_timestamp': pre_timestamp, 'results': results, 'page': g.page}
