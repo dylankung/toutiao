@@ -35,14 +35,18 @@ class ArticleResource(Resource):
         :param article_id:
         :return:
         """
-        req = user_reco_pb2.Article()
-        req.article_id = article_id
-        req.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
-
-        stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
-        resp = stub.article_recommend(req)
-
-        return resp.article_id
+        # TODO open when recommend subsystem recovered
+        # ***************************************************
+        # req = user_reco_pb2.Article()
+        # req.article_id = article_id
+        # req.article_num = constants.RECOMMENDED_SIMILAR_ARTICLE_MAX
+        #
+        # stub = user_reco_pb2_grpc.UserRecommendStub(current_app.rpc_reco)
+        # resp = stub.article_recommend(req)
+        #
+        # return resp.article_id
+        # ****************************************************
+        return []
 
     def get(self, article_id):
         """
