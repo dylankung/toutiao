@@ -57,7 +57,7 @@ class FollowingListResource(Resource):
         # 发送关注通知
         _user = cache_user.UserProfileCache(g.user_id).get()
         _data = {
-            'user_id': g.user_id,
+            'user_id': str(g.user_id),
             'user_name': _user['name'],
             'user_photo': _user['photo'],
             'timestamp': int(time.time())

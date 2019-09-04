@@ -60,10 +60,10 @@ class ArticleLikingListResource(Resource):
         _user = cache_user.UserProfileCache(g.user_id).get()
         _article = cache_article.ArticleInfoCache(target).get()
         _data = {
-            'user_id': g.user_id,
+            'user_id': str(g.user_id),
             'user_name': _user['name'],
             'user_photo': _user['photo'],
-            'art_id': target,
+            'art_id': str(target),
             'art_title': _article['title'],
             'timestamp': int(time.time())
         }

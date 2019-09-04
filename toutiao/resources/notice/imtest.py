@@ -20,7 +20,7 @@ class IMTestResource(Resource):
             # 发送关注通知
             _user = cache_user.UserProfileCache(user_id).get()
             _data = {
-                'user_id': user_id,
+                'user_id': str(user_id),
                 'user_name': _user['name'],
                 'user_photo': _user['photo'],
                 'timestamp': int(time.time())
@@ -35,10 +35,10 @@ class IMTestResource(Resource):
             _user = cache_user.UserProfileCache(user_id).get()
             _article = cache_article.ArticleInfoCache(target).get()
             _data = {
-                'user_id': user_id,
+                'user_id': str(user_id),
                 'user_name': _user['name'],
                 'user_photo': _user['photo'],
-                'art_id': target,
+                'art_id': str(target),
                 'art_title': _article['title'],
                 'timestamp': int(time.time())
             }
