@@ -81,6 +81,8 @@ class CollectionListResource(Resource):
         user_article_attitude_cache = cache_user.UserArticleAttitudeCache(g.user_id)
         for article_id in collections:
             article = cache_article.ArticleInfoCache(article_id).get()
+            if not article:
+                continue
             article['is_liking'] = user_article_attitude_cache.determine_liking_article(article_id)
             results.append(article)
 
